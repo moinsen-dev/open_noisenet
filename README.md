@@ -1,5 +1,13 @@
 # Open NoiseNet 🔊
 
+<p align="center">
+  <img src="noisenet-icon.png" alt="Open NoiseNet Icon" width="200"/>
+</p>
+
+<p align="center">
+  <img src="noisenet-wallpaper.png" alt="Open NoiseNet Wallpaper" width="800"/>
+</p>
+
 ## The Silent Crisis: Noise Pollution is Killing Us
 
 **Did you know that noise pollution is the second-largest environmental health risk after air pollution?** Yet unlike air quality, noise levels remain largely unmeasured, unregulated, and invisible to most communities.

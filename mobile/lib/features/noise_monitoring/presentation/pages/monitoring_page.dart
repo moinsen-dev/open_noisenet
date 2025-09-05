@@ -171,14 +171,6 @@ class NoiseMonitoringPage extends StatelessWidget {
     );
   }
   
-  String _getNoiseLevelDescription(double level) {
-    if (level < 30) return 'Very Quiet';
-    if (level < 45) return 'Quiet';
-    if (level < 55) return 'Moderate';
-    if (level < 65) return 'Loud';
-    if (level < 75) return 'Very Loud';
-    return 'Extremely Loud';
-  }
   
   Widget _buildStatusRow(String label, String value) {
     return Padding(

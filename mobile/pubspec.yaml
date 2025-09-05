@@ -48,6 +48,7 @@ dev_dependencies:
   
   # Code Generation
   json_serializable: ^6.7.1
+  build_runner: ^2.4.7
 
   # Code Quality
   flutter_lints: ^3.0.1

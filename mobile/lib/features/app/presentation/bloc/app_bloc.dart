@@ -1,10 +1,14 @@
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../../services/settings_service.dart';
+
 part 'app_event.dart';
 part 'app_state.dart';
 
 class AppBloc extends Bloc<AppEvent, AppState> {
+  final SettingsService _settingsService = SettingsService();
+
   AppBloc() : super(const AppInitial()) {
     on<AppStarted>(_onAppStarted);
     on<AppThemeChanged>(_onThemeChanged);
@@ -15,16 +19,18 @@ class AppBloc extends Bloc<AppEvent, AppState> {
     try {
       emit(const AppLoading());
       
-      // Simulate initialization tasks
-      await Future<void>.delayed(const Duration(seconds: 2));
+      // Initialize settings service
+      await _settingsService.initialize();
+      
+      // Load app preferences from settings
+      final isDarkMode = _settingsService.isDarkMode;
       
       // TODO: Check if user is authenticated
-      // TODO: Load app preferences
-      // TODO: Initialize services
+      // TODO: Initialize other services
       
-      emit(const AppLoaded(
+      emit(AppLoaded(
         isAuthenticated: false,
-        isDarkMode: false,
+        isDarkMode: isDarkMode,
         language: 'en',
       ));
     } catch (e) {
@@ -34,8 +40,15 @@ class AppBloc extends Bloc<AppEvent, AppState> {
 
   Future<void> _onThemeChanged(AppThemeChanged event, Emitter<AppState> emit) async {
     if (state is AppLoaded) {
-      final currentState = state as AppLoaded;
-      emit(currentState.copyWith(isDarkMode: event.isDarkMode));
+      try {
+        // Save theme preference to settings
+        await _settingsService.setIsDarkMode(event.isDarkMode);
+        
+        final currentState = state as AppLoaded;
+        emit(currentState.copyWith(isDarkMode: event.isDarkMode));
+      } catch (e) {
+        emit(AppError('Failed to save theme preference: $e'));
+      }
     }
   }
 

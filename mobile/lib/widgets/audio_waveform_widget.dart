@@ -1,6 +1,7 @@
-import 'package:flutter/material.dart';
-import 'package:fl_chart/fl_chart.dart';
 import 'dart:math';
+
+import 'package:fl_chart/fl_chart.dart';
+import 'package:flutter/material.dart';
 
 import '../services/audio_capture_service.dart';
 
@@ -25,15 +26,15 @@ class _AudioWaveformWidgetState extends State<AudioWaveformWidget> {
   final int _maxDataPoints = 100; // Show last 100 readings
   double _currentSpl = 0.0;
   double _peakHold = 0.0;
-  
+
   @override
   void initState() {
     super.initState();
-    
+
     widget.splStream.listen((spl) {
       setState(() {
         _currentSpl = spl;
-        
+
         // Update peak hold
         if (spl > _peakHold) {
           _peakHold = spl;
@@ -41,7 +42,7 @@ class _AudioWaveformWidgetState extends State<AudioWaveformWidget> {
           // Slowly decay peak hold
           _peakHold = max(_peakHold - 0.5, spl);
         }
-        
+
         // Add to waveform data
         _splValues.add(spl);
         if (_splValues.length > _maxDataPoints) {
@@ -80,11 +81,12 @@ class _AudioWaveformWidgetState extends State<AudioWaveformWidget> {
                 Column(
                   children: [
                     Text(
-                      '${_currentSpl.toStringAsFixed(1)}',
-                      style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                        color: _getColorForLevel(_currentSpl),
-                        fontWeight: FontWeight.bold,
-                      ),
+                      _currentSpl.toStringAsFixed(1),
+                      style:
+                          Theme.of(context).textTheme.headlineMedium?.copyWith(
+                                color: _getColorForLevel(_currentSpl),
+                                fontWeight: FontWeight.bold,
+                              ),
                     ),
                     const Text('dB SPL'),
                   ],
@@ -92,35 +94,36 @@ class _AudioWaveformWidgetState extends State<AudioWaveformWidget> {
                 Column(
                   children: [
                     Text(
-                      '${_peakHold.toStringAsFixed(1)}',
+                      _peakHold.toStringAsFixed(1),
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        color: _getColorForLevel(_peakHold).withValues(alpha: 0.7),
-                      ),
+                            color: _getColorForLevel(_peakHold)
+                                .withValues(alpha: 0.7),
+                          ),
                     ),
                     const Text('Peak'),
                   ],
                 ),
               ],
             ),
-            
+
             const SizedBox(height: 16),
-            
+
             // Peak Meter (Horizontal Bar)
             SizedBox(
               height: 40,
               width: widget.width,
               child: _buildPeakMeter(),
             ),
-            
+
             const SizedBox(height: 16),
-            
+
             // Waveform Chart
             SizedBox(
               height: widget.height,
               width: widget.width,
               child: _buildWaveformChart(),
             ),
-            
+
             // Level indicators
             Padding(
               padding: const EdgeInsets.only(top: 8.0),
@@ -128,9 +131,11 @@ class _AudioWaveformWidgetState extends State<AudioWaveformWidget> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   _buildLevelIndicator('Quiet', Colors.green, NoiseLevel.quiet),
-                  _buildLevelIndicator('Moderate', Colors.yellow, NoiseLevel.moderate),
+                  _buildLevelIndicator(
+                      'Moderate', Colors.yellow, NoiseLevel.moderate),
                   _buildLevelIndicator('Loud', Colors.orange, NoiseLevel.loud),
-                  _buildLevelIndicator('Danger', Colors.red, NoiseLevel.dangerous),
+                  _buildLevelIndicator(
+                      'Danger', Colors.red, NoiseLevel.dangerous),
                 ],
               ),
             ),
@@ -163,10 +168,12 @@ class _AudioWaveformWidgetState extends State<AudioWaveformWidget> {
               ),
             ),
           ),
-          
+
           // Current level indicator
           Positioned(
-            left: (_currentSpl.clamp(20.0, 100.0) - 20.0) / 80.0 * widget.width - 2,
+            left:
+                (_currentSpl.clamp(20.0, 100.0) - 20.0) / 80.0 * widget.width -
+                    2,
             child: Container(
               width: 4,
               height: 40,
@@ -179,10 +186,11 @@ class _AudioWaveformWidgetState extends State<AudioWaveformWidget> {
               ),
             ),
           ),
-          
+
           // Peak hold indicator
           Positioned(
-            left: (_peakHold.clamp(20.0, 100.0) - 20.0) / 80.0 * widget.width - 1,
+            left:
+                (_peakHold.clamp(20.0, 100.0) - 20.0) / 80.0 * widget.width - 1,
             child: Container(
               width: 2,
               height: 40,
@@ -232,8 +240,9 @@ class _AudioWaveformWidgetState extends State<AudioWaveformWidget> {
   }
 
   Widget _buildLevelIndicator(String label, Color color, NoiseLevel level) {
-    final isActive = AudioCaptureService.getNoiseLevelCategory(_currentSpl) == level;
-    
+    final isActive =
+        AudioCaptureService.getNoiseLevelCategory(_currentSpl) == level;
+
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [

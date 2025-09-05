@@ -14,22 +14,26 @@ class AudioCaptureService {
 
   NoiseMeter? _noiseMeter;
   StreamSubscription<NoiseReading>? _noiseSubscription;
-  
-  final StreamController<double> _splStreamController = StreamController<double>.broadcast();
-  final StreamController<NoiseReading> _noiseReadingController = StreamController<NoiseReading>.broadcast();
-  
+
+  final StreamController<double> _splStreamController =
+      StreamController<double>.broadcast();
+  final StreamController<NoiseReading> _noiseReadingController =
+      StreamController<NoiseReading>.broadcast();
+
   Stream<double> get splStream => _splStreamController.stream;
   Stream<NoiseReading> get noiseReadingStream => _noiseReadingController.stream;
-  
+
   bool _isCapturing = false;
   bool get isCapturing => _isCapturing;
 
   // Calibration offset (device-specific, can be adjusted)
   double _calibrationOffset = 0.0;
   double get calibrationOffset => _calibrationOffset;
-  
+
   // A-weighting compensation (approximate)
-  static const double _aWeightingCompensation = 10.0; // dB
+  // This helps match readings with typical sound level meters and Apple Watch
+  // Reduced from 10.0 to better match reference devices
+  static const double _aWeightingCompensation = 5.0; // dB
 
   /// Check if microphone permission is granted
   Future<bool> hasPermission() async {
@@ -67,7 +71,7 @@ class AudioCaptureService {
       }
 
       _noiseMeter = NoiseMeter();
-      
+
       _noiseSubscription = _noiseMeter!.noise.listen(
         (NoiseReading reading) {
           _handleNoiseReading(reading);
@@ -82,7 +86,6 @@ class AudioCaptureService {
       _isCapturing = true;
       print('✅ AudioCaptureService: Started capturing audio');
       return true;
-      
     } catch (e) {
       print('❌ AudioCaptureService: Failed to start capture - $e');
       _isCapturing = false;
@@ -106,20 +109,20 @@ class AudioCaptureService {
   /// Handle incoming noise readings
   void _handleNoiseReading(NoiseReading reading) {
     // Apply calibration and A-weighting compensation
-    final calibratedMeanDb = reading.meanDecibel + _calibrationOffset + _aWeightingCompensation;
-    final calibratedMaxDb = reading.maxDecibel + _calibrationOffset + _aWeightingCompensation;
-    
+    // This helps match readings with typical sound level meters and Apple Watch
+    final calibratedMeanDb =
+        reading.meanDecibel + _calibrationOffset + _aWeightingCompensation;
+
     // Ensure values are within realistic range (20-120 dB)
     final clampedMeanDb = calibratedMeanDb.clamp(20.0, 120.0);
-    final clampedMaxDb = calibratedMaxDb.clamp(20.0, 120.0);
-    
+
     // Create calibrated reading - NoiseReading constructor may not accept parameters
     // We'll emit the original reading with calibration applied separately
     final calibratedReading = reading;
-    
+
     // Emit the calibrated mean SPL for simple display
     _splStreamController.add(clampedMeanDb);
-    
+
     // Emit full reading for detailed analysis
     _noiseReadingController.add(calibratedReading);
   }
@@ -129,9 +132,11 @@ class AudioCaptureService {
   /// energy values over the specified duration
   double calculateLeq(List<double> splValues) {
     if (splValues.isEmpty) return 0.0;
-    
+
     // Convert dB to energy (power), calculate mean, convert back to dB
-    final energySum = splValues.map((db) => pow(10, db / 10)).fold(0.0, (sum, energy) => sum + energy);
+    final energySum = splValues
+        .map((db) => pow(10, db / 10))
+        .fold(0.0, (sum, energy) => sum + energy);
     final meanEnergy = energySum / splValues.length;
     return 10 * log(meanEnergy) / ln10;
   }
@@ -139,7 +144,8 @@ class AudioCaptureService {
   /// Set calibration offset for this device
   void setCalibrationOffset(double offset) {
     _calibrationOffset = offset;
-    print('🎛️ AudioCaptureService: Calibration offset set to ${offset.toStringAsFixed(1)} dB');
+    print(
+        '🎛️ AudioCaptureService: Calibration offset set to ${offset.toStringAsFixed(1)} dB');
   }
 
   /// Get color based on SPL level
@@ -160,8 +166,8 @@ class AudioCaptureService {
 
 /// Noise level categories for UI color coding
 enum NoiseLevel {
-  quiet,    // < 50 dB - Green
-  moderate, // 50-65 dB - Yellow  
-  loud,     // 65-80 dB - Orange
+  quiet, // < 50 dB - Green
+  moderate, // 50-65 dB - Yellow
+  loud, // 65-80 dB - Orange
   dangerous // > 80 dB - Red
 }

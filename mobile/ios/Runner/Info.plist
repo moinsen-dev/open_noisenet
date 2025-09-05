@@ -52,9 +52,16 @@
 	
 	<!-- Location permissions for device geolocation -->
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>OpenNoiseNet needs your location to associate noise measurements with geographic coordinates for mapping purposes.</string>
+	<string>OpenNoiseNet needs your location to tag noise measurements with geographic coordinates, helping create accurate community noise maps.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-	<string>OpenNoiseNet needs your location to associate noise measurements with geographic coordinates for mapping purposes.</string>
+	<string>OpenNoiseNet needs your location to tag noise measurements with geographic coordinates, helping create accurate community noise maps.</string>
+	
+	<!-- Required for iOS 14+ location accuracy -->
+	<key>NSLocationTemporaryUsageDescriptionDictionary</key>
+	<dict>
+		<key>NoiseMapping</key>
+		<string>We need precise location to accurately map noise levels in your area.</string>
+	</dict>
 	
 	<!-- Background audio mode for continuous monitoring -->
 	<key>UIBackgroundModes</key>

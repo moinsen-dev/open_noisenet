@@ -3,10 +3,10 @@
   "version": "1.0.0",
   "description": "OpenNoiseNet - Environmental Noise Monitoring Platform",
   "scripts": {
-    "install": "cd landing && npm install -g pnpm && pnpm install --frozen-lockfile",
-    "build": "cd landing && pnpm build",
-    "start": "cd landing && pnpm start",
-    "dev": "cd landing && pnpm dev"
+    "install": "cd landing && npm install",
+    "build": "cd landing && npm run build", 
+    "start": "cd landing && npm start",
+    "dev": "cd landing && npm run dev"
   },
   "engines": {
     "node": ">=18.0.0"

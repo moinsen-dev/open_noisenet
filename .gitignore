@@ -90,3 +90,4 @@ celerybeat.pid
 # Local configuration overrides
 docker-compose.override.yml
 docker-compose.local.yml
+mobile/ios/build/

@@ -1,13 +1,14 @@
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:get_it/get_it.dart';
 
-import '../../../../services/settings_service.dart';
+import '../../../../services/sqlite_preferences_service.dart';
 
 part 'app_event.dart';
 part 'app_state.dart';
 
 class AppBloc extends Bloc<AppEvent, AppState> {
-  final SettingsService _settingsService = SettingsService();
+  final SQLitePreferencesService _preferencesService = GetIt.instance<SQLitePreferencesService>();
 
   AppBloc() : super(const AppInitial()) {
     on<AppStarted>(_onAppStarted);
@@ -19,11 +20,10 @@ class AppBloc extends Bloc<AppEvent, AppState> {
     try {
       emit(const AppLoading());
       
-      // Initialize settings service
-      await _settingsService.initialize();
+      // SQLite preferences service is already initialized in DI
       
-      // Load app preferences from settings
-      final isDarkMode = _settingsService.isDarkMode;
+      // Load app preferences from SQLite
+      final isDarkMode = await _preferencesService.getIsDarkMode();
       
       // TODO: Check if user is authenticated
       // TODO: Initialize other services
@@ -41,8 +41,8 @@ class AppBloc extends Bloc<AppEvent, AppState> {
   Future<void> _onThemeChanged(AppThemeChanged event, Emitter<AppState> emit) async {
     if (state is AppLoaded) {
       try {
-        // Save theme preference to settings
-        await _settingsService.setIsDarkMode(event.isDarkMode);
+        // Save theme preference to SQLite
+        await _preferencesService.setIsDarkMode(event.isDarkMode);
         
         final currentState = state as AppLoaded;
         emit(currentState.copyWith(isDarkMode: event.isDarkMode));

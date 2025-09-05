@@ -13,7 +13,7 @@ class SplashPage extends StatelessWidget {
       listener: (context, state) {
         if (state is AppLoaded) {
           if (state.isAuthenticated) {
-            context.go('/monitoring');
+            context.go('/home');
           } else {
             context.go('/setup');
           }

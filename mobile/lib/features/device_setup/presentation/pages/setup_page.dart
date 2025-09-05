@@ -36,7 +36,7 @@ class DeviceSetupPage extends StatelessWidget {
             ElevatedButton(
               onPressed: () {
                 // TODO: Start setup process
-                context.go('/monitoring');
+                context.go('/home');
               },
               child: const Text('Start Setup'),
             ),

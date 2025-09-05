@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 
 import 'package:fl_chart/fl_chart.dart';
@@ -26,12 +27,17 @@ class _AudioWaveformWidgetState extends State<AudioWaveformWidget> {
   final int _maxDataPoints = 100; // Show last 100 readings
   double _currentSpl = 0.0;
   double _peakHold = 0.0;
+  
+  StreamSubscription<double>? _streamSubscription;
 
   @override
   void initState() {
     super.initState();
 
-    widget.splStream.listen((spl) {
+    _streamSubscription = widget.splStream.listen((spl) {
+      // Check if widget is still mounted before calling setState
+      if (!mounted) return;
+      
       setState(() {
         _currentSpl = spl;
 
@@ -50,6 +56,12 @@ class _AudioWaveformWidgetState extends State<AudioWaveformWidget> {
         }
       });
     });
+  }
+
+  @override
+  void dispose() {
+    _streamSubscription?.cancel();
+    super.dispose();
   }
 
   Color _getColorForLevel(double spl) {

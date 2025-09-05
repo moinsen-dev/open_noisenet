@@ -6,6 +6,8 @@ import 'dart:io';
 import 'location_service.dart';
 import '../features/noise_monitoring/data/models/noise_event_model.dart';
 import '../features/noise_monitoring/data/repositories/event_repository.dart';
+import '../core/database/models/noise_measurement.dart';
+import '../core/database/dao/noise_measurement_dao.dart';
 import 'package:uuid/uuid.dart';
 
 class NoiseEvent {
@@ -51,6 +53,7 @@ class EventDetectionService {
   // Services
   final LocationService _locationService = LocationService();
   final Uuid _uuid = const Uuid();
+  final NoiseMeasurementDao _measurementDao = NoiseMeasurementDao();
 
   // Configuration (will be moved to settings later)
   double _thresholdDb = 60.0;
@@ -58,6 +61,11 @@ class EventDetectionService {
 
   // Rolling window for SPL values
   final Queue<_TimestampedSample> _rollingWindow = Queue<_TimestampedSample>();
+
+  // Minute aggregation
+  final Queue<_TimestampedSample> _minuteBuffer = Queue<_TimestampedSample>();
+  DateTime? _lastMinuteProcessed;
+  Timer? _minuteAggregationTimer;
 
   // Event tracking
   NoiseEvent? _currentEvent;
@@ -83,11 +91,17 @@ class EventDetectionService {
 
     _isMonitoring = true;
     _rollingWindow.clear();
+    _minuteBuffer.clear();
     _currentEvent = null;
+    _lastMinuteProcessed = null;
 
     // Start cleanup timer to remove old samples
     _cleanupTimer = Timer.periodic(
         const Duration(seconds: 30), (_) => _cleanupOldSamples());
+
+    // Start minute aggregation timer
+    _minuteAggregationTimer = Timer.periodic(
+        const Duration(seconds: 10), (_) => _processMinuteAggregation());
 
     print(
         '🎯 EventDetectionService: Started monitoring with threshold $_thresholdDb dB');
@@ -100,6 +114,11 @@ class EventDetectionService {
     _isMonitoring = false;
     _cleanupTimer?.cancel();
     _cleanupTimer = null;
+    _minuteAggregationTimer?.cancel();
+    _minuteAggregationTimer = null;
+
+    // Process any remaining minute data
+    _processMinuteAggregation();
 
     // Finalize any current event
     if (_currentEvent != null) {
@@ -107,6 +126,7 @@ class EventDetectionService {
     }
 
     _rollingWindow.clear();
+    _minuteBuffer.clear();
     print('🛑 EventDetectionService: Stopped monitoring');
   }
 
@@ -116,6 +136,9 @@ class EventDetectionService {
 
     final now = DateTime.now();
     _rollingWindow.add(_TimestampedSample(now, splDb));
+    
+    // Also add to minute buffer for aggregation
+    _minuteBuffer.add(_TimestampedSample(now, splDb));
 
     // Clean up old samples outside the window
     _cleanupOldSamples();
@@ -276,6 +299,94 @@ class EventDetectionService {
     }
   }
 
+  /// Process minute-level aggregation of samples
+  void _processMinuteAggregation() async {
+    if (_minuteBuffer.isEmpty) return;
+
+    final now = DateTime.now();
+    final currentMinute = DateTime(now.year, now.month, now.day, now.hour, now.minute);
+    
+    // Check if we have a complete minute to process
+    if (_lastMinuteProcessed != null && currentMinute == _lastMinuteProcessed) {
+      return; // Already processed this minute
+    }
+
+    // Get samples for the previous minute
+    final previousMinute = currentMinute.subtract(const Duration(minutes: 1));
+    final minuteStart = previousMinute.millisecondsSinceEpoch;
+    final minuteEnd = currentMinute.millisecondsSinceEpoch;
+
+    // Filter samples for the previous minute
+    final minuteSamples = _minuteBuffer
+        .where((sample) => 
+            sample.timestamp.millisecondsSinceEpoch >= minuteStart &&
+            sample.timestamp.millisecondsSinceEpoch < minuteEnd)
+        .map((sample) => sample.splDb)
+        .toList();
+
+    if (minuteSamples.isNotEmpty) {
+      // Calculate minute statistics
+      final measurement = _createNoiseMeasurement(previousMinute, minuteSamples);
+      
+      // Store in database
+      try {
+        await _measurementDao.insert(measurement);
+        print('📊 Stored minute measurement: ${measurement.toString()}');
+      } catch (e) {
+        print('❌ Failed to store minute measurement: $e');
+      }
+    }
+
+    // Clean up processed samples from buffer
+    _minuteBuffer.removeWhere((sample) => 
+        sample.timestamp.millisecondsSinceEpoch < minuteEnd);
+
+    _lastMinuteProcessed = currentMinute;
+  }
+
+  /// Create NoiseMeasurement from samples
+  NoiseMeasurement _createNoiseMeasurement(DateTime timestamp, List<double> samples) {
+    if (samples.isEmpty) {
+      throw ArgumentError('Cannot create measurement from empty samples');
+    }
+
+    // Sort samples for percentile calculations
+    final sortedSamples = List<double>.from(samples)..sort();
+    final count = sortedSamples.length;
+
+    // Calculate basic statistics
+    final maxDb = sortedSamples.last;
+    final minDb = sortedSamples.first;
+
+    // Calculate Leq (equivalent continuous sound level)
+    final energySum = samples
+        .map((db) => pow(10, db / 10))
+        .fold(0.0, (sum, energy) => sum + energy);
+    final averageEnergy = energySum / samples.length;
+    final leq = 10 * log(averageEnergy) / ln10;
+
+    // Calculate percentiles
+    final l10Index = ((count - 1) * 0.9).round(); // 90th percentile (loud events)
+    final l50Index = ((count - 1) * 0.5).round(); // 50th percentile (median)
+    final l90Index = ((count - 1) * 0.1).round(); // 10th percentile (background)
+
+    final l10Db = sortedSamples[l10Index];
+    final l50Db = sortedSamples[l50Index];
+    final l90Db = sortedSamples[l90Index];
+
+    return NoiseMeasurement(
+      timestamp: timestamp.millisecondsSinceEpoch ~/ 1000,
+      leqDb: leq,
+      lmaxDb: maxDb,
+      lminDb: minDb,
+      l10Db: l10Db,
+      l50Db: l50Db,
+      l90Db: l90Db,
+      samplesCount: count,
+      createdAt: DateTime.now().millisecondsSinceEpoch ~/ 1000,
+    );
+  }
+
   /// Get current window status
   Map<String, dynamic> getStatus() {
     final stats = _calculateWindowStats();
@@ -285,6 +396,8 @@ class EventDetectionService {
       'thresholdDb': _thresholdDb,
       'windowDurationMinutes': _windowDuration.inMinutes,
       'sampleCount': _rollingWindow.length,
+      'minuteBufferCount': _minuteBuffer.length,
+      'lastMinuteProcessed': _lastMinuteProcessed?.toIso8601String(),
       'currentAverageLeq': stats?.averageLeq.toStringAsFixed(1),
       'hasActiveEvent': _currentEvent != null,
       'activeEventDuration': _currentEvent?.duration.inSeconds,

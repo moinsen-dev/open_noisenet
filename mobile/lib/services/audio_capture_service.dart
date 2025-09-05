@@ -2,10 +2,12 @@ import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:get_it/get_it.dart';
 import 'package:noise_meter/noise_meter.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 import 'permission_dialog_service.dart';
+import 'sqlite_preferences_service.dart';
 
 class AudioCaptureService {
   static final AudioCaptureService _instance = AudioCaptureService._internal();
@@ -29,6 +31,8 @@ class AudioCaptureService {
   // Calibration offset (device-specific, can be adjusted)
   double _calibrationOffset = 0.0;
   double get calibrationOffset => _calibrationOffset;
+  
+  final SQLitePreferencesService _preferencesService = GetIt.instance<SQLitePreferencesService>();
 
   // A-weighting compensation (approximate)
   // This helps match readings with typical sound level meters and Apple Watch
@@ -74,13 +78,19 @@ class AudioCaptureService {
 
       _noiseSubscription = _noiseMeter!.noise.listen(
         (NoiseReading reading) {
-          _handleNoiseReading(reading);
+          try {
+            _handleNoiseReading(reading);
+          } catch (e) {
+            print('AudioCaptureService: Error handling noise reading - $e');
+          }
         },
         onError: (Object error) {
           print('AudioCaptureService error: $error');
-          _splStreamController.addError(error);
-          _noiseReadingController.addError(error);
+          // Don't propagate errors to prevent crashes
+          // _splStreamController.addError(error);
+          // _noiseReadingController.addError(error);
         },
+        cancelOnError: false, // Keep listening even if errors occur
       );
 
       _isCapturing = true;
@@ -108,23 +118,37 @@ class AudioCaptureService {
 
   /// Handle incoming noise readings
   void _handleNoiseReading(NoiseReading reading) {
-    // Apply calibration and A-weighting compensation
-    // This helps match readings with typical sound level meters and Apple Watch
-    final calibratedMeanDb =
-        reading.meanDecibel + _calibrationOffset + _aWeightingCompensation;
+    // Process readings immediately - StreamController is already thread-safe
+    _processNoiseReading(reading);
+  }
 
-    // Ensure values are within realistic range (20-120 dB)
-    final clampedMeanDb = calibratedMeanDb.clamp(20.0, 120.0);
+  /// Process noise reading on the main thread
+  void _processNoiseReading(NoiseReading reading) {
+    try {
+      // Apply calibration and A-weighting compensation
+      // This helps match readings with typical sound level meters and Apple Watch
+      final calibratedMeanDb =
+          reading.meanDecibel + _calibrationOffset + _aWeightingCompensation;
 
-    // Create calibrated reading - NoiseReading constructor may not accept parameters
-    // We'll emit the original reading with calibration applied separately
-    final calibratedReading = reading;
+      // Ensure values are within realistic range (20-120 dB)
+      final clampedMeanDb = calibratedMeanDb.clamp(20.0, 120.0);
 
-    // Emit the calibrated mean SPL for simple display
-    _splStreamController.add(clampedMeanDb);
+      // Create calibrated reading - NoiseReading constructor may not accept parameters
+      // We'll emit the original reading with calibration applied separately
+      final calibratedReading = reading;
 
-    // Emit full reading for detailed analysis
-    _noiseReadingController.add(calibratedReading);
+      // Safely emit the calibrated mean SPL for simple display
+      if (!_splStreamController.isClosed) {
+        _splStreamController.add(clampedMeanDb);
+      }
+
+      // Safely emit full reading for detailed analysis
+      if (!_noiseReadingController.isClosed) {
+        _noiseReadingController.add(calibratedReading);
+      }
+    } catch (e) {
+      debugPrint('AudioCaptureService: Error in _processNoiseReading - $e');
+    }
   }
 
   /// Calculate Leq (equivalent continuous sound level) over a time period
@@ -144,8 +168,22 @@ class AudioCaptureService {
   /// Set calibration offset for this device
   void setCalibrationOffset(double offset) {
     _calibrationOffset = offset;
-    print(
+    // Also save to SQLite preferences
+    _preferencesService.setCalibrationOffset(offset);
+    debugPrint(
         '🎛️ AudioCaptureService: Calibration offset set to ${offset.toStringAsFixed(1)} dB');
+  }
+
+  /// Load calibration offset from preferences on startup
+  Future<void> loadCalibrationSettings() async {
+    try {
+      _calibrationOffset = await _preferencesService.getCalibrationOffset();
+      debugPrint(
+          '🎛️ AudioCaptureService: Loaded calibration offset: ${_calibrationOffset.toStringAsFixed(1)} dB');
+    } catch (e) {
+      debugPrint('❌ AudioCaptureService: Failed to load calibration settings - $e');
+      _calibrationOffset = 0.0; // fallback to default
+    }
   }
 
   /// Get color based on SPL level

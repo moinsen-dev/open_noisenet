@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:equatable/equatable.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:get_it/get_it.dart';
 
 import '../../../../services/audio_capture_service.dart';
 
@@ -16,7 +17,7 @@ class MonitoringBloc extends Bloc<MonitoringEvent, MonitoringState> {
     on<UpdateNoiseLevel>(_onUpdateNoiseLevel);
   }
 
-  final AudioCaptureService _audioCaptureService = AudioCaptureService();
+  final AudioCaptureService _audioCaptureService = GetIt.instance<AudioCaptureService>();
   StreamSubscription<double>? _splSubscription;
 
   Future<void> _onStartMonitoring(

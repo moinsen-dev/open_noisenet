@@ -25,11 +25,15 @@ dependencies:
 
   # Database & Storage
   shared_preferences: ^2.2.2
+  sqflite: ^2.3.0
+  path_provider: ^2.1.1
 
   # Audio Processing & Permissions
-  permission_handler: ^12.0.1
+  permission_handler: ^11.3.1
   noise_meter: ^5.0.2
   audio_waveforms: ^1.0.5
+  flutter_sound: ^9.2.13
+  just_audio: ^0.9.40
 
   # Location & Maps
   geolocator: ^10.1.0
@@ -41,6 +45,10 @@ dependencies:
   # Utilities
   path: ^1.8.3
   uuid: ^4.1.0
+  
+  # Background Tasks & AI/ML
+  workmanager: ^0.5.2
+  tflite_flutter: ^0.10.4
 
 dev_dependencies:
   flutter_test:
@@ -60,6 +68,11 @@ flutter:
   # assets:
   #   - assets/images/
   #   - assets/icons/
+
+# Dependency overrides removed - switched to flutter_sound
+# dependency_overrides:
+#   record_platform_interface: ^1.0.2
+#   record_linux: any
 
 # Flutter configuration will be added later when needed
 # flutter_gen:

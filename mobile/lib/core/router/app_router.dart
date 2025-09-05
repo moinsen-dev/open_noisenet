@@ -4,8 +4,10 @@ import 'package:go_router/go_router.dart';
 import '../../features/app/presentation/pages/splash_page.dart';
 import '../../features/auth/presentation/pages/login_page.dart';
 import '../../features/device_setup/presentation/pages/setup_page.dart';
-import '../../features/noise_monitoring/presentation/pages/monitoring_page.dart';
+import '../../features/home/presentation/pages/home_page.dart';
 import '../../features/settings/presentation/pages/settings_page.dart';
+import '../../features/statistics/presentation/pages/statistics_page.dart';
+import '../../features/recordings/presentation/pages/recordings_page.dart';
 
 class AppRouter {
   static final GoRouter router = GoRouter(
@@ -32,11 +34,18 @@ class AppRouter {
         builder: (context, state) => const DeviceSetupPage(),
       ),
       
-      // Main Monitoring Screen
+      // Main Home Screen with Bottom Navigation
+      GoRoute(
+        path: '/home',
+        name: 'home',
+        builder: (context, state) => const HomePage(),
+      ),
+      
+      // Legacy monitoring route - redirect to home
       GoRoute(
         path: '/monitoring',
         name: 'monitoring',
-        builder: (context, state) => const NoiseMonitoringPage(),
+        redirect: (context, state) => '/home',
       ),
       
       // Settings
@@ -44,6 +53,20 @@ class AppRouter {
         path: '/settings',
         name: 'settings',
         builder: (context, state) => const SettingsPage(),
+      ),
+      
+      // Statistics
+      GoRoute(
+        path: '/statistics',
+        name: 'statistics',
+        builder: (context, state) => const StatisticsPage(),
+      ),
+      
+      // Recordings
+      GoRoute(
+        path: '/recordings',
+        name: 'recordings',
+        builder: (context, state) => const RecordingsPage(),
       ),
     ],
     

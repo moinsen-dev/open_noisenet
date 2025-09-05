@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:get_it/get_it.dart';
 
 import '../../../../features/app/presentation/bloc/app_bloc.dart';
-import '../../../../services/settings_service.dart';
-import '../../../../services/location_service.dart';
 import '../../../../services/audio_capture_service.dart';
+import '../../../../services/location_service.dart';
+import '../../../../services/sqlite_preferences_service.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -14,9 +15,9 @@ class SettingsPage extends StatefulWidget {
 }
 
 class _SettingsPageState extends State<SettingsPage> {
-  final SettingsService _settingsService = SettingsService();
+  final SQLitePreferencesService _preferencesService = GetIt.instance<SQLitePreferencesService>();
   final LocationService _locationService = LocationService();
-  final AudioCaptureService _audioService = AudioCaptureService();
+  final AudioCaptureService _audioService = GetIt.instance<AudioCaptureService>();
 
   @override
   Widget build(BuildContext context) {
@@ -31,19 +32,19 @@ class _SettingsPageState extends State<SettingsPage> {
               // Theme Settings
               _buildThemeSection(context, appState),
               const Divider(),
-              
+
               // Location Settings
               _buildLocationSection(context),
               const Divider(),
-              
+
               // Audio Settings
               _buildAudioSection(context),
               const Divider(),
-              
+
               // Sync Settings
               _buildSyncSection(context),
               const Divider(),
-              
+
               // Privacy & Info
               _buildPrivacySection(context),
             ],
@@ -55,7 +56,7 @@ class _SettingsPageState extends State<SettingsPage> {
 
   Widget _buildThemeSection(BuildContext context, AppState appState) {
     final isDarkMode = appState is AppLoaded ? appState.isDarkMode : true;
-    
+
     return ListTile(
       leading: const Icon(Icons.dark_mode),
       title: const Text('Dark Mode'),
@@ -93,7 +94,9 @@ class _SettingsPageState extends State<SettingsPage> {
                   ),
                   const SizedBox(width: 8),
                   Text(
-                    hasPermission ? 'Location permission granted' : 'Location permission denied',
+                    hasPermission
+                        ? 'Location permission granted'
+                        : 'Location permission denied',
                     style: Theme.of(context).textTheme.bodySmall,
                   ),
                 ],
@@ -109,17 +112,24 @@ class _SettingsPageState extends State<SettingsPage> {
     return ListTile(
       leading: const Icon(Icons.volume_up),
       title: const Text('Audio Settings'),
-      subtitle: Text('Calibration: ${_audioService.calibrationOffset.toStringAsFixed(1)} dB'),
+      subtitle: Text(
+          'Calibration: ${_audioService.calibrationOffset.toStringAsFixed(1)} dB'),
       onTap: () => _showAudioDialog(context),
     );
   }
 
   Widget _buildSyncSection(BuildContext context) {
-    return ListTile(
-      leading: const Icon(Icons.cloud_sync),
-      title: const Text('Sync Settings'),
-      subtitle: Text('Backend: ${_settingsService.backendUrl}'),
-      onTap: () => _showSyncDialog(context),
+    return FutureBuilder<String>(
+      future: _preferencesService.getBackendUrl(),
+      builder: (context, snapshot) {
+        final backendUrl = snapshot.data ?? 'Loading...';
+        return ListTile(
+          leading: const Icon(Icons.cloud_sync),
+          title: const Text('Sync Settings'),
+          subtitle: Text('Backend: $backendUrl'),
+          onTap: () => _showSyncDialog(context),
+        );
+      },
     );
   }
 
@@ -148,9 +158,11 @@ class _SettingsPageState extends State<SettingsPage> {
         content: const Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('Location data is used to tag noise events with their geographic position.'),
+            Text(
+                'Location data is used to tag noise events with their geographic position.'),
             SizedBox(height: 16),
-            Text('This helps create accurate noise maps and identify problem areas.'),
+            Text(
+                'This helps create accurate noise maps and identify problem areas.'),
           ],
         ),
         actions: [
@@ -173,7 +185,7 @@ class _SettingsPageState extends State<SettingsPage> {
 
   void _showAudioDialog(BuildContext context) {
     double currentOffset = _audioService.calibrationOffset;
-    
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -182,7 +194,8 @@ class _SettingsPageState extends State<SettingsPage> {
           builder: (context, setState) => Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text('Adjust calibration to match a professional sound level meter:'),
+              const Text(
+                  'Adjust calibration to match a professional sound level meter:'),
               const SizedBox(height: 16),
               Slider(
                 value: currentOffset,
@@ -206,9 +219,9 @@ class _SettingsPageState extends State<SettingsPage> {
             child: const Text('Cancel'),
           ),
           ElevatedButton(
-            onPressed: () {
+            onPressed: () async {
               _audioService.setCalibrationOffset(currentOffset);
-              _settingsService.setCalibrationOffset(currentOffset);
+              await _preferencesService.setCalibrationOffset(currentOffset);
               Navigator.pop(context);
               setState(() {});
             },
@@ -219,9 +232,13 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
-  void _showSyncDialog(BuildContext context) {
-    final controller = TextEditingController(text: _settingsService.backendUrl);
+  void _showSyncDialog(BuildContext context) async {
+    // Load current values asynchronously
+    final backendUrl = await _preferencesService.getBackendUrl();
+    final autoSubmissionEnabled = await _preferencesService.getAutoSubmissionEnabled();
     
+    final controller = TextEditingController(text: backendUrl);
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -237,12 +254,19 @@ class _SettingsPageState extends State<SettingsPage> {
               ),
             ),
             const SizedBox(height: 16),
-            SwitchListTile(
-              title: const Text('Auto-submit events'),
-              value: _settingsService.isAutoSubmissionEnabled,
-              onChanged: (value) {
-                _settingsService.setAutoSubmissionEnabled(value);
-                setState(() {});
+            StatefulBuilder(
+              builder: (context, setStateLocal) {
+                return SwitchListTile(
+                  title: const Text('Auto-submit events'),
+                  value: autoSubmissionEnabled,
+                  onChanged: (value) async {
+                    await _preferencesService.setAutoSubmissionEnabled(value);
+                    setStateLocal(() {
+                      // Update local state within dialog
+                    });
+                    setState(() {});
+                  },
+                );
               },
             ),
           ],
@@ -253,8 +277,8 @@ class _SettingsPageState extends State<SettingsPage> {
             child: const Text('Cancel'),
           ),
           ElevatedButton(
-            onPressed: () {
-              _settingsService.setBackendUrl(controller.text);
+            onPressed: () async {
+              await _preferencesService.setBackendUrl(controller.text);
               Navigator.pop(context);
               setState(() {});
             },

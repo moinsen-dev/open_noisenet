@@ -1,0 +1,140 @@
+name: noisenet_mobile
+description: OpenNoiseNet mobile application for environmental noise monitoring with on-device AI processing.
+publish_to: 'none'
+
+version: 0.1.0+1
+
+environment:
+  sdk: '>=3.1.0 <4.0.0'
+  flutter: ">=3.13.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # State Management
+  flutter_bloc: ^8.1.3
+  equatable: ^2.0.5
+
+  # Dependency Injection
+  get_it: ^7.6.4
+  injectable: ^2.3.2
+
+  # Network & API
+  dio: ^5.3.2
+  retrofit: ^4.0.3
+  json_annotation: ^4.8.1
+
+  # Database & Storage
+  sqflite: ^2.3.0
+  shared_preferences: ^2.2.2
+  flutter_secure_storage: ^9.0.0
+
+  # Audio Processing & Permissions
+  permission_handler: ^11.0.1
+  record: ^5.0.4
+  audio_session: ^0.1.16
+
+  # On-device AI (cactus framework placeholder)
+  # Note: This will be replaced with actual cactus integration
+  # cactus: ^1.0.0  # Placeholder for llama.cpp Flutter binding
+
+  # Math & Signal Processing
+  ml_linalg: ^13.19.0  # For matrix operations
+  fftea: ^2.0.0        # FFT for audio analysis
+
+  # Location & Maps
+  geolocator: ^10.1.0
+  geocoding: ^2.1.1
+
+  # UI & Navigation
+  go_router: ^12.1.1
+  flutter_form_builder: ^9.1.1
+  form_builder_validators: ^9.1.0
+
+  # Utilities
+  intl: ^0.18.1
+  path: ^1.8.3
+  uuid: ^4.1.0
+  logger: ^2.0.2+1
+  package_info_plus: ^4.2.0
+  device_info_plus: ^9.1.0
+
+  # Platform Specific
+  android_intent_plus: ^4.0.3 # Android only
+  wakelock_plus: ^1.1.4      # Keep screen awake
+
+  # Background Processing
+  workmanager: ^0.5.2        # Background tasks
+  flutter_background_service: ^5.0.5
+  flutter_local_notifications: ^15.1.1
+
+  # Material Design
+  material_color_utilities: ^0.5.0
+  dynamic_color: ^1.6.8
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+  # Code Generation
+  build_runner: ^2.4.7
+  injectable_generator: ^2.4.1
+  retrofit_generator: ^8.0.4
+  json_serializable: ^6.7.1
+
+  # Code Quality
+  flutter_lints: ^3.0.1
+  very_good_analysis: ^5.1.0
+
+  # Testing
+  bloc_test: ^9.1.4
+  mocktail: ^1.0.1
+  integration_test:
+    sdk: flutter
+
+flutter:
+  uses-material-design: true
+
+  # App Icons
+  assets:
+    - assets/images/
+    - assets/icons/
+    - assets/audio/
+    - assets/models/  # For AI models if stored locally
+
+  # Fonts
+  fonts:
+    - family: Roboto
+      fonts:
+        - asset: assets/fonts/Roboto-Regular.ttf
+        - asset: assets/fonts/Roboto-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/Roboto-Bold.ttf
+          weight: 700
+
+# Flutter configuration
+flutter_gen:
+  output: lib/core/gen/
+  line_length: 80
+
+  integrations:
+    flutter_svg: true
+
+# Build configuration
+flutter_flavors:
+  development:
+    app:
+      name: "NoiseNet Dev"
+    android:
+      applicationId: "org.noisenet.dev"
+    ios:
+      bundleId: "org.noisenet.dev"
+      
+  production:
+    app:
+      name: "OpenNoiseNet"
+    android:
+      applicationId: "org.noisenet"
+    ios:
+      bundleId: "org.noisenet"

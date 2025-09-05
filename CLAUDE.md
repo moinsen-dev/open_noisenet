@@ -103,3 +103,4 @@ When implementing components, prefer these technologies aligned with the technic
 - All data should be open and accessible to communities
 - Focus on standardized, comparable noise measurements
 - Consider regulatory compliance (GDPR) throughout development
+- Remeember to use uv as Python package manager

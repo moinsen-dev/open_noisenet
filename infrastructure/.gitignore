@@ -1,0 +1,50 @@
+# SSL certificates
+ssl/
+*.pem
+*.key
+*.crt
+*.csr
+*.p12
+*.pfx
+
+# Nginx logs
+logs/
+*.log
+
+# Monitoring data
+prometheus_data/
+grafana_data/
+alertmanager_data/
+
+# Local configuration overrides
+nginx/nginx.local.conf
+monitoring/prometheus.local.yml
+monitoring/grafana/provisioning/datasources/local.yml
+
+# Backup files
+*.backup
+*.bak
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.backup
+.terraform.lock.hcl
+terraform.tfvars
+terraform.tfvars.json
+
+# Kubernetes
+kubeconfig
+*.kubeconfig
+
+# Helm
+charts/*.tgz
+charts/*/charts/
+
+# Docker
+.env
+
+# Cloud provider specific
+.aws/
+.gcp/
+.azure/

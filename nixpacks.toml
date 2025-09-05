@@ -1,5 +1,8 @@
-[providers]
-node = "18"
+providers = ["node"]
+
+[variables]
+NODE_ENV = "production"
+PORT = "3000"
 
 [phases.setup]
 cmds = ["npm install -g pnpm"]
@@ -9,7 +12,3 @@ cmds = ["cd landing && pnpm install", "cd landing && pnpm build"]
 
 [phases.start]
 cmd = "cd landing && pnpm start"
-
-[variables]
-NODE_ENV = "production"
-PORT = "3000"

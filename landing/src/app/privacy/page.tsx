@@ -88,7 +88,7 @@ export default function PrivacyPolicy() {
                   <ul className="list-disc list-inside space-y-1 mt-2">
                     <li>Access your personal data</li>
                     <li>Correct inaccurate data</li>
-                    <li>Delete your data ("right to be forgotten")</li>
+                    <li>Delete your data (&quot;right to be forgotten&quot;)</li>
                     <li>Restrict processing</li>
                     <li>Data portability</li>
                     <li>Object to processing</li>
@@ -157,7 +157,7 @@ export default function PrivacyPolicy() {
                     <ul className="list-disc list-inside space-y-1 mt-2">
                       <li>Auskunft über Ihre personenbezogenen Daten</li>
                       <li>Berichtigung unrichtiger Daten</li>
-                      <li>Löschung Ihrer Daten („Recht auf Vergessenwerden")</li>
+                      <li>Löschung Ihrer Daten (&quot;Recht auf Vergessenwerden&quot;)</li>
                       <li>Einschränkung der Verarbeitung</li>
                       <li>Datenübertragbarkeit</li>
                       <li>Widerspruch gegen die Verarbeitung</li>

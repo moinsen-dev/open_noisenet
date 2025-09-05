@@ -1,4 +1,6 @@
-@import 'tailwindcss';
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 @layer base {
   :root {
@@ -85,4 +87,114 @@
     from 180deg at 50% 50%,
     var(--tw-gradient-stops)
   );
+}
+
+/* Story page animations */
+@keyframes rain-drop {
+  0% {
+    transform: translateY(-100vh);
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(100vh);
+    opacity: 0;
+  }
+}
+
+@keyframes sound-wave {
+  0%, 100% {
+    transform: scaleY(1);
+  }
+  50% {
+    transform: scaleY(1.8);
+  }
+}
+
+.rain-animation {
+  background-image: 
+    linear-gradient(
+      0deg,
+      rgba(59, 130, 246, 0.1) 0%,
+      transparent 50%,
+      transparent 100%
+    );
+  background-size: 2px 20px;
+  animation: rain-drop 0.8s linear infinite;
+}
+
+.rain-animation::before,
+.rain-animation::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: 
+    radial-gradient(2px 2px at 20px 30px, rgba(59, 130, 246, 0.3), transparent),
+    radial-gradient(2px 2px at 40px 70px, rgba(59, 130, 246, 0.2), transparent),
+    radial-gradient(1px 1px at 90px 40px, rgba(59, 130, 246, 0.4), transparent),
+    radial-gradient(1px 1px at 130px 80px, rgba(59, 130, 246, 0.3), transparent),
+    radial-gradient(2px 2px at 160px 30px, rgba(59, 130, 246, 0.2), transparent);
+  background-size: 200px 100px;
+  animation: rain-drop 1.2s linear infinite;
+}
+
+.rain-animation::after {
+  background-size: 250px 120px;
+  animation-duration: 1.5s;
+  animation-delay: 0.3s;
+}
+
+.sound-wave {
+  animation: sound-wave 0.6s ease-in-out infinite;
+}
+
+/* Chapter transition effects */
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fade-in-up {
+  animation: fade-in-up 0.8s ease-out;
+}
+
+/* Pulse effect for data points */
+@keyframes data-pulse {
+  0%, 100% {
+    opacity: 0.8;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.05);
+  }
+}
+
+.data-pulse {
+  animation: data-pulse 2s ease-in-out infinite;
+}
+
+/* Floating icons animation */
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+.float-animation {
+  animation: float 3s ease-in-out infinite;
 }

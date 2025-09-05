@@ -97,7 +97,7 @@ export default function Terms() {
                 <h2 className="text-2xl font-bold text-white mb-4">6. Disclaimer of Warranties</h2>
                 <div className="bg-slate-700/50 rounded-lg p-4">
                   <p className="text-sm">
-                    <strong>IMPORTANT:</strong> OpenNoiseNet is provided "as is" without warranty of any kind. 
+                    <strong>IMPORTANT:</strong> OpenNoiseNet is provided &quot;as is&quot; without warranty of any kind. 
                     We make no guarantees about data accuracy, service availability, or fitness for any particular purpose. 
                     Use of DIY sensors and participation in the network is at your own risk.
                   </p>

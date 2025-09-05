@@ -56,7 +56,7 @@ export default function Imprint() {
                   <div>
                     <h3 className="text-xl font-semibold text-white mb-3">Disclaimer</h3>
                     <p className="text-sm">
-                      The contents of our pages have been created with the utmost care. However, we cannot guarantee the contents' accuracy, completeness, or topicality. According to statutory provisions, we are furthermore responsible for our own content on these web pages.
+                      The contents of our pages have been created with the utmost care. However, we cannot guarantee the contents&apos; accuracy, completeness, or topicality. According to statutory provisions, we are furthermore responsible for our own content on these web pages.
                     </p>
                   </div>
 

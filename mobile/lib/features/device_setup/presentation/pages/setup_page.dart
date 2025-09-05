@@ -28,7 +28,7 @@ class DeviceSetupPage extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             const Text(
-              'Transform your smartphone into a noise monitoring sensor. '\n'
+              'Transform your smartphone into a noise monitoring sensor. '
               'We\'ll guide you through the setup process.',
               textAlign: TextAlign.center,
             ),
@@ -36,7 +36,7 @@ class DeviceSetupPage extends StatelessWidget {
             ElevatedButton(
               onPressed: () {
                 // TODO: Start setup process
-                context.go('/monitoring');
+                context.go('/home');
               },
               child: const Text('Start Setup'),
             ),

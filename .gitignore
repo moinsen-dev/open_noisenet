@@ -91,3 +91,6 @@ celerybeat.pid
 docker-compose.override.yml
 docker-compose.local.yml
 mobile/ios/build/
+
+# Hive files
+*.hive

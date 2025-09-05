@@ -1,17 +1,12 @@
 import 'package:get_it/get_it.dart';
-import 'package:injectable/injectable.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:dio/dio.dart';
 
-import 'injection.config.dart';
+import '../../features/app/presentation/bloc/app_bloc.dart';
+import '../../features/noise_monitoring/presentation/bloc/monitoring_bloc.dart';
 
 final GetIt getIt = GetIt.instance;
 
-@InjectableInit(
-  initializerName: 'init',
-  preferRelativeImports: true,
-  asExtension: true,
-)
 Future<void> configureDependencies() async {
   // Register external dependencies
   final sharedPreferences = await SharedPreferences.getInstance();
@@ -42,6 +37,7 @@ Future<void> configureDependencies() async {
   
   getIt.registerSingleton<Dio>(dio);
   
-  // Initialize injectable dependencies
-  getIt.init();
+  // Register BLoCs
+  getIt.registerFactory(() => AppBloc());
+  getIt.registerFactory(() => MonitoringBloc());
 }

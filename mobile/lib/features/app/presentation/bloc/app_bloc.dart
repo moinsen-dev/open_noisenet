@@ -1,11 +1,9 @@
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:injectable/injectable.dart';
 
 part 'app_event.dart';
 part 'app_state.dart';
 
-@injectable
 class AppBloc extends Bloc<AppEvent, AppState> {
   AppBloc() : super(const AppInitial()) {
     on<AppStarted>(_onAppStarted);
@@ -18,7 +16,7 @@ class AppBloc extends Bloc<AppEvent, AppState> {
       emit(const AppLoading());
       
       // Simulate initialization tasks
-      await Future.delayed(const Duration(seconds: 2));
+      await Future<void>.delayed(const Duration(seconds: 2));
       
       // TODO: Check if user is authenticated
       // TODO: Load app preferences

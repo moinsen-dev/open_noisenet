@@ -9,22 +9,23 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@radix-ui/react-slot": "1.1.0",
+    "@radix-ui/react-switch": "^1.2.6",
+    "class-variance-authority": "0.7.1",
+    "clsx": "2.1.1",
+    "js-cookie": "3.0.5",
+    "lucide-react": "0.445.0",
     "next": "15.5.2",
     "react": "18.3.1",
     "react-dom": "18.3.1",
-    "lucide-react": "0.445.0",
-    "@radix-ui/react-slot": "1.1.0",
-    "class-variance-authority": "0.7.1",
-    "clsx": "2.1.1",
     "tailwind-merge": "2.5.0",
-    "tailwindcss-animate": "1.0.7",
-    "js-cookie": "3.0.5"
+    "tailwindcss-animate": "1.0.7"
   },
   "devDependencies": {
+    "@types/js-cookie": "3.0.6",
     "@types/node": "20.17.6",
     "@types/react": "18.3.12",
     "@types/react-dom": "18.3.1",
-    "@types/js-cookie": "3.0.6",
     "autoprefixer": "10.4.20",
     "eslint": "8.57.1",
     "eslint-config-next": "15.5.2",

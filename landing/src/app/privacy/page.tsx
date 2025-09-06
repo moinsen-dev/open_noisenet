@@ -48,7 +48,16 @@ export default function PrivacyPolicy() {
                   <ul className="list-disc list-inside space-y-1 mb-4">
                     <li>Server log files (IP address, browser type, access time)</li>
                     <li>Newsletter email addresses (with explicit consent)</li>
-                    <li>No tracking cookies or analytics by default</li>
+                    <li>Cookie preferences and consent choices</li>
+                    <li>Analytics data (only with your consent)</li>
+                  </ul>
+                  
+                  <h4 className="text-lg font-medium text-warn-400 mb-2">Cookies and Tracking:</h4>
+                  <ul className="list-disc list-inside space-y-1 mb-4">
+                    <li><strong>Essential Cookies:</strong> Required for security, consent management, and core functionality</li>
+                    <li><strong>Functional Cookies:</strong> Remember your preferences (story settings, theme choices)</li>
+                    <li><strong>Analytics Cookies:</strong> Google Analytics (anonymized, with consent only)</li>
+                    <li><strong>Marketing Cookies:</strong> Newsletter tracking, social media metrics (with consent only)</li>
                   </ul>
                   
                   <h4 className="text-lg font-medium text-warn-400 mb-2">Sensor Network Data:</h4>
@@ -83,7 +92,29 @@ export default function PrivacyPolicy() {
                 </div>
 
                 <div>
-                  <h3 className="text-xl font-semibold text-white mb-3">5. Your Rights (GDPR)</h3>
+                  <h3 className="text-xl font-semibold text-white mb-3">5. Cookie Management</h3>
+                  <p className="mb-4">
+                    We use cookies to enhance your experience and provide essential functionality. 
+                    You can manage your cookie preferences at any time.
+                  </p>
+                  <div className="bg-slate-700/50 rounded-lg p-4 mb-4">
+                    <h4 className="text-lg font-medium text-warn-400 mb-2">Cookie Categories:</h4>
+                    <ul className="list-disc list-inside space-y-2">
+                      <li><strong>Essential:</strong> Cannot be disabled. Required for security and basic functionality.</li>
+                      <li><strong>Functional:</strong> Remember your preferences and settings. Enabled by default.</li>
+                      <li><strong>Analytics:</strong> Help us understand site usage. Google Analytics with IP anonymization.</li>
+                      <li><strong>Marketing:</strong> Track newsletter signups and social media engagement.</li>
+                    </ul>
+                  </div>
+                  <p className="text-sm">
+                    <Link href="/cookie-preferences" className="text-warn-400 hover:underline">
+                      → Manage Cookie Preferences
+                    </Link>
+                  </p>
+                </div>
+
+                <div>
+                  <h3 className="text-xl font-semibold text-white mb-3">6. Your Rights (GDPR)</h3>
                   <p>You have the right to:</p>
                   <ul className="list-disc list-inside space-y-1 mt-2">
                     <li>Access your personal data</li>
@@ -117,7 +148,16 @@ export default function PrivacyPolicy() {
                     <ul className="list-disc list-inside space-y-1 mb-4">
                       <li>Server-Logfiles (IP-Adresse, Browser-Typ, Zugriffszeitpunkt)</li>
                       <li>Newsletter-E-Mail-Adressen (mit ausdrücklicher Einwilligung)</li>
-                      <li>Keine Tracking-Cookies oder Analytics standardmäßig</li>
+                      <li>Cookie-Präferenzen und Einwilligungsentscheidungen</li>
+                      <li>Analytics-Daten (nur mit Ihrer Einwilligung)</li>
+                    </ul>
+                    
+                    <h4 className="text-lg font-medium text-warn-400 mb-2">Cookies und Tracking:</h4>
+                    <ul className="list-disc list-inside space-y-1 mb-4">
+                      <li><strong>Essentielle Cookies:</strong> Erforderlich für Sicherheit, Consent-Management und Kernfunktionalität</li>
+                      <li><strong>Funktionale Cookies:</strong> Speichern Ihre Präferenzen (Story-Einstellungen, Theme-Auswahl)</li>
+                      <li><strong>Analytics Cookies:</strong> Google Analytics (anonymisiert, nur mit Einwilligung)</li>
+                      <li><strong>Marketing Cookies:</strong> Newsletter-Tracking, Social-Media-Metriken (nur mit Einwilligung)</li>
                     </ul>
                     
                     <h4 className="text-lg font-medium text-warn-400 mb-2">Sensornetzwerk-Daten:</h4>
@@ -152,7 +192,29 @@ export default function PrivacyPolicy() {
                   </div>
 
                   <div>
-                    <h3 className="text-xl font-semibold text-white mb-3">5. Ihre Rechte (DSGVO)</h3>
+                    <h3 className="text-xl font-semibold text-white mb-3">5. Cookie-Verwaltung</h3>
+                    <p className="mb-4">
+                      Wir verwenden Cookies, um Ihre Erfahrung zu verbessern und wesentliche Funktionen bereitzustellen. 
+                      Sie können Ihre Cookie-Präferenzen jederzeit verwalten.
+                    </p>
+                    <div className="bg-slate-700/50 rounded-lg p-4 mb-4">
+                      <h4 className="text-lg font-medium text-warn-400 mb-2">Cookie-Kategorien:</h4>
+                      <ul className="list-disc list-inside space-y-2">
+                        <li><strong>Essenziell:</strong> Können nicht deaktiviert werden. Erforderlich für Sicherheit und Grundfunktionen.</li>
+                        <li><strong>Funktional:</strong> Speichern Ihre Präferenzen und Einstellungen. Standardmäßig aktiviert.</li>
+                        <li><strong>Analytics:</strong> Helfen uns, die Website-Nutzung zu verstehen. Google Analytics mit IP-Anonymisierung.</li>
+                        <li><strong>Marketing:</strong> Verfolgen Newsletter-Anmeldungen und Social-Media-Engagement.</li>
+                      </ul>
+                    </div>
+                    <p className="text-sm">
+                      <Link href="/cookie-preferences" className="text-warn-400 hover:underline">
+                        → Cookie-Präferenzen verwalten
+                      </Link>
+                    </p>
+                  </div>
+
+                  <div>
+                    <h3 className="text-xl font-semibold text-white mb-3">6. Ihre Rechte (DSGVO)</h3>
                     <p>Sie haben das Recht auf:</p>
                     <ul className="list-disc list-inside space-y-1 mt-2">
                       <li>Auskunft über Ihre personenbezogenen Daten</li>

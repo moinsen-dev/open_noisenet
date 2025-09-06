@@ -215,18 +215,28 @@ class RecordingService {
 
     // Create directory if needed
     await Directory(path.dirname(bufferPath)).create(recursive: true);
+    AppLogger.recording('Creating buffer directory: ${path.dirname(bufferPath)}');
 
     // Create recorder
     final recorder = FlutterSoundRecorder();
     await recorder.openRecorder();
+    AppLogger.recording('Opened recorder for buffer: $bufferId');
 
-    // Start recording
+    // Start recording with explicit permissions check
+    final permission = await Permission.microphone.status;
+    if (!permission.isGranted) {
+      throw Exception('Microphone permission not granted for recording buffer');
+    }
+
     await recorder.startRecorder(
       toFile: bufferPath,
       codec: Codec.pcm16WAV,
       sampleRate: sampleRate,
       bitRate: 128000,
     );
+    
+    AppLogger.recording('Started recording to: $bufferPath');
+    AppLogger.recording('Recording settings - Sample rate: $sampleRate, Codec: pcm16WAV, Bit rate: 128000');
 
     final buffer = RecordingBuffer(
       id: bufferId,
@@ -240,7 +250,7 @@ class RecordingService {
     buffer.durationTimer = Timer(_bufferDuration, () => _stopBuffer(buffer));
 
     _activeBuffers.add(buffer);
-    AppLogger.recording('Created new recording buffer: $bufferId');
+    AppLogger.recording('Created new recording buffer: $bufferId (duration: ${_bufferDuration.inMinutes}min)');
 
     // Emit stats update
     _emitStatsUpdate();
@@ -276,16 +286,30 @@ class RecordingService {
       if (buffer.isActive) {
         await buffer.recorder.stopRecorder();
         buffer.isActive = false;
+        AppLogger.recording('Stopped recording for buffer: ${buffer.id}');
       }
 
       await buffer.recorder.closeRecorder();
-
-      if (!savePermanently) {
-        // Delete temporary buffer file
-        final file = File(buffer.filePath);
-        if (await file.exists()) {
-          await file.delete();
+      
+      // Check file size before deciding to delete
+      final file = File(buffer.filePath);
+      if (await file.exists()) {
+        final fileSize = await file.length();
+        AppLogger.recording('Buffer ${buffer.id} file size: $fileSize bytes');
+        
+        // Log warning for very small files
+        if (fileSize < 1024) {
+          AppLogger.recording('Warning: Buffer ${buffer.id} produced very small file ($fileSize bytes)');
         }
+        
+        if (!savePermanently) {
+          await file.delete();
+          AppLogger.recording('Deleted temporary buffer file: ${buffer.filePath}');
+        } else {
+          AppLogger.recording('Keeping permanent buffer file: ${buffer.filePath} ($fileSize bytes)');
+        }
+      } else {
+        AppLogger.recording('Warning: Buffer file does not exist: ${buffer.filePath}');
       }
 
       final status = savePermanently ? ' (saved)' : ' (deleted)';

@@ -66,14 +66,17 @@ class AudioRecordingService {
     // Initialize flutter_sound recorder
     _recorder = FlutterSoundRecorder();
     await _recorder.openRecorder();
+    AppLogger.recording('FlutterSoundRecorder initialized successfully');
 
-    // Initialize just_audio player
+    // Initialize just_audio player with proper configuration
     _audioPlayer = just_audio.AudioPlayer();
+    AppLogger.recording('AudioPlayer initialized successfully');
 
     // Create recordings directory
     final appDir = await getApplicationDocumentsDirectory();
     _recordingsDirectory = path.join(appDir.path, 'recordings');
     await Directory(_recordingsDirectory!).create(recursive: true);
+    AppLogger.recording('Recordings directory created: $_recordingsDirectory');
 
     // Load existing recordings from database
     await _loadActiveRecordings();
@@ -396,35 +399,79 @@ class AudioRecordingService {
         throw Exception('Audio file not found: ${recording.filePath}');
       }
 
-      // Check file size
+      // Check file size and validate it's not empty
       final fileSize = file.lengthSync();
       if (fileSize == 0) {
         throw Exception('Audio file is empty: ${recording.filePath}');
       }
+      
+      // Add more detailed file validation
+      if (fileSize < 1024) { // Less than 1KB is likely empty/invalid
+        AppLogger.recording('Warning: Audio file is very small ($fileSize bytes) and may not contain actual audio data');
+      }
 
       AppLogger.recording('Attempting to play: ${recording.filePath} ($fileSize bytes, ${recording.format})');
+      AppLogger.recording('File exists: ${file.existsSync()}, Can read: ${await file.exists()}');
 
       // Stop any currently playing audio
       await _audioPlayer.stop();
+      await _audioPlayer.seek(Duration.zero);
 
       // Try to load and play the audio file with better error handling
       try {
+        // First try: Direct file path
+        AppLogger.recording('Trying direct file path method...');
         await _audioPlayer.setFilePath(recording.filePath);
+        
+        // Get duration to validate the file loaded properly
+        final duration = _audioPlayer.duration;
+        AppLogger.recording('Audio duration detected: $duration');
+        
+        // Set volume to ensure it's audible
+        await _audioPlayer.setVolume(1.0);
+        
         await _audioPlayer.play();
-        AppLogger.recording('Successfully playing audio recording: ${recording.id}');
+        AppLogger.recording('Successfully started playback using direct path method');
+        
       } catch (platformException) {
-        // If direct file path fails, try using setAudioSource with file URI
-        AppLogger.recording('Direct file path failed, trying alternative method...');
-        await _audioPlayer.setAudioSource(
-          just_audio.AudioSource.uri(Uri.file(recording.filePath)),
-        );
-        await _audioPlayer.play();
-        AppLogger.recording('Successfully playing audio recording (alternative method): ${recording.id}');
+        // Second try: File URI method
+        AppLogger.recording('Direct file path failed ($platformException), trying URI method...');
+        
+        try {
+          await _audioPlayer.setAudioSource(
+            just_audio.AudioSource.uri(Uri.file(recording.filePath)),
+          );
+          
+          final duration = _audioPlayer.duration;
+          AppLogger.recording('Audio duration (URI method): $duration');
+          
+          await _audioPlayer.setVolume(1.0);
+          await _audioPlayer.play();
+          AppLogger.recording('Successfully started playback using URI method');
+          
+        } catch (uriException) {
+          // Third try: File bytes method
+          AppLogger.recording('URI method also failed ($uriException), trying bytes method...');
+          
+          final bytes = await file.readAsBytes();
+          AppLogger.recording('Read ${bytes.length} bytes from file');
+          
+          await _audioPlayer.setAudioSource(
+            just_audio.AudioSource.uri(
+              Uri.dataFromBytes(bytes, mimeType: 'audio/wav'),
+            ),
+          );
+          
+          await _audioPlayer.setVolume(1.0);
+          await _audioPlayer.play();
+          AppLogger.recording('Successfully started playback using bytes method');
+        }
       }
     } catch (e) {
       AppLogger.recording('Failed to play recording ${recording.id}: $e');
       AppLogger.recording('File path: ${recording.filePath}');
       AppLogger.recording('File format: ${recording.format}');
+      AppLogger.recording('Stack trace: ${StackTrace.current}');
       rethrow;
     }
   }
@@ -443,6 +490,80 @@ class AudioRecordingService {
 
   /// Get current playback position
   Stream<Duration> get playbackPositionStream => _audioPlayer.positionStream;
+  
+  /// Create a test recording for debugging purposes
+  Future<String?> createTestRecording({Duration duration = const Duration(seconds: 5)}) async {
+    try {
+      // Check microphone permission first
+      final permission = await Permission.microphone.request();
+      if (!permission.isGranted) {
+        throw Exception('Microphone permission not granted');
+      }
+
+      final recordingId = _uuid.v4();
+      final now = DateTime.now();
+      
+      // Create filename for test recording
+      final testPath = path.join(
+        _recordingsDirectory!,
+        'test_recording_${now.millisecondsSinceEpoch}.wav',
+      );
+      
+      AppLogger.recording('Creating test recording: $testPath');
+      
+      // Start test recording
+      await _recorder.startRecorder(
+        toFile: testPath,
+        codec: Codec.pcm16WAV,
+        sampleRate: sampleRate,
+        bitRate: 128000,
+      );
+      
+      // Wait for specified duration
+      await Future<void>.delayed(duration);
+      
+      // Stop recording
+      await _recorder.stopRecorder();
+      
+      // Check if file was created and has content
+      final file = File(testPath);
+      if (await file.exists()) {
+        final fileSize = await file.length();
+        AppLogger.recording('Test recording completed: $fileSize bytes');
+        
+        if (fileSize > 0) {
+          // Create AudioRecording model for the test file
+          final testRecording = AudioRecording(
+            id: recordingId,
+            timestampStart: now.millisecondsSinceEpoch ~/ 1000,
+            timestampEnd: DateTime.now().millisecondsSinceEpoch ~/ 1000,
+            durationSeconds: duration.inSeconds,
+            filePath: testPath,
+            fileSize: fileSize,
+            format: 'wav',
+            sampleRate: sampleRate,
+            createdAt: now.millisecondsSinceEpoch ~/ 1000,
+            expiresAt: now.add(const Duration(hours: 1)).millisecondsSinceEpoch ~/ 1000,
+            triggerType: 'manual_test',
+            avgLevel: 60.0, // dummy value
+          );
+          
+          // Save to database
+          await _recordingDao.insert(testRecording);
+          AppLogger.recording('Test recording saved to database: $recordingId');
+          
+          return recordingId;
+        } else {
+          throw Exception('Test recording file is empty');
+        }
+      } else {
+        throw Exception('Test recording file was not created');
+      }
+    } catch (e) {
+      AppLogger.recording('Failed to create test recording: $e');
+      return null;
+    }
+  }
 
   /// Dispose of resources
   Future<void> dispose() async {

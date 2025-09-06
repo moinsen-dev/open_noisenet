@@ -82,7 +82,7 @@ With your help, Open NoiseNet will:
 
 ## 📊 Project Status & Development Progress
 
-**Status**: 🟢 **Active Development** | **Phase**: Mobile App Implementation | **Progress**: 75% Complete
+**Status**: 🟢 **Active Development** | **Phase**: Early MVP Development | **Progress**: Core Components Built
 
 ### 🚀 Current Implementation Status
 
@@ -99,8 +99,11 @@ With your help, Open NoiseNet will:
 | **🎨 UI/UX Design** | 🟡 In Progress | 60% | Core monitoring interface, settings screens |
 | **🗺️ Location Services** | ✅ Complete | 100% | GPS integration, privacy controls |
 | **🔧 Device Calibration** | ⏳ Planned | 0% | Device-specific calibration system |
-| **🌐 Backend API** | ⏳ Planned | 0% | FastAPI server, PostgreSQL, TimescaleDB |
-| **🖥️ Web Dashboard** | ⏳ Planned | 0% | React frontend, real-time noise maps |
+| **🌐 Backend API** | ✅ Complete | 90% | FastAPI server, PostgreSQL, authentication, file uploads |
+| **🖥️ Web Dashboard** | 🟡 In Progress | 30% | React frontend structure, basic components |
+| **🌍 Landing Page** | ✅ Complete | 100% | Professional Next.js landing page with story integration |
+| **🐳 Infrastructure** | ✅ Complete | 95% | Docker containers, Compose setup, deployment configs |
+| **🔧 Device Calibration** | ⏳ Planned | 0% | Device-specific calibration system |
 | **🔌 Hardware Designs** | ⏳ Planned | 0% | ESP32 firmware, PCB designs, enclosures |
 
 ### 🎯 Mobile App Progress
@@ -158,13 +161,13 @@ With your help, Open NoiseNet will:
 
 </details>
 
-### 📈 Recent Achievements (Last Sprint)
+### 📈 Recent Achievements (Current Sprint)
 
-- ✅ **Complete SQLite Integration**: Implemented comprehensive local database with 6 optimized tables
-- ✅ **Advanced Statistics Engine**: Built hourly/daily aggregation with L10/L50/L90 percentiles
-- ✅ **Audio Recording System**: Created circular buffer with 15-minute overlapping recordings
-- ✅ **Data Cleanup Service**: Automated retention policies and storage optimization
-- ✅ **AI Analysis Queue**: Prepared infrastructure for local noise classification models
+- ✅ **Professional Landing Page**: Complete Next.js landing page with interactive elements and story integration
+- ✅ **Backend API Foundation**: FastAPI server with PostgreSQL, authentication, and file upload capabilities
+- ✅ **React Frontend Structure**: Basic dashboard framework with TypeScript and component library
+- ✅ **Complete Mobile App Backend**: SQLite integration, audio processing, and data management systems
+- ✅ **Infrastructure Setup**: Docker containerization and deployment configuration
 
 ---
 
@@ -214,15 +217,15 @@ With your help, Open NoiseNet will:
 - Develop solar power and battery management
 - **Skills**: PCB Design, CAD, Electronics, Manufacturing
 
-### 💰 **Sponsors & Organizations**
+### 🤝 **Partners & Organizations**
 
-We're seeking funding for:
-- **Initial prototyping**: Hardware components and testing
-- **Cloud infrastructure**: Data hosting and processing  
-- **Community building**: Hackathons, documentation, outreach
+We welcome community support for:
+- **Hardware prototyping**: Components and testing equipment
+- **Cloud infrastructure**: Data hosting and processing resources
+- **Community building**: Hackathons, documentation, and outreach
 - **Research partnerships**: University collaborations and studies
 
-**Your sponsorship will be recognized in all project materials and you'll have direct input on the roadmap.**
+**Your support will be recognized in all project materials and you'll have direct input on the roadmap.**
 
 ### 📢 **Creators & Influencers** 
 
@@ -277,7 +280,7 @@ We need people to:
 
 ### 🌐 **Phase 2: Backend Infrastructure** (Q2 2025)
 
-**Duration**: 8-12 weeks | **Team Size**: 3-4 developers | **Budget**: €15,000
+**Duration**: 8-12 weeks | **Team Size**: 3-4 developers
 
 | Component | Timeline | Dependencies | Priority |
 |-----------|----------|--------------|----------|
@@ -291,7 +294,7 @@ We need people to:
 
 ### 🖥️ **Phase 3: Web Dashboard** (Q3 2025)
 
-**Duration**: 6-10 weeks | **Team Size**: 2-3 developers | **Budget**: €12,000
+**Duration**: 6-10 weeks | **Team Size**: 2-3 developers
 
 | Feature | Timeline | Complexity | Impact |
 |---------|----------|------------|--------|
@@ -304,7 +307,7 @@ We need people to:
 
 ### 🔌 **Phase 4: Hardware Development** (Q4 2025)
 
-**Duration**: 12-16 weeks | **Team Size**: 2-3 engineers | **Budget**: €25,000
+**Duration**: 12-16 weeks | **Team Size**: 2-3 engineers
 
 **Milestone Breakdown**:
 
@@ -325,7 +328,7 @@ We need people to:
 
 ### 🤖 **Phase 5: AI/ML Integration** (Q1 2026)
 
-**Duration**: 8-12 weeks | **Team Size**: 2-3 ML engineers | **Budget**: €18,000
+**Duration**: 8-12 weeks | **Team Size**: 2-3 ML engineers
 
 - **Local Classification Models**: Traffic, construction, alarm detection
 - **On-device Inference**: Mobile app integration with TensorFlow Lite
@@ -334,7 +337,7 @@ We need people to:
 
 ### 🌍 **Phase 6: Global Deployment** (Q2-Q4 2026)
 
-**Duration**: 24+ weeks | **Team Size**: 5-8 people | **Budget**: €50,000+
+**Duration**: 24+ weeks | **Team Size**: 5-8 people
 
 - **Community Partnerships**: NGO collaborations and pilot programs
 - **Manufacturing Scale-up**: PCB production and assembly
@@ -343,42 +346,6 @@ We need people to:
 
 ---
 
-## 💰 **Funding & Investment Needs**
-
-### **Current Funding Status**
-- **Raised**: €0 (Bootstrapped development)
-- **Immediate Need**: €15,000 for backend infrastructure
-- **Total Q1-Q2 Budget**: €35,000
-- **Full MVP Budget**: €120,000 (18 months)
-
-### **Investment Opportunities**
-
-| Round | Amount | Timeline | Use of Funds |
-|-------|--------|----------|--------------|
-| **Pre-Seed** | €35,000 | Q1-Q2 2025 | Backend + Web Dashboard |
-| **Seed** | €85,000 | Q3-Q4 2025 | Hardware Development + Team |
-| **Series A** | €500,000+ | Q1-Q2 2026 | Global Scale + Manufacturing |
-
-### **Sponsorship Packages**
-
-#### 🥉 **Bronze Sponsor** - €2,500
-- Logo on project website and documentation
-- Quarterly progress updates
-- Early access to APIs and data
-
-#### 🥈 **Silver Sponsor** - €7,500
-- All Bronze benefits
-- Custom data integration support
-- Co-marketing opportunities
-- Technical advisory board seat
-
-#### 🥇 **Gold Sponsor** - €15,000+
-- All Silver benefits
-- Priority feature development
-- Custom deployment support
-- Joint research publication opportunities
-
----
 
 ## 📈 **Success Metrics & KPIs**
 
@@ -439,19 +406,19 @@ We need people to:
 - **🟡 HIGH**: ESP32 firmware development (C++/Arduino)
 - **🟢 MEDIUM**: Technical documentation and guides
 
-### 💰 **For Sponsors & Organizations**
+### 🤝 **For Partners & Organizations**
 
 #### **Partnership Opportunities**
-1. **🏢 Enterprise Sponsors**: [Contact us](../../issues/new?template=sponsor.md) for custom integration
+1. **🏢 Enterprise Partners**: [Contact us](../../issues/new?template=partnership.md) for collaboration opportunities
 2. **🏛️ Government Partners**: Pilot programs for smart city initiatives  
 3. **🎓 Research Institutions**: Joint research and data collaboration
 4. **🌱 NGO Partners**: Community deployment and advocacy support
 
-#### **Sponsorship Benefits**
-- **Logo placement** on project website and materials
-- **Priority support** for custom feature development
+#### **Partnership Benefits**
+- **Recognition** on project website and materials
+- **Collaboration** on feature development priorities
 - **Early access** to APIs and research data
-- **Co-marketing** opportunities and joint publications
+- **Co-development** opportunities and joint publications
 
 ### 📢 **For Content Creators & Advocates**
 

@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../../services/audio_recording_service.dart';
 import '../../../../core/database/dao/audio_recording_dao.dart';
 import '../../../../core/database/models/audio_recording.dart';
+import '../../../../services/audio_recording_service.dart';
 import '../widgets/recording_card.dart';
 
 class RecordingsPage extends StatefulWidget {
@@ -16,7 +16,7 @@ class RecordingsPage extends StatefulWidget {
 class _RecordingsPageState extends State<RecordingsPage> {
   final AudioRecordingService _recordingService = AudioRecordingService();
   final AudioRecordingDao _recordingDao = AudioRecordingDao();
-  
+
   bool _isInitialized = false;
   String _errorMessage = '';
 
@@ -54,8 +54,10 @@ class _RecordingsPageState extends State<RecordingsPage> {
           PopupMenuButton<String>(
             onSelected: _handleMenuAction,
             itemBuilder: (context) => [
-              const PopupMenuItem(value: 'cleanup', child: Text('Cleanup Expired')),
-              const PopupMenuItem(value: 'settings', child: Text('Recording Settings')),
+              const PopupMenuItem(
+                  value: 'cleanup', child: Text('Cleanup Expired')),
+              const PopupMenuItem(
+                  value: 'settings', child: Text('Recording Settings')),
             ],
           ),
         ],
@@ -115,7 +117,7 @@ class _RecordingsPageState extends State<RecordingsPage> {
         children: [
           // Recording Status Card
           _buildRecordingStatusCard(),
-          
+
           // Recordings List
           Expanded(
             child: _buildRecordingsList(),
@@ -142,8 +144,9 @@ class _RecordingsPageState extends State<RecordingsPage> {
               stream: _recordingService.stateStream,
               builder: (context, snapshot) {
                 final state = snapshot.data ?? RecordingState.stopped;
-                final currentRecording = _recordingService.getCurrentRecording();
-                
+                final currentRecording =
+                    _recordingService.getCurrentRecording();
+
                 return Column(
                   children: [
                     Row(
@@ -172,7 +175,8 @@ class _RecordingsPageState extends State<RecordingsPage> {
                         ),
                       ],
                     ),
-                    if (state == RecordingState.recording && currentRecording != null) ...[
+                    if (state == RecordingState.recording &&
+                        currentRecording != null) ...[
                       const SizedBox(height: 12),
                       LinearProgressIndicator(
                         value: _getRecordingProgress(currentRecording),
@@ -192,7 +196,7 @@ class _RecordingsPageState extends State<RecordingsPage> {
   Widget _buildStatusIndicator(RecordingState state) {
     Color color;
     IconData icon;
-    
+
     switch (state) {
       case RecordingState.recording:
         color = Colors.red;
@@ -207,7 +211,7 @@ class _RecordingsPageState extends State<RecordingsPage> {
         icon = Icons.stop;
         break;
     }
-    
+
     return Container(
       padding: const EdgeInsets.all(8),
       decoration: BoxDecoration(
@@ -263,7 +267,7 @@ class _RecordingsPageState extends State<RecordingsPage> {
         }
 
         final recordings = snapshot.data ?? [];
-        
+
         if (recordings.isEmpty) {
           return const Center(
             child: Column(
@@ -304,7 +308,7 @@ class _RecordingsPageState extends State<RecordingsPage> {
       stream: _recordingService.stateStream,
       builder: (context, snapshot) {
         final state = snapshot.data ?? RecordingState.stopped;
-        
+
         switch (state) {
           case RecordingState.stopped:
             return FloatingActionButton.extended(
@@ -363,7 +367,9 @@ class _RecordingsPageState extends State<RecordingsPage> {
     final recordingId = await _recordingService.startRecording();
     if (recordingId != null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Recording started: ${recordingId.substring(0, 8)}...')),
+        SnackBar(
+            content:
+                Text('Recording started: ${recordingId.substring(0, 8)}...')),
       );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -393,7 +399,9 @@ class _RecordingsPageState extends State<RecordingsPage> {
     final recording = await _recordingService.stopRecording();
     if (recording != null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Recording saved: ${recording.id.substring(0, 8)}...')),
+        SnackBar(
+            content:
+                Text('Recording saved: ${recording.id.substring(0, 8)}...')),
       );
       _refreshRecordings();
     }
@@ -411,7 +419,8 @@ class _RecordingsPageState extends State<RecordingsPage> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Delete Recording'),
-        content: Text('Are you sure you want to delete this recording?\n\nID: ${recording.id.substring(0, 8)}...'),
+        content: Text(
+            'Are you sure you want to delete this recording?\n\nID: ${recording.id.substring(0, 8)}...'),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
@@ -454,12 +463,13 @@ class _RecordingsPageState extends State<RecordingsPage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              _buildInfoRow('ID', recording.id.substring(0, 8) + '...'),
+              _buildInfoRow('ID', '${recording.id.substring(0, 8)}...'),
               _buildInfoRow('Duration', '${recording.durationSeconds}s'),
               _buildInfoRow('Format', recording.format.toUpperCase()),
               _buildInfoRow('Sample Rate', '${recording.sampleRate} Hz'),
               if (recording.fileSize != null)
-                _buildInfoRow('File Size', '${(recording.fileSize! / 1024).toStringAsFixed(1)} KB'),
+                _buildInfoRow('File Size',
+                    '${(recording.fileSize! / 1024).toStringAsFixed(1)} KB'),
               _buildInfoRow('Created', recording.createdDateTime.toString()),
               _buildInfoRow('Expires', recording.expiresDateTime.toString()),
               if (recording.eventId != null)
@@ -498,9 +508,9 @@ class _RecordingsPageState extends State<RecordingsPage> {
 
   Future<void> _showStorageInfo() async {
     final storageInfo = await _recordingService.getStorageInfo();
-    
+
     if (!mounted) return;
-    
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -509,13 +519,19 @@ class _RecordingsPageState extends State<RecordingsPage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            _buildInfoRow('Total Recordings', '${storageInfo['total_recordings'] ?? 0}'),
-            _buildInfoRow('Total Size', '${((storageInfo['total_size'] ?? 0) / 1024).toStringAsFixed(1)} KB'),
-            _buildInfoRow('Active Recordings', '${storageInfo['active_recordings'] ?? 0}'),
-            _buildInfoRow('Max Recordings', '${storageInfo['max_recordings'] ?? 0}'),
+            _buildInfoRow(
+                'Total Recordings', '${storageInfo['total_recordings'] ?? 0}'),
+            _buildInfoRow('Total Size',
+                '${((storageInfo['total_size'] ?? 0) / 1024).toStringAsFixed(1)} KB'),
+            _buildInfoRow('Active Recordings',
+                '${storageInfo['active_recordings'] ?? 0}'),
+            _buildInfoRow(
+                'Max Recordings', '${storageInfo['max_recordings'] ?? 0}'),
             const Divider(),
-            _buildInfoRow('Directory', '${storageInfo['recordings_directory'] ?? 'Unknown'}'),
-            _buildInfoRow('Directory Exists', '${storageInfo['directory_exists'] ?? false}'),
+            _buildInfoRow('Directory',
+                '${storageInfo['recordings_directory'] ?? 'Unknown'}'),
+            _buildInfoRow('Directory Exists',
+                '${storageInfo['directory_exists'] ?? false}'),
           ],
         ),
         actions: [

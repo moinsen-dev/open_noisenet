@@ -4,6 +4,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { getAssetPath } from '@/lib/asset-path';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -512,7 +513,7 @@ export default function Home() {
                 {/* Background image with overlay */}
                 <div className="absolute inset-0 opacity-40">
                   <Image
-                    src="/onn-2.png"
+                    src={getAssetPath('/onn-2.png')}
                     alt="Person affected by urban noise pollution"
                     fill
                     className="object-cover rounded-2xl"

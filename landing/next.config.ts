@@ -8,7 +8,7 @@ const nextConfig: NextConfig = {
   },
   // Configure base path for GitHub Pages (if using custom domain, remove this)
   basePath: process.env.NODE_ENV === 'production' ? '/open_noisenet' : '',
-  assetPrefix: process.env.NODE_ENV === 'production' ? '/open_noisenet/' : '',
+  assetPrefix: process.env.NODE_ENV === 'production' ? '/open_noisenet' : '',
 };
 
 export default nextConfig;

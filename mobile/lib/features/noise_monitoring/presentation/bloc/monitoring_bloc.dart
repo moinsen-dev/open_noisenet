@@ -6,6 +6,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:get_it/get_it.dart';
 
 import '../../../../services/audio_capture_service.dart';
+import '../../../../services/continuous_recording_service.dart';
 
 part 'monitoring_event.dart';
 part 'monitoring_state.dart';
@@ -18,6 +19,7 @@ class MonitoringBloc extends Bloc<MonitoringEvent, MonitoringState> {
   }
 
   final AudioCaptureService _audioCaptureService = GetIt.instance<AudioCaptureService>();
+  final ContinuousRecordingService _continuousRecordingService = ContinuousRecordingService();
   StreamSubscription<double>? _splSubscription;
 
   Future<void> _onStartMonitoring(
@@ -35,10 +37,18 @@ class MonitoringBloc extends Bloc<MonitoringEvent, MonitoringState> {
         return;
       }
 
+      // Initialize continuous recording service
+      await _continuousRecordingService.initialize();
+      
+      // Start continuous recording if enabled
+      await _continuousRecordingService.startContinuousRecording();
+
       // Listen to SPL stream
       _splSubscription = _audioCaptureService.splStream.listen(
         (spl) {
           if (!isClosed) {
+            // Feed noise measurements to continuous recording service
+            _continuousRecordingService.addNoiseMeasurement(spl);
             add(UpdateNoiseLevel(spl));
           }
         },
@@ -58,13 +68,17 @@ class MonitoringBloc extends Bloc<MonitoringEvent, MonitoringState> {
 
   Future<void> _onStopMonitoring(
       StopMonitoring event, Emitter<MonitoringState> emit) async {
+    emit(const MonitoringStopping());
+    
     await _splSubscription?.cancel();
     _splSubscription = null;
 
     // Stop audio capture
     await _audioCaptureService.stopCapture();
+    
+    // Stop continuous recording
+    await _continuousRecordingService.stopContinuousRecording();
 
-    emit(const MonitoringStopping());
     await Future<void>.delayed(const Duration(milliseconds: 500));
     emit(const MonitoringInactive());
   }
@@ -80,6 +94,7 @@ class MonitoringBloc extends Bloc<MonitoringEvent, MonitoringState> {
   Future<void> close() async {
     await _splSubscription?.cancel();
     await _audioCaptureService.stopCapture();
+    await _continuousRecordingService.stopContinuousRecording();
     return super.close();
   }
 }

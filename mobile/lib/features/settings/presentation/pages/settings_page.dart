@@ -6,6 +6,7 @@ import '../../../../features/app/presentation/bloc/app_bloc.dart';
 import '../../../../services/audio_capture_service.dart';
 import '../../../../services/location_service.dart';
 import '../../../../services/sqlite_preferences_service.dart';
+import '../../../../services/continuous_recording_service.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -18,6 +19,7 @@ class _SettingsPageState extends State<SettingsPage> {
   final SQLitePreferencesService _preferencesService = GetIt.instance<SQLitePreferencesService>();
   final LocationService _locationService = LocationService();
   final AudioCaptureService _audioService = GetIt.instance<AudioCaptureService>();
+  final ContinuousRecordingService _continuousRecordingService = ContinuousRecordingService();
 
   @override
   Widget build(BuildContext context) {
@@ -39,6 +41,10 @@ class _SettingsPageState extends State<SettingsPage> {
 
               // Audio Settings
               _buildAudioSection(context),
+              const Divider(),
+
+              // Continuous Recording Settings
+              _buildContinuousRecordingSection(context),
               const Divider(),
 
               // Sync Settings
@@ -115,6 +121,73 @@ class _SettingsPageState extends State<SettingsPage> {
       subtitle: Text(
           'Calibration: ${_audioService.calibrationOffset.toStringAsFixed(1)} dB'),
       onTap: () => _showAudioDialog(context),
+    );
+  }
+
+  Widget _buildContinuousRecordingSection(BuildContext context) {
+    return FutureBuilder<Map<String, dynamic>>(
+      future: () async {
+        final settings = _continuousRecordingService.getSettings();
+        final state = _continuousRecordingService.state;
+        return {
+          ...settings,
+          'state': state.name,
+        };
+      }(),
+      builder: (context, snapshot) {
+        final data = snapshot.data;
+        final isEnabled = data?['enabled'] == true;
+        final isActive = data?['state'] == 'active';
+        
+        return Column(
+          children: [
+            ListTile(
+              leading: Icon(
+                isActive ? Icons.fiber_smart_record : Icons.radio_button_unchecked,
+                color: isActive ? Colors.red : null,
+              ),
+              title: const Text('Continuous Recording'),
+              subtitle: Text(
+                isEnabled 
+                  ? (isActive ? 'Active - Auto-detecting noise events' : 'Enabled - Ready to start')
+                  : 'Disabled - Manual recording only'
+              ),
+              trailing: Switch(
+                value: isEnabled,
+                onChanged: (value) async {
+                  await _continuousRecordingService.updateSettings(
+                    enableContinuousRecording: value,
+                  );
+                  setState(() {});
+                },
+              ),
+              onTap: () => _showContinuousRecordingDialog(context),
+            ),
+            if (isEnabled) ...[
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        'Buffer: ${data?['buffer_duration_minutes'] ?? 15} min',
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    ),
+                    Expanded(
+                      child: Text(
+                        'Threshold: ${data?['auto_record_threshold'] ?? 65}dB',
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 8),
+            ],
+          ],
+        );
+      },
     );
   }
 
@@ -224,6 +297,108 @@ class _SettingsPageState extends State<SettingsPage> {
               await _preferencesService.setCalibrationOffset(currentOffset);
               Navigator.pop(context);
               setState(() {});
+            },
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showContinuousRecordingDialog(BuildContext context) async {
+    // Load current settings
+    final settings = _continuousRecordingService.getSettings();
+    double bufferDuration = (settings['buffer_duration_minutes'] as int).toDouble();
+    double autoRecordThreshold = settings['auto_record_threshold'] as double;
+    int maxBuffers = settings['max_buffers'] as int;
+
+    showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Continuous Recording Settings'),
+        content: StatefulBuilder(
+          builder: (context, setState) => SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  'Continuous recording automatically captures noise pollution events using a rolling buffer system.',
+                  style: TextStyle(fontSize: 14),
+                ),
+                const SizedBox(height: 16),
+                
+                // Buffer Duration Slider
+                Text('Recording Buffer Duration: ${bufferDuration.toInt()} minutes'),
+                Slider(
+                  value: bufferDuration,
+                  min: 5.0,
+                  max: 30.0,
+                  divisions: 25,
+                  label: '${bufferDuration.toInt()} min',
+                  onChanged: (value) {
+                    setState(() {
+                      bufferDuration = value;
+                    });
+                  },
+                ),
+                const SizedBox(height: 16),
+                
+                // Auto Record Threshold Slider
+                Text('Auto-Record Threshold: ${autoRecordThreshold.toInt()} dB'),
+                Slider(
+                  value: autoRecordThreshold,
+                  min: 50.0,
+                  max: 80.0,
+                  divisions: 30,
+                  label: '${autoRecordThreshold.toInt()} dB',
+                  onChanged: (value) {
+                    setState(() {
+                      autoRecordThreshold = value;
+                    });
+                  },
+                ),
+                const SizedBox(height: 16),
+                
+                // Max Buffers Slider
+                Text('Maximum Buffers: $maxBuffers'),
+                Slider(
+                  value: maxBuffers.toDouble(),
+                  min: 2.0,
+                  max: 5.0,
+                  divisions: 3,
+                  label: maxBuffers.toString(),
+                  onChanged: (value) {
+                    setState(() {
+                      maxBuffers = value.toInt();
+                    });
+                  },
+                ),
+                
+                const SizedBox(height: 16),
+                const Text(
+                  'Higher thresholds save storage but may miss quieter events. Lower thresholds capture more events but use more space.',
+                  style: TextStyle(fontSize: 12, color: Colors.grey),
+                ),
+              ],
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              await _continuousRecordingService.updateSettings(
+                bufferDuration: Duration(minutes: bufferDuration.toInt()),
+                autoRecordThreshold: autoRecordThreshold,
+                maxBuffers: maxBuffers,
+              );
+              if (context.mounted) {
+                Navigator.pop(context);
+                setState(() {}); // Refresh the settings page
+              }
             },
             child: const Text('Save'),
           ),

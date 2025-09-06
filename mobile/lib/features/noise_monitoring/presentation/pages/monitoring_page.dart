@@ -11,6 +11,7 @@ import '../../../../core/database/dao/noise_measurement_dao.dart';
 import '../../../../core/database/dao/daily_statistics_dao.dart';
 import '../../../../core/database/models/daily_statistics.dart';
 import '../../../../widgets/audio_waveform_widget.dart';
+import '../../../../services/continuous_recording_service.dart';
 
 class NoiseMonitoringPage extends StatefulWidget {
   const NoiseMonitoringPage({super.key});
@@ -23,6 +24,7 @@ class _NoiseMonitoringPageState extends State<NoiseMonitoringPage> {
   final AudioRecordingService _recordingService = AudioRecordingService();
   final NoiseMeasurementDao _measurementDao = NoiseMeasurementDao();
   final DailyStatisticsDao _dailyStatsDao = DailyStatisticsDao();
+  final ContinuousRecordingService _continuousRecordingService = ContinuousRecordingService();
 
   @override
   Widget build(BuildContext context) {
@@ -88,6 +90,11 @@ class _NoiseMonitoringPageState extends State<NoiseMonitoringPage> {
                       ),
                     ),
                   ),
+                
+                const SizedBox(height: 16),
+                
+                // Continuous Recording Status
+                _buildContinuousRecordingStatus(),
                 
                 const SizedBox(height: 16),
                 
@@ -225,6 +232,168 @@ class _NoiseMonitoringPageState extends State<NoiseMonitoringPage> {
           Text(value, style: const TextStyle(fontWeight: FontWeight.bold)),
         ],
       ),
+    );
+  }
+
+  Widget _buildContinuousRecordingStatus() {
+    return StreamBuilder<Map<String, dynamic>>(
+      stream: _continuousRecordingService.statsStream,
+      builder: (context, snapshot) {
+        final stats = snapshot.data;
+        final isActive = stats?['continuous_recording_active'] == true;
+        final activeBuffers = stats?['active_buffers'] as int? ?? 0;
+        final shouldTrigger = stats?['should_trigger_recording'] == true;
+        final currentLevel = stats?['current_level'] as double? ?? 0.0;
+        final threshold = stats?['auto_record_threshold'] as double? ?? 65.0;
+
+        if (stats == null) {
+          return const SizedBox.shrink();
+        }
+
+        return Card(
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(
+                      isActive ? Icons.fiber_smart_record : Icons.radio_button_unchecked,
+                      color: isActive ? Colors.red : Colors.grey,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Continuous Recording',
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    const Spacer(),
+                    if (isActive)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: shouldTrigger ? Colors.orange : Colors.green,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          shouldTrigger ? 'DETECTING' : 'MONITORING',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+                
+                if (isActive) ...[
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _buildStatusItem('Active Buffers', '$activeBuffers'),
+                      ),
+                      Expanded(
+                        child: _buildStatusItem('Threshold', '${threshold.toInt()} dB'),
+                      ),
+                      Expanded(
+                        child: _buildStatusItem(
+                          'Current Level', 
+                          '${currentLevel.toStringAsFixed(1)} dB',
+                          color: currentLevel > threshold ? Colors.orange : null,
+                        ),
+                      ),
+                    ],
+                  ),
+                  
+                  // Show recent events if any
+                  if (stats['recent_events_count'] != null && (stats['recent_events_count'] as int) > 0) ...[
+                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.surfaceVariant,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.notifications_active, size: 16, color: Colors.orange),
+                          const SizedBox(width: 4),
+                          Text(
+                            '${stats['recent_events_count']} recent noise events detected',
+                            style: Theme.of(context).textTheme.bodySmall,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ] else ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    'Continuous recording is disabled. Enable it in Settings to automatically capture noise events.',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                    ),
+                  ),
+                ],
+                
+                // Quick action buttons
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    if (isActive) ...[
+                      TextButton.icon(
+                        onPressed: () async {
+                          final recording = await _continuousRecordingService.saveCurrentBuffer();
+                          if (recording != null && context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('Recording saved: ${recording.id.substring(0, 8)}...'),
+                                duration: const Duration(seconds: 2),
+                              ),
+                            );
+                          }
+                        },
+                        icon: const Icon(Icons.save_alt, size: 16),
+                        label: const Text('Save Current'),
+                      ),
+                    ],
+                    const Spacer(),
+                    TextButton.icon(
+                      onPressed: () => context.push('/settings'),
+                      icon: const Icon(Icons.settings, size: 16),
+                      label: const Text('Settings'),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildStatusItem(String label, String value, {Color? color}) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+          ),
+        ),
+        Text(
+          value,
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+            fontWeight: FontWeight.bold,
+            color: color,
+          ),
+        ),
+      ],
     );
   }
 

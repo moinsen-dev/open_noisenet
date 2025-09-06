@@ -2,6 +2,22 @@ import 'package:json_annotation/json_annotation.dart';
 
 part 'audio_recording.g.dart';
 
+/// Trigger types for recordings
+enum RecordingTriggerType {
+  manual,    // User started recording manually
+  threshold, // Triggered by noise threshold
+  sustained, // Triggered by sustained noise
+  scheduled, // Triggered by schedule
+}
+
+/// Priority levels for recordings
+enum RecordingPriority {
+  low,      // 1 - Normal recordings
+  medium,   // 2 - Interesting noise events
+  high,     // 3 - Significant noise pollution
+  critical, // 4 - Urgent noise violations
+}
+
 @JsonSerializable()
 class AudioRecording {
   final String id;
@@ -28,6 +44,16 @@ class AudioRecording {
   final int createdAt;
   @JsonKey(name: 'expires_at')
   final int expiresAt;
+  // New fields for continuous recording
+  @JsonKey(name: 'trigger_type')
+  final String triggerType; // manual, threshold, sustained, scheduled
+  @JsonKey(name: 'peak_level')
+  final double? peakLevel; // highest dB during recording
+  @JsonKey(name: 'avg_level')
+  final double? avgLevel; // average dB level
+  @JsonKey(name: 'noise_events')
+  final String? noiseEvents; // JSON array of detected events
+  final int priority; // 1=low, 2=medium, 3=high, 4=critical
 
   const AudioRecording({
     required this.id,
@@ -43,6 +69,12 @@ class AudioRecording {
     this.analysisResult,
     required this.createdAt,
     required this.expiresAt,
+    // New fields for continuous recording
+    this.triggerType = 'manual',
+    this.peakLevel,
+    this.avgLevel,
+    this.noiseEvents,
+    this.priority = 1, // default to low priority
   });
 
   /// Create from database map
@@ -61,6 +93,12 @@ class AudioRecording {
       analysisResult: map['analysis_result'] as String?,
       createdAt: map['created_at'] as int,
       expiresAt: map['expires_at'] as int,
+      // New fields with safe defaults
+      triggerType: map['trigger_type'] as String? ?? 'manual',
+      peakLevel: map['peak_level'] as double?,
+      avgLevel: map['avg_level'] as double?,
+      noiseEvents: map['noise_events'] as String?,
+      priority: map['priority'] as int? ?? 1,
     );
   }
 
@@ -80,6 +118,12 @@ class AudioRecording {
       'analysis_result': analysisResult,
       'created_at': createdAt,
       'expires_at': expiresAt,
+      // New fields
+      'trigger_type': triggerType,
+      'peak_level': peakLevel,
+      'avg_level': avgLevel,
+      'noise_events': noiseEvents,
+      'priority': priority,
     };
   }
 
@@ -119,6 +163,49 @@ class AudioRecording {
     }
   }
 
+  /// Get parsed noise events
+  List<Map<String, dynamic>>? get parsedNoiseEvents {
+    if (noiseEvents == null) return null;
+    try {
+      // This would need proper JSON parsing implementation
+      // For now, return empty list
+      return [];
+    } catch (e) {
+      return null;
+    }
+  }
+
+  /// Get trigger type as enum
+  RecordingTriggerType get triggerTypeEnum {
+    switch (triggerType.toLowerCase()) {
+      case 'threshold':
+        return RecordingTriggerType.threshold;
+      case 'sustained':
+        return RecordingTriggerType.sustained;
+      case 'scheduled':
+        return RecordingTriggerType.scheduled;
+      default:
+        return RecordingTriggerType.manual;
+    }
+  }
+
+  /// Get priority as enum
+  RecordingPriority get priorityEnum {
+    switch (priority) {
+      case 2:
+        return RecordingPriority.medium;
+      case 3:
+        return RecordingPriority.high;
+      case 4:
+        return RecordingPriority.critical;
+      default:
+        return RecordingPriority.low;
+    }
+  }
+
+  /// Check if this recording was triggered automatically
+  bool get isAutoTriggered => triggerTypeEnum != RecordingTriggerType.manual;
+
   /// Helper method to parse JSON
   Map<String, dynamic> _parseJson(String jsonString) {
     // This would need proper JSON parsing implementation
@@ -141,6 +228,11 @@ class AudioRecording {
     String? analysisResult,
     int? createdAt,
     int? expiresAt,
+    String? triggerType,
+    double? peakLevel,
+    double? avgLevel,
+    String? noiseEvents,
+    int? priority,
   }) {
     return AudioRecording(
       id: id ?? this.id,
@@ -156,6 +248,11 @@ class AudioRecording {
       analysisResult: analysisResult ?? this.analysisResult,
       createdAt: createdAt ?? this.createdAt,
       expiresAt: expiresAt ?? this.expiresAt,
+      triggerType: triggerType ?? this.triggerType,
+      peakLevel: peakLevel ?? this.peakLevel,
+      avgLevel: avgLevel ?? this.avgLevel,
+      noiseEvents: noiseEvents ?? this.noiseEvents,
+      priority: priority ?? this.priority,
     );
   }
 

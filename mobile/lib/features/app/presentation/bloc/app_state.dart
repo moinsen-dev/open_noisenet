@@ -20,26 +20,30 @@ class AppLoaded extends AppState {
     required this.isAuthenticated,
     required this.isDarkMode,
     required this.language,
+    required this.isOnboardingComplete,
   });
 
   final bool isAuthenticated;
   final bool isDarkMode;
   final String language;
+  final bool isOnboardingComplete;
 
   AppLoaded copyWith({
     bool? isAuthenticated,
     bool? isDarkMode,
     String? language,
+    bool? isOnboardingComplete,
   }) {
     return AppLoaded(
       isAuthenticated: isAuthenticated ?? this.isAuthenticated,
       isDarkMode: isDarkMode ?? this.isDarkMode,
       language: language ?? this.language,
+      isOnboardingComplete: isOnboardingComplete ?? this.isOnboardingComplete,
     );
   }
 
   @override
-  List<Object?> get props => [isAuthenticated, isDarkMode, language];
+  List<Object?> get props => [isAuthenticated, isDarkMode, language, isOnboardingComplete];
 }
 
 class AppError extends AppState {

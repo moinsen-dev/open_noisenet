@@ -6,6 +6,7 @@ import 'package:get_it/get_it.dart';
 import 'package:noise_meter/noise_meter.dart';
 import 'package:permission_handler/permission_handler.dart';
 
+import '../core/logging/app_logger.dart';
 import 'permission_dialog_service.dart';
 import 'sqlite_preferences_service.dart';
 
@@ -81,11 +82,11 @@ class AudioCaptureService {
           try {
             _handleNoiseReading(reading);
           } catch (e) {
-            print('AudioCaptureService: Error handling noise reading - $e');
+            AppLogger.audio('Error handling noise reading: $e');
           }
         },
         onError: (Object error) {
-          print('AudioCaptureService error: $error');
+          AppLogger.audio('AudioCaptureService stream error: $error');
           // Don't propagate errors to prevent crashes
           // _splStreamController.addError(error);
           // _noiseReadingController.addError(error);
@@ -94,10 +95,10 @@ class AudioCaptureService {
       );
 
       _isCapturing = true;
-      print('✅ AudioCaptureService: Started capturing audio');
+      AppLogger.success('AudioCaptureService: Started capturing audio');
       return true;
     } catch (e) {
-      print('❌ AudioCaptureService: Failed to start capture - $e');
+      AppLogger.audio('Failed to start audio capture: $e');
       _isCapturing = false;
       return false;
     }
@@ -110,9 +111,9 @@ class AudioCaptureService {
       _noiseSubscription = null;
       _noiseMeter = null;
       _isCapturing = false;
-      print('🛑 AudioCaptureService: Stopped capturing audio');
+      AppLogger.success('AudioCaptureService: Stopped capturing audio');
     } catch (e) {
-      print('❌ AudioCaptureService: Error stopping capture - $e');
+      AppLogger.audio('Error stopping audio capture: $e');
     }
   }
 
@@ -147,7 +148,7 @@ class AudioCaptureService {
         _noiseReadingController.add(calibratedReading);
       }
     } catch (e) {
-      debugPrint('AudioCaptureService: Error in _processNoiseReading - $e');
+      AppLogger.audio('Error in _processNoiseReading: $e');
     }
   }
 
@@ -170,18 +171,18 @@ class AudioCaptureService {
     _calibrationOffset = offset;
     // Also save to SQLite preferences
     _preferencesService.setCalibrationOffset(offset);
-    debugPrint(
-        '🎛️ AudioCaptureService: Calibration offset set to ${offset.toStringAsFixed(1)} dB');
+    AppLogger.audio(
+        'Calibration offset set to ${offset.toStringAsFixed(1)} dB');
   }
 
   /// Load calibration offset from preferences on startup
   Future<void> loadCalibrationSettings() async {
     try {
       _calibrationOffset = await _preferencesService.getCalibrationOffset();
-      debugPrint(
-          '🎛️ AudioCaptureService: Loaded calibration offset: ${_calibrationOffset.toStringAsFixed(1)} dB');
+      AppLogger.audio(
+          'Loaded calibration offset: ${_calibrationOffset.toStringAsFixed(1)} dB');
     } catch (e) {
-      debugPrint('❌ AudioCaptureService: Failed to load calibration settings - $e');
+      AppLogger.audio('Failed to load calibration settings: $e');
       _calibrationOffset = 0.0; // fallback to default
     }
   }

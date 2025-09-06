@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 
+import '../core/logging/app_logger.dart';
+
 class LocationData {
   final double latitude;
   final double longitude;
@@ -65,23 +67,23 @@ class LocationService {
   Future<bool> requestLocationPermission(BuildContext context) async {
     // Check current permission status
     LocationPermission permission = await Geolocator.checkPermission();
-    
+
     if (permission == LocationPermission.denied) {
       // Show explanation dialog before requesting
       final shouldRequest = await _showLocationExplanationDialog(context);
       if (!shouldRequest) return false;
-      
+
       // Request permission using geolocator
       permission = await Geolocator.requestPermission();
     }
-    
+
     if (permission == LocationPermission.deniedForever) {
       // Show settings dialog for permanently denied permission
       return await _showLocationSettingsDialog(context);
     }
-    
-    return permission == LocationPermission.whileInUse || 
-           permission == LocationPermission.always;
+
+    return permission == LocationPermission.whileInUse ||
+        permission == LocationPermission.always;
   }
 
   /// Get current location with all fallbacks
@@ -95,7 +97,7 @@ class LocationService {
           return gpsLocation;
         }
       } catch (e) {
-        print('GPS location failed: $e');
+        AppLogger.info('GPS location failed: $e');
       }
     } else if (context != null) {
       // Request permission if context provided
@@ -108,7 +110,7 @@ class LocationService {
             return gpsLocation;
           }
         } catch (e) {
-          print('GPS location failed after permission grant: $e');
+          AppLogger.info('GPS location failed after permission grant: $e');
         }
       }
     }
@@ -128,7 +130,7 @@ class LocationService {
       // Check if location services are enabled
       final serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) {
-        print('Location services are disabled');
+        AppLogger.info('Location services are disabled');
         return null;
       }
 
@@ -146,7 +148,7 @@ class LocationService {
         source: LocationSource.gps,
       );
     } catch (e) {
-      print('GPS location error: $e');
+      AppLogger.info('GPS location error: $e');
       return null;
     }
   }
@@ -168,7 +170,7 @@ class LocationService {
         source: LocationSource.network,
       );
     } catch (e) {
-      print('Network location failed: $e');
+      AppLogger.info('Network location failed: $e');
 
       // For now, return null. In the future, we could:
       // 1. Use IP geolocation service
@@ -185,22 +187,22 @@ class LocationService {
     _periodicLocationTimer = Timer.periodic(_locationUpdateInterval, (_) async {
       final location = await getCurrentLocation(context: context);
       if (location != null) {
-        print('🌍 Location updated: $location');
+        AppLogger.info('Location updated: $location');
       }
     });
 
     // Get initial location
     getCurrentLocation(context: context);
 
-    print(
-        '🌍 LocationService: Started periodic updates every ${_locationUpdateInterval.inMinutes} minutes');
+    AppLogger.info(
+        'LocationService: Started periodic updates every ${_locationUpdateInterval.inMinutes} minutes');
   }
 
   /// Stop periodic location updates
   void stopPeriodicUpdates() {
     _periodicLocationTimer?.cancel();
     _periodicLocationTimer = null;
-    print('🛑 LocationService: Stopped periodic updates');
+    AppLogger.info('LocationService: Stopped periodic updates');
   }
 
   /// Get distance between two coordinates in meters

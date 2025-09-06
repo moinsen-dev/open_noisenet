@@ -12,6 +12,7 @@ import '../core/database/models/audio_recording.dart';
 import '../core/database/dao/audio_recording_dao.dart';
 import '../core/database/models/ai_analysis_queue.dart';
 import '../core/database/dao/ai_analysis_queue_dao.dart';
+import '../core/logging/app_logger.dart';
 
 enum RecordingState {
   stopped,
@@ -140,11 +141,11 @@ class AudioRecordingService {
       // Set timer to automatically stop recording
       _recordingTimer = Timer(recordingDuration, () => stopRecording());
 
-      print('🎤 Started audio recording: $recordingId');
+      AppLogger.recording('Started audio recording: $recordingId');
       return recordingId;
 
     } catch (e) {
-      print('❌ Failed to start recording: $e');
+      AppLogger.recording('Failed to start recording: $e');
       return null;
     }
   }
@@ -192,11 +193,11 @@ class AudioRecordingService {
 
       _currentRecording = null;
 
-      print('🎤 Completed recording: ${completedRecording.id}');
+      AppLogger.recording('Completed recording: ${completedRecording.id}');
       return completedRecording;
 
     } catch (e) {
-      print('❌ Failed to stop recording: $e');
+      AppLogger.recording('Failed to stop recording: $e');
       _state = RecordingState.stopped;
       _stateController.add(_state);
       _currentRecording = null;
@@ -214,7 +215,7 @@ class AudioRecordingService {
       _state = RecordingState.paused;
       _stateController.add(_state);
     } catch (e) {
-      print('❌ Failed to pause recording: $e');
+      AppLogger.recording('Failed to pause recording: $e');
     }
   }
 
@@ -238,7 +239,7 @@ class AudioRecordingService {
       _state = RecordingState.recording;
       _stateController.add(_state);
     } catch (e) {
-      print('❌ Failed to resume recording: $e');
+      AppLogger.recording('Failed to resume recording: $e');
     }
   }
 
@@ -273,10 +274,10 @@ class AudioRecordingService {
       // Delete analysis queue items
       await _analysisQueueDao.deleteByRecordingId(id);
 
-      print('🗑️ Deleted recording: $id');
+      AppLogger.recording('Deleted recording: $id');
       return true;
     } catch (e) {
-      print('❌ Failed to delete recording $id: $e');
+      AppLogger.recording('Failed to delete recording $id: $e');
       return false;
     }
   }
@@ -307,7 +308,7 @@ class AudioRecordingService {
       _activeRecordings.clear();
       _activeRecordings.addAll(recordings);
     } catch (e) {
-      print('❌ Failed to load active recordings: $e');
+      AppLogger.recording('Failed to load active recordings: $e');
     }
   }
 
@@ -333,9 +334,9 @@ class AudioRecordingService {
       );
 
       await _analysisQueueDao.insert(analysisItem);
-      print('📊 Queued recording for AI analysis: ${recording.id}');
+      AppLogger.recording('Queued recording for AI analysis: ${recording.id}');
     } catch (e) {
-      print('❌ Failed to queue for analysis: $e');
+      AppLogger.recording('Failed to queue for analysis: $e');
     }
   }
 
@@ -352,12 +353,12 @@ class AudioRecordingService {
       }
 
       if (deletedCount > 0) {
-        print('🧹 Cleaned up $deletedCount expired recordings');
+        AppLogger.recording('Cleaned up $deletedCount expired recordings');
       }
 
       return deletedCount;
     } catch (e) {
-      print('❌ Failed to cleanup expired recordings: $e');
+      AppLogger.recording('Failed to cleanup expired recordings: $e');
       return 0;
     }
   }
@@ -401,7 +402,7 @@ class AudioRecordingService {
         throw Exception('Audio file is empty: ${recording.filePath}');
       }
 
-      print('🔍 Attempting to play: ${recording.filePath} (${fileSize} bytes, ${recording.format})');
+      AppLogger.recording('Attempting to play: ${recording.filePath} ($fileSize bytes, ${recording.format})');
 
       // Stop any currently playing audio
       await _audioPlayer.stop();
@@ -410,20 +411,20 @@ class AudioRecordingService {
       try {
         await _audioPlayer.setFilePath(recording.filePath);
         await _audioPlayer.play();
-        print('🔊 Successfully playing audio recording: ${recording.id}');
+        AppLogger.recording('Successfully playing audio recording: ${recording.id}');
       } catch (platformException) {
         // If direct file path fails, try using setAudioSource with file URI
-        print('🔄 Direct file path failed, trying alternative method...');
+        AppLogger.recording('Direct file path failed, trying alternative method...');
         await _audioPlayer.setAudioSource(
           just_audio.AudioSource.uri(Uri.file(recording.filePath)),
         );
         await _audioPlayer.play();
-        print('🔊 Successfully playing audio recording (alternative method): ${recording.id}');
+        AppLogger.recording('Successfully playing audio recording (alternative method): ${recording.id}');
       }
     } catch (e) {
-      print('❌ Failed to play recording ${recording.id}: $e');
-      print('📍 File path: ${recording.filePath}');
-      print('📄 File format: ${recording.format}');
+      AppLogger.recording('Failed to play recording ${recording.id}: $e');
+      AppLogger.recording('File path: ${recording.filePath}');
+      AppLogger.recording('File format: ${recording.format}');
       rethrow;
     }
   }
@@ -433,7 +434,7 @@ class AudioRecordingService {
     try {
       await _audioPlayer.stop();
     } catch (e) {
-      print('❌ Failed to stop playback: $e');
+      AppLogger.recording('Failed to stop playback: $e');
     }
   }
 

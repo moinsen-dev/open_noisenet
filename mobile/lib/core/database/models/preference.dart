@@ -197,6 +197,9 @@ class PreferenceKeys {
   static const String chartTimeSpan = 'chart_time_span_hours';
   static const String enableNotifications = 'enable_notifications';
   static const String languageCode = 'language_code';
+  
+  // Onboarding Settings
+  static const String onboardingComplete = 'onboarding_complete';
 
   /// Get all default preferences with their default values
   static List<Preference> getDefaults() {
@@ -288,6 +291,13 @@ class PreferenceKeys {
         key: languageCode,
         value: 'en',
         description: 'App language code',
+      ),
+      
+      // Onboarding
+      Preference.createBool(
+        key: onboardingComplete,
+        value: false,
+        description: 'Whether user has completed onboarding flow',
       ),
     ];
   }

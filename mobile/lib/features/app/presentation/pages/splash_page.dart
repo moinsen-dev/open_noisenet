@@ -12,9 +12,11 @@ class SplashPage extends StatelessWidget {
     return BlocListener<AppBloc, AppState>(
       listener: (context, state) {
         if (state is AppLoaded) {
-          if (state.isAuthenticated) {
+          if (state.isOnboardingComplete) {
+            // Onboarding is complete, go to main app
             context.go('/home');
           } else {
+            // First time user, start with setup
             context.go('/setup');
           }
         } else if (state is AppError) {

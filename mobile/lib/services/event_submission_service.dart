@@ -5,6 +5,7 @@ import 'package:dio/dio.dart';
 
 import '../features/noise_monitoring/data/models/noise_event_model.dart';
 import '../features/noise_monitoring/data/repositories/event_repository.dart';
+import '../core/logging/app_logger.dart';
 import 'settings_service.dart';
 
 class EventSubmissionService {
@@ -51,10 +52,10 @@ class EventSubmissionService {
     _dio.interceptors.add(LogInterceptor(
       requestBody: true,
       responseBody: true,
-      logPrint: (object) => print('🌐 HTTP: $object'),
+      logPrint: (object) => AppLogger.network('HTTP: $object'),
     ));
 
-    print('🚀 EventSubmissionService initialized with baseUrl: $_baseUrl');
+    AppLogger.network('EventSubmissionService initialized with baseUrl: $_baseUrl');
   }
 
   /// Start automatic submission of pending events
@@ -68,15 +69,15 @@ class EventSubmissionService {
     // Submit immediately on start
     _submitPendingEvents();
 
-    print(
-        '⚡ Auto-submission started (every ${_submissionInterval.inMinutes} minutes)');
+    AppLogger.network(
+        'Auto-submission started (every ${_submissionInterval.inMinutes} minutes)');
   }
 
   /// Stop automatic submission
   void stopAutoSubmission() {
     _submissionTimer?.cancel();
     _submissionTimer = null;
-    print('🛑 Auto-submission stopped');
+    AppLogger.network('Auto-submission stopped');
   }
 
   /// Submit a single event
@@ -113,7 +114,7 @@ class EventSubmissionService {
           message: 'Event submitted successfully',
         ));
 
-        print('✅ Event submitted successfully: ${event.toString()}');
+        AppLogger.network('Event submitted successfully: ${event.toString()}');
 
         return SubmissionResult(
           success: true,
@@ -140,7 +141,7 @@ class EventSubmissionService {
         message: errorMessage,
       ));
 
-      print('❌ Failed to submit event: $errorMessage');
+      AppLogger.network('Failed to submit event: $errorMessage');
 
       return SubmissionResult(
         success: false,
@@ -185,7 +186,7 @@ class EventSubmissionService {
         );
       }
 
-      print('📤 Submitting ${pendingEvents.length} pending events...');
+      AppLogger.network('Submitting ${pendingEvents.length} pending events...');
 
       int successful = 0;
       int failed = 0;
@@ -193,7 +194,7 @@ class EventSubmissionService {
       for (final event in pendingEvents) {
         // Check retry count
         if (event.retryCount! >= _maxRetries) {
-          print('⏭️ Skipping event with max retries: ${event.toString()}');
+          AppLogger.network('Skipping event with max retries: ${event.toString()}');
           continue;
         }
 
@@ -218,8 +219,8 @@ class EventSubmissionService {
         total: pendingEvents.length,
       ));
 
-      print(
-          '📊 Batch submission complete: $successful successful, $failed failed');
+      AppLogger.network(
+          'Batch submission complete: $successful successful, $failed failed');
 
       return BatchSubmissionResult(
         totalEvents: pendingEvents.length,
@@ -287,7 +288,7 @@ class EventSubmissionService {
     if (baseUrl != null && baseUrl != _baseUrl) {
       _baseUrl = baseUrl;
       _dio.options.baseUrl = _baseUrl;
-      print('🔧 Updated baseUrl: $_baseUrl');
+      AppLogger.network('Updated baseUrl: $_baseUrl');
     }
 
     if (submissionInterval != null &&
@@ -297,13 +298,13 @@ class EventSubmissionService {
       if (_submissionTimer?.isActive ?? false) {
         startAutoSubmission();
       }
-      print(
-          '🔧 Updated submission interval: ${_submissionInterval.inMinutes} minutes');
+      AppLogger.network(
+          'Updated submission interval: ${_submissionInterval.inMinutes} minutes');
     }
 
     if (maxRetries != null) {
       _maxRetries = maxRetries;
-      print('🔧 Updated max retries: $_maxRetries');
+      AppLogger.network('Updated max retries: $_maxRetries');
     }
   }
 

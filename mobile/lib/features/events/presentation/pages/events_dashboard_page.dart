@@ -8,6 +8,7 @@ import '../../../../core/database/dao/audio_recording_dao.dart';
 import '../../../../core/database/models/noise_measurement.dart';
 import '../../../../core/database/models/daily_statistics.dart';
 import '../../../../core/database/models/audio_recording.dart';
+import '../../../../core/logging/app_logger.dart';
 import '../../../../services/audio_recording_service.dart';
 
 class EventsDashboardPage extends StatefulWidget {
@@ -40,7 +41,7 @@ class _EventsDashboardPageState extends State<EventsDashboardPage> {
         });
       }
     } catch (e) {
-      print('Failed to initialize audio service: $e');
+      AppLogger.ui('Failed to initialize audio service: $e');
     }
   }
 

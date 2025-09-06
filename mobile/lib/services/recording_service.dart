@@ -1,30 +1,32 @@
 import 'dart:async';
-import 'dart:io';
 import 'dart:collection';
-import 'package:path_provider/path_provider.dart';
-import 'package:flutter_sound/flutter_sound.dart';
-import 'package:uuid/uuid.dart';
-import 'package:path/path.dart' as path;
-import 'package:permission_handler/permission_handler.dart';
-import 'package:get_it/get_it.dart';
+import 'dart:io';
 
-import '../core/database/models/audio_recording.dart';
-import '../core/database/dao/audio_recording_dao.dart';
+import 'package:flutter_sound/flutter_sound.dart';
+import 'package:get_it/get_it.dart';
+import 'package:path/path.dart' as path;
+import 'package:path_provider/path_provider.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:uuid/uuid.dart';
+
 import '../core/database/dao/ai_analysis_queue_dao.dart';
+import '../core/database/dao/audio_recording_dao.dart';
 import '../core/database/models/ai_analysis_queue.dart';
+import '../core/database/models/audio_recording.dart';
+import '../core/logging/app_logger.dart';
 import 'noise_event_detector.dart';
 import 'sqlite_preferences_service.dart';
 
-/// State of the continuous recording system
-enum ContinuousRecordingState {
-  stopped,    // Not recording
-  starting,   // Initializing continuous recording
-  active,     // Continuously recording with buffer rotation
-  paused,     // Temporarily paused
-  stopping,   // Shutting down
+/// State of the recording system
+enum RecordingState {
+  stopped, // Not recording
+  starting, // Initializing recording
+  active, // Recording with buffer rotation
+  paused, // Temporarily paused
+  stopping, // Shutting down
 }
 
-/// Continuous recording buffer entry
+/// Recording buffer entry
 class RecordingBuffer {
   final String id;
   final DateTime startTime;
@@ -32,7 +34,7 @@ class RecordingBuffer {
   final FlutterSoundRecorder recorder;
   bool isActive;
   Timer? durationTimer;
-  
+
   RecordingBuffer({
     required this.id,
     required this.startTime,
@@ -42,62 +44,64 @@ class RecordingBuffer {
   });
 }
 
-/// Continuous audio recording service with intelligent event detection
+/// Audio recording service with intelligent event detection
 /// This service maintains a rolling buffer of audio recordings and automatically
 /// captures significant noise events for analysis
-class ContinuousRecordingService {
-  static final ContinuousRecordingService _instance = ContinuousRecordingService._internal();
-  factory ContinuousRecordingService() => _instance;
-  ContinuousRecordingService._internal();
+class RecordingService {
+  static final RecordingService _instance = RecordingService._internal();
+  factory RecordingService() => _instance;
+  RecordingService._internal();
 
   // Services
   final Uuid _uuid = const Uuid();
   final AudioRecordingDao _recordingDao = AudioRecordingDao();
   final AiAnalysisQueueDao _analysisQueueDao = AiAnalysisQueueDao();
   final NoiseEventDetector _eventDetector = NoiseEventDetector();
-  final SQLitePreferencesService _preferences = GetIt.instance<SQLitePreferencesService>();
+  final SQLitePreferencesService _preferences =
+      GetIt.instance<SQLitePreferencesService>();
 
   // Configuration
   static const int sampleRate = 44100;
   static const String audioFormat = 'wav';
   static const Duration retentionPeriod = Duration(days: 7);
-  
+
   // Default settings (will be loaded from preferences)
   Duration _bufferDuration = const Duration(minutes: 15);
-  Duration _overlapDuration = const Duration(minutes: 5);
+  final Duration _overlapDuration = const Duration(minutes: 5);
   int _maxBuffers = 3;
   double _autoRecordThreshold = 65.0;
-  bool _enableContinuousRecording = false;
+  bool _enableRecording = false;
 
   // State
-  ContinuousRecordingState _state = ContinuousRecordingState.stopped;
+  RecordingState _state = RecordingState.stopped;
   String? _recordingsDirectory;
   final Queue<RecordingBuffer> _activeBuffers = Queue<RecordingBuffer>();
   Timer? _bufferRotationTimer;
   StreamSubscription<NoiseEvent>? _eventSubscription;
 
   // Stream controllers
-  final StreamController<ContinuousRecordingState> _stateController = 
-      StreamController<ContinuousRecordingState>.broadcast();
+  final StreamController<RecordingState> _stateController =
+      StreamController<RecordingState>.broadcast();
   final StreamController<AudioRecording> _recordingCreatedController =
       StreamController<AudioRecording>.broadcast();
   final StreamController<Map<String, dynamic>> _statsController =
       StreamController<Map<String, dynamic>>.broadcast();
 
   // Getters
-  ContinuousRecordingState get state => _state;
-  Stream<ContinuousRecordingState> get stateStream => _stateController.stream;
-  Stream<AudioRecording> get recordingCreatedStream => _recordingCreatedController.stream;
+  RecordingState get state => _state;
+  Stream<RecordingState> get stateStream => _stateController.stream;
+  Stream<AudioRecording> get recordingCreatedStream =>
+      _recordingCreatedController.stream;
   Stream<Map<String, dynamic>> get statsStream => _statsController.stream;
-  bool get isActive => _state == ContinuousRecordingState.active;
-  bool get isStopped => _state == ContinuousRecordingState.stopped;
+  bool get isActive => _state == RecordingState.active;
+  bool get isStopped => _state == RecordingState.stopped;
   int get activeBufferCount => _activeBuffers.length;
 
-  /// Initialize the continuous recording service
+  /// Initialize the recording service
   Future<void> initialize() async {
     // Load settings from preferences
     await _loadSettings();
-    
+
     // Configure noise event detector
     _eventDetector.configure(
       sustainedThreshold: _autoRecordThreshold,
@@ -113,35 +117,38 @@ class ContinuousRecordingService {
 
     // Clean up expired recordings on startup
     await _cleanupExpiredRecordings();
-    
-    print('🎤 ContinuousRecordingService: Initialized');
+
+    AppLogger.recording('RecordingService: Initialized');
   }
 
   /// Load settings from preferences
   Future<void> _loadSettings() async {
     try {
-      _bufferDuration = Duration(seconds: await _preferences.getRecordingDurationSeconds());
+      _bufferDuration =
+          Duration(seconds: await _preferences.getRecordingDurationSeconds());
       _maxBuffers = await _preferences.getMaxRecordingsCount();
       _autoRecordThreshold = await _preferences.getNoiseThreshold();
-      
-      // Check if continuous recording is enabled (new setting) - default to true as this is our main functionality
-      _enableContinuousRecording = await _preferences.getBool('continuous_recording_enabled', defaultValue: true);
-      
-      print('🔧 Continuous recording settings loaded - Duration: ${_bufferDuration}, Threshold: ${_autoRecordThreshold}dB');
+
+      // Check if recording is enabled (new setting) - default to true as this is our main functionality
+      _enableRecording =
+          await _preferences.getBool('recording_enabled', defaultValue: true);
+
+      AppLogger.settings(
+          'Recording settings loaded - Duration: $_bufferDuration, Threshold: ${_autoRecordThreshold}dB');
     } catch (e) {
-      print('❌ Failed to load continuous recording settings: $e');
+      AppLogger.error('Failed to load recording settings', e);
     }
   }
 
-  /// Start continuous recording
-  Future<bool> startContinuousRecording() async {
-    if (!_enableContinuousRecording) {
-      print('⚠️ Continuous recording is disabled in settings');
+  /// Start recording
+  Future<bool> startRecording() async {
+    if (!_enableRecording) {
+      AppLogger.warning('Recording is disabled in settings');
       return false;
     }
 
-    if (_state != ContinuousRecordingState.stopped) {
-      return _state == ContinuousRecordingState.active;
+    if (_state != RecordingState.stopped) {
+      return _state == RecordingState.active;
     }
 
     try {
@@ -151,32 +158,32 @@ class ContinuousRecordingService {
         throw Exception('Microphone permission not granted');
       }
 
-      _setState(ContinuousRecordingState.starting);
+      _setState(RecordingState.starting);
 
       // Create initial recording buffer
       await _createNewBuffer();
 
       // Start buffer rotation timer
-      _bufferRotationTimer = Timer.periodic(_bufferDuration - _overlapDuration, (_) {
+      _bufferRotationTimer =
+          Timer.periodic(_bufferDuration - _overlapDuration, (_) {
         _rotateBuffers();
       });
 
-      _setState(ContinuousRecordingState.active);
-      print('✅ Continuous recording started');
+      _setState(RecordingState.active);
+      AppLogger.success('Recording started');
       return true;
-
     } catch (e) {
-      print('❌ Failed to start continuous recording: $e');
-      _setState(ContinuousRecordingState.stopped);
+      AppLogger.failure('Failed to start recording', e);
+      _setState(RecordingState.stopped);
       return false;
     }
   }
 
-  /// Stop continuous recording
-  Future<void> stopContinuousRecording() async {
-    if (_state == ContinuousRecordingState.stopped) return;
+  /// Stop recording
+  Future<void> stopRecording() async {
+    if (_state == RecordingState.stopped) return;
 
-    _setState(ContinuousRecordingState.stopping);
+    _setState(RecordingState.stopping);
 
     // Cancel buffer rotation
     _bufferRotationTimer?.cancel();
@@ -188,17 +195,18 @@ class ContinuousRecordingService {
     }
     _activeBuffers.clear();
 
-    _setState(ContinuousRecordingState.stopped);
-    print('🛑 Continuous recording stopped');
+    _setState(RecordingState.stopped);
+    AppLogger.recording('Recording stopped');
   }
 
   /// Create new recording buffer
   Future<void> _createNewBuffer() async {
     final bufferId = _uuid.v4();
     final now = DateTime.now();
-    
+
     // Create filename with timestamp
-    final dateFolder = '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+    final dateFolder =
+        '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
     final bufferPath = path.join(
       _recordingsDirectory!,
       dateFolder,
@@ -232,7 +240,7 @@ class ContinuousRecordingService {
     buffer.durationTimer = Timer(_bufferDuration, () => _stopBuffer(buffer));
 
     _activeBuffers.add(buffer);
-    print('📼 Created new recording buffer: $bufferId');
+    AppLogger.recording('Created new recording buffer: $bufferId');
 
     // Emit stats update
     _emitStatsUpdate();
@@ -240,7 +248,7 @@ class ContinuousRecordingService {
 
   /// Rotate buffers (start new buffer while keeping overlap)
   Future<void> _rotateBuffers() async {
-    if (_state != ContinuousRecordingState.active) return;
+    if (_state != RecordingState.active) return;
 
     try {
       // Create new buffer
@@ -252,22 +260,24 @@ class ContinuousRecordingService {
         await _stopBuffer(oldestBuffer, savePermanently: false);
       }
 
-      print('🔄 Buffer rotation completed, active buffers: ${_activeBuffers.length}');
+      AppLogger.recording(
+          'Buffer rotation completed, active buffers: ${_activeBuffers.length}');
     } catch (e) {
-      print('❌ Buffer rotation failed: $e');
+      AppLogger.error('Buffer rotation failed', e);
     }
   }
 
   /// Stop a recording buffer
-  Future<void> _stopBuffer(RecordingBuffer buffer, {bool savePermanently = false}) async {
+  Future<void> _stopBuffer(RecordingBuffer buffer,
+      {bool savePermanently = false}) async {
     try {
       buffer.durationTimer?.cancel();
-      
+
       if (buffer.isActive) {
         await buffer.recorder.stopRecorder();
         buffer.isActive = false;
       }
-      
+
       await buffer.recorder.closeRecorder();
 
       if (!savePermanently) {
@@ -278,15 +288,16 @@ class ContinuousRecordingService {
         }
       }
 
-      print('🔚 Stopped buffer: ${buffer.id}${savePermanently ? ' (saved)' : ' (deleted)'}');
+      final status = savePermanently ? ' (saved)' : ' (deleted)';
+      AppLogger.recording('Stopped buffer: ${buffer.id}$status');
     } catch (e) {
-      print('❌ Failed to stop buffer ${buffer.id}: $e');
+      AppLogger.error('Failed to stop buffer ${buffer.id}', e);
     }
   }
 
   /// Handle noise event for auto-recording
   void _onNoiseEvent(NoiseEvent event) {
-    if (_state != ContinuousRecordingState.active) return;
+    if (_state != RecordingState.active) return;
 
     // Check if this event warrants saving current buffer
     if (_shouldSaveForEvent(event)) {
@@ -315,16 +326,16 @@ class ContinuousRecordingService {
     try {
       // Get the most recent buffer
       final buffer = _activeBuffers.last;
-      
+
       // Stop the buffer and save it permanently
       await buffer.recorder.stopRecorder();
       buffer.isActive = false;
-      
+
       // Create AudioRecording model
       final endTime = DateTime.now();
       final file = File(buffer.filePath);
       final fileSize = await file.exists() ? await file.length() : 0;
-      
+
       final recording = AudioRecording(
         id: buffer.id,
         timestampStart: buffer.startTime.millisecondsSinceEpoch ~/ 1000,
@@ -339,13 +350,14 @@ class ContinuousRecordingService {
         triggerType: event.type.name,
         peakLevel: event.level,
         avgLevel: _eventDetector.getCurrentStats()['avg_5min'] as double?,
-        noiseEvents: _eventDetector.exportEventsAsJson(buffer.startTime, endTime),
+        noiseEvents:
+            _eventDetector.exportEventsAsJson(buffer.startTime, endTime),
         priority: _eventDetector.getRecordingPriority(),
       );
 
       // Save to database
       await _recordingDao.insert(recording);
-      
+
       // Queue for AI analysis if high priority
       if (recording.priority >= 3) {
         await _queueForAnalysis(recording);
@@ -356,10 +368,10 @@ class ContinuousRecordingService {
       await _createNewBuffer();
 
       _recordingCreatedController.add(recording);
-      print('💾 Saved event-triggered recording: ${recording.id} (${event.type.name})');
-
+      AppLogger.success(
+          'Saved event-triggered recording: ${recording.id} (${event.type.name})');
     } catch (e) {
-      print('❌ Failed to save buffer for event: $e');
+      AppLogger.error('Failed to save buffer for event', e);
     }
   }
 
@@ -373,38 +385,39 @@ class ContinuousRecordingService {
       );
 
       await _analysisQueueDao.insert(analysisItem);
-      print('📊 Queued high-priority recording for AI analysis: ${recording.id}');
+      AppLogger.database(
+          'Queued high-priority recording for AI analysis: ${recording.id}');
     } catch (e) {
-      print('❌ Failed to queue for analysis: $e');
+      AppLogger.error('Failed to queue for analysis', e);
     }
   }
 
   /// Force save current buffer manually
   Future<AudioRecording?> saveCurrentBuffer({String? eventId}) async {
-    if (_activeBuffers.isEmpty || _state != ContinuousRecordingState.active) {
+    if (_activeBuffers.isEmpty || _state != RecordingState.active) {
       return null;
     }
 
     try {
       final buffer = _activeBuffers.last;
-      
+
       // Create a fake manual trigger event
       final manualEvent = NoiseEvent(
         timestamp: DateTime.now(),
-        level: _eventDetector.getCurrentStats()['current_level'] as double? ?? 50.0,
+        level: _eventDetector.getCurrentStats()['current_level'] as double? ??
+            50.0,
         type: NoiseEventType.spike,
         duration: const Duration(seconds: 1),
         metadata: {'manual_trigger': true},
       );
-      
+
       await _saveCurrentBufferForEvent(manualEvent);
-      
+
       // Find the saved recording
       final recent = await _recordingDao.getRecent(limit: 1);
       return recent.isNotEmpty ? recent.first : null;
-
     } catch (e) {
-      print('❌ Failed to manually save buffer: $e');
+      AppLogger.error('Failed to manually save buffer', e);
       return null;
     }
   }
@@ -427,7 +440,7 @@ class ContinuousRecordingService {
       'should_trigger_recording': _eventDetector.shouldTriggerRecording(),
       'recording_priority': _eventDetector.getRecordingPriority(),
     };
-    
+
     _statsController.add(stats);
   }
 
@@ -441,9 +454,11 @@ class ContinuousRecordingService {
     bool needsRestart = false;
 
     if (enableContinuousRecording != null) {
-      _enableContinuousRecording = enableContinuousRecording;
-      await _preferences.setBool('continuous_recording_enabled', enableContinuousRecording, 
-          description: 'Enable continuous recording with intelligent event detection');
+      _enableRecording = enableContinuousRecording;
+      await _preferences.setBool(
+          'continuous_recording_enabled', enableContinuousRecording,
+          description:
+              'Enable continuous recording with intelligent event detection');
     }
 
     if (bufferDuration != null && bufferDuration != _bufferDuration) {
@@ -452,7 +467,8 @@ class ContinuousRecordingService {
       needsRestart = true;
     }
 
-    if (autoRecordThreshold != null && autoRecordThreshold != _autoRecordThreshold) {
+    if (autoRecordThreshold != null &&
+        autoRecordThreshold != _autoRecordThreshold) {
       _autoRecordThreshold = autoRecordThreshold;
       await _preferences.setNoiseThreshold(autoRecordThreshold);
       _eventDetector.configure(sustainedThreshold: autoRecordThreshold);
@@ -465,17 +481,17 @@ class ContinuousRecordingService {
 
     // Restart continuous recording if needed and currently active
     if (needsRestart && isActive) {
-      await stopContinuousRecording();
-      await startContinuousRecording();
+      await stopRecording();
+      await startRecording();
     }
 
-    print('⚙️ Continuous recording settings updated');
+    AppLogger.settings('Continuous recording settings updated');
   }
 
   /// Get current settings
   Map<String, dynamic> getSettings() {
     return {
-      'enabled': _enableContinuousRecording,
+      'enabled': _enableRecording,
       'buffer_duration_minutes': _bufferDuration.inMinutes,
       'auto_record_threshold': _autoRecordThreshold,
       'max_buffers': _maxBuffers,
@@ -499,18 +515,19 @@ class ContinuousRecordingService {
       }
 
       if (deletedCount > 0) {
-        print('🧹 Cleaned up $deletedCount expired continuous recordings');
+        AppLogger.database(
+            'Cleaned up $deletedCount expired continuous recordings');
       }
 
       return deletedCount;
     } catch (e) {
-      print('❌ Failed to cleanup expired recordings: $e');
+      AppLogger.error('Failed to cleanup expired recordings', e);
       return 0;
     }
   }
 
   /// Set state and notify listeners
-  void _setState(ContinuousRecordingState newState) {
+  void _setState(RecordingState newState) {
     if (_state != newState) {
       _state = newState;
       _stateController.add(_state);
@@ -527,7 +544,7 @@ class ContinuousRecordingService {
   Future<Map<String, dynamic>> getStorageInfo() async {
     final stats = await _recordingDao.getStorageStats();
     final directory = Directory(_recordingsDirectory!);
-    
+
     return {
       ...stats,
       'continuous_recordings_directory': _recordingsDirectory,
@@ -539,7 +556,7 @@ class ContinuousRecordingService {
 
   /// Dispose of resources
   Future<void> dispose() async {
-    await stopContinuousRecording();
+    await stopRecording();
     await _eventSubscription?.cancel();
     _eventDetector.dispose();
     await _stateController.close();
@@ -561,6 +578,7 @@ extension ContinuousRecordingPreferences on SQLitePreferencesService {
   }
 
   Future<void> setBool(String key, bool value, {String? description}) async {
-    await setRawPreference(key, value.toString(), 'boolean', description: description);
+    await setRawPreference(key, value.toString(), 'boolean',
+        description: description);
   }
 }

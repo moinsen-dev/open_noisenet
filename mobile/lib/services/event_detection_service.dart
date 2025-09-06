@@ -8,6 +8,7 @@ import '../features/noise_monitoring/data/models/noise_event_model.dart';
 import '../features/noise_monitoring/data/repositories/event_repository.dart';
 import '../core/database/models/noise_measurement.dart';
 import '../core/database/dao/noise_measurement_dao.dart';
+import '../core/logging/app_logger.dart';
 import 'package:uuid/uuid.dart';
 
 class NoiseEvent {
@@ -103,8 +104,8 @@ class EventDetectionService {
     _minuteAggregationTimer = Timer.periodic(
         const Duration(seconds: 10), (_) => _processMinuteAggregation());
 
-    print(
-        '🎯 EventDetectionService: Started monitoring with threshold $_thresholdDb dB');
+    AppLogger.event(
+        'EventDetectionService: Started monitoring with threshold $_thresholdDb dB');
   }
 
   /// Stop monitoring
@@ -127,7 +128,7 @@ class EventDetectionService {
 
     _rollingWindow.clear();
     _minuteBuffer.clear();
-    print('🛑 EventDetectionService: Stopped monitoring');
+    AppLogger.event('EventDetectionService: Stopped monitoring');
   }
 
   /// Add a new SPL sample
@@ -159,7 +160,7 @@ class EventDetectionService {
   void setThreshold(double thresholdDb) {
     if (thresholdDb != _thresholdDb) {
       _thresholdDb = thresholdDb;
-      print('🎛️ EventDetectionService: Threshold updated to $_thresholdDb dB');
+      AppLogger.event('EventDetectionService: Threshold updated to $_thresholdDb dB');
     }
   }
 
@@ -167,8 +168,8 @@ class EventDetectionService {
   void setWindowDuration(Duration duration) {
     if (duration != _windowDuration) {
       _windowDuration = duration;
-      print(
-          '⏱️ EventDetectionService: Window duration updated to ${duration.inMinutes} minutes');
+      AppLogger.event(
+          'EventDetectionService: Window duration updated to ${duration.inMinutes} minutes');
       // Clean up samples that are now outside the new window
       _cleanupOldSamples();
     }
@@ -217,8 +218,8 @@ class EventDetectionService {
             'threshold_${_thresholdDb}dB_${_windowDuration.inMinutes}min',
       );
 
-      print(
-          '🚨 Event started: ${stats.averageLeq.toStringAsFixed(1)} dB >= $_thresholdDb dB');
+      AppLogger.event(
+          'Event started: ${stats.averageLeq.toStringAsFixed(1)} dB >= $_thresholdDb dB');
     } else if (exceedsThreshold && _currentEvent != null) {
       // Update ongoing event
       _currentEvent = NoiseEvent(
@@ -232,8 +233,8 @@ class EventDetectionService {
       );
     } else if (!exceedsThreshold && _currentEvent != null) {
       // End current event
-      print(
-          '✅ Event ended: ${_currentEvent!.averageLeqDb.toStringAsFixed(1)} dB < $_thresholdDb dB');
+      AppLogger.event(
+          'Event ended: ${_currentEvent!.averageLeqDb.toStringAsFixed(1)} dB < $_thresholdDb dB');
       _finalizeCurrentEvent();
     }
   }
@@ -254,7 +255,7 @@ class EventDetectionService {
       await _storeEvent(eventModel);
       
       _eventController.add(_currentEvent!);
-      print('📤 Event emitted with location: ${_currentEvent!}');
+      AppLogger.event('Event emitted with location: ${_currentEvent!}');
     }
 
     _currentEvent = null;
@@ -283,9 +284,9 @@ class EventDetectionService {
     try {
       final repository = await EventRepository.getInstance();
       await repository.saveEvent(event);
-      print('💾 Event stored locally: ${event.id}');
+      AppLogger.event('Event stored locally: ${event.id}');
     } catch (e) {
-      print('❌ Failed to store event: $e');
+      AppLogger.event('Failed to store event: $e');
     }
   }
 
@@ -331,9 +332,9 @@ class EventDetectionService {
       // Store in database
       try {
         await _measurementDao.insert(measurement);
-        print('📊 Stored minute measurement: ${measurement.toString()}');
+        AppLogger.event('Stored minute measurement: ${measurement.toString()}');
       } catch (e) {
-        print('❌ Failed to store minute measurement: $e');
+        AppLogger.event('Failed to store minute measurement: $e');
       }
     }
 

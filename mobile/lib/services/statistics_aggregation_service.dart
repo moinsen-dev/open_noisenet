@@ -7,6 +7,7 @@ import '../core/database/models/daily_statistics.dart';
 import '../core/database/dao/noise_measurement_dao.dart';
 import '../core/database/dao/hourly_statistics_dao.dart';
 import '../core/database/dao/daily_statistics_dao.dart';
+import '../core/logging/app_logger.dart';
 
 class StatisticsAggregationService {
   static final StatisticsAggregationService _instance = 
@@ -51,7 +52,7 @@ class StatisticsAggregationService {
     _performHourlyAggregation();
     _performDailyAggregation();
 
-    print('📊 Statistics aggregation service started');
+    AppLogger.stats('Statistics aggregation service started');
   }
 
   /// Stop the aggregation service
@@ -64,7 +65,7 @@ class StatisticsAggregationService {
     _hourlyAggregationTimer = null;
     _dailyAggregationTimer = null;
 
-    print('📊 Statistics aggregation service stopped');
+    AppLogger.stats('Statistics aggregation service stopped');
   }
 
   /// Get current statistics for different time periods
@@ -98,7 +99,7 @@ class StatisticsAggregationService {
         },
       };
     } catch (e) {
-      print('❌ Failed to get current statistics: $e');
+      AppLogger.stats('Failed to get current statistics: $e');
       return {};
     }
   }
@@ -147,7 +148,7 @@ class StatisticsAggregationService {
         'aggregates': aggregateStats,
       };
     } catch (e) {
-      print('❌ Failed to get statistics for range: $e');
+      AppLogger.stats('Failed to get statistics for range: $e');
       return {};
     }
   }
@@ -192,7 +193,7 @@ class StatisticsAggregationService {
         },
       };
     } catch (e) {
-      print('❌ Failed to get noise patterns: $e');
+      AppLogger.stats('Failed to get noise patterns: $e');
       return {};
     }
   }
@@ -242,7 +243,7 @@ class StatisticsAggregationService {
         'worst_hours': _getWorstHours(hourlyExceedances),
       };
     } catch (e) {
-      print('❌ Failed to get exceedance analysis: $e');
+      AppLogger.stats('Failed to get exceedance analysis: $e');
       return {};
     }
   }
@@ -270,9 +271,9 @@ class StatisticsAggregationService {
       // Store in database
       await _hourlyDao.insertOrReplace(statistics);
 
-      print('📈 Created hourly statistics for ${previousHour.toIso8601String()}');
+      AppLogger.stats('Created hourly statistics for ${previousHour.toIso8601String()}');
     } catch (e) {
-      print('❌ Failed to perform hourly aggregation: $e');
+      AppLogger.stats('Failed to perform hourly aggregation: $e');
     }
   }
 
@@ -302,9 +303,9 @@ class StatisticsAggregationService {
       // Store in database
       await _dailyDao.insertOrReplace(statistics);
 
-      print('📈 Created daily statistics for $dateString');
+      AppLogger.stats('Created daily statistics for $dateString');
     } catch (e) {
-      print('❌ Failed to perform daily aggregation: $e');
+      AppLogger.stats('Failed to perform daily aggregation: $e');
     }
   }
 

@@ -2,6 +2,8 @@ import 'dart:async';
 import 'dart:collection';
 import 'dart:convert';
 
+import '../core/logging/app_logger.dart';
+
 /// Data class for noise events
 class NoiseEvent {
   final DateTime timestamp;
@@ -31,10 +33,10 @@ class NoiseEvent {
 
 /// Types of noise events
 enum NoiseEventType {
-  spike,       // Sudden loud noise
-  sustained,   // Prolonged noise above threshold
-  pattern,     // Repeating noise pattern
-  quiet,       // Unusually quiet period
+  spike, // Sudden loud noise
+  sustained, // Prolonged noise above threshold
+  pattern, // Repeating noise pattern
+  quiet, // Unusually quiet period
 }
 
 /// Intelligent noise event detection service
@@ -55,21 +57,21 @@ class NoiseEventDetector {
   final Queue<double> _recentLevels = Queue<double>();
   final Queue<DateTime> _recentTimestamps = Queue<DateTime>();
   final List<NoiseEvent> _detectedEvents = <NoiseEvent>[];
-  
+
   // Rolling averages for different time windows
   static const int _shortWindowSeconds = 30;
   static const int _mediumWindowSeconds = 300; // 5 minutes
   static const int _longWindowSeconds = 900; // 15 minutes
-  
+
   // Sustained noise tracking
   DateTime? _sustainedNoiseStart;
   double _sustainedNoiseLevel = 0.0;
-  
+
   // Quiet period tracking
   DateTime? _quietPeriodStart;
 
   // Stream controllers for events
-  final StreamController<NoiseEvent> _eventController = 
+  final StreamController<NoiseEvent> _eventController =
       StreamController<NoiseEvent>.broadcast();
 
   /// Stream of detected noise events
@@ -88,20 +90,21 @@ class NoiseEventDetector {
     _sustainedMinDuration = sustainedMinDuration ?? _sustainedMinDuration;
     _quietThreshold = quietThreshold ?? _quietThreshold;
     _quietLevel = quietLevel ?? _quietLevel;
-    print('🔧 NoiseEventDetector configured - Spike: ${_spikeThreshold}dB, Sustained: ${_sustainedThreshold}dB');
+    AppLogger.event(
+        'NoiseEventDetector configured - Spike: ${_spikeThreshold}dB, Sustained: ${_sustainedThreshold}dB');
   }
 
   /// Add new noise level measurement
   void addMeasurement(double level) {
     final now = DateTime.now();
-    
+
     // Add to rolling buffer
     _recentLevels.add(level);
     _recentTimestamps.add(now);
-    
+
     // Maintain rolling window (keep last 15 minutes)
-    while (_recentTimestamps.isNotEmpty && 
-           now.difference(_recentTimestamps.first) > const Duration(minutes: 15)) {
+    while (_recentTimestamps.isNotEmpty &&
+        now.difference(_recentTimestamps.first) > const Duration(minutes: 15)) {
       _recentLevels.removeFirst();
       _recentTimestamps.removeFirst();
     }
@@ -171,9 +174,7 @@ class NoiseEventDetector {
   void _analyzeForQuietPeriod(double level, DateTime timestamp) {
     if (level < _quietLevel) {
       // Start tracking quiet period if not already
-      if (_quietPeriodStart == null) {
-        _quietPeriodStart = timestamp;
-      }
+      _quietPeriodStart ??= timestamp;
     } else {
       // Check if we had a quiet period that just ended
       if (_quietPeriodStart != null) {
@@ -198,11 +199,11 @@ class NoiseEventDetector {
   /// Get average noise level for specified time window
   double? _getAverageLevel(int windowSeconds) {
     if (_recentLevels.isEmpty) return null;
-    
+
     final cutoff = DateTime.now().subtract(Duration(seconds: windowSeconds));
     double sum = 0.0;
     int count = 0;
-    
+
     for (int i = _recentTimestamps.length - 1; i >= 0; i--) {
       if (_recentTimestamps.elementAt(i).isAfter(cutoff)) {
         sum += _recentLevels.elementAt(i);
@@ -211,7 +212,7 @@ class NoiseEventDetector {
         break;
       }
     }
-    
+
     return count > 0 ? sum / count : null;
   }
 
@@ -219,12 +220,12 @@ class NoiseEventDetector {
   void _emitEvent(NoiseEvent event) {
     _detectedEvents.add(event);
     _eventController.add(event);
-    print('🔊 Detected ${event.type.name} event: ${event.level.toStringAsFixed(1)}dB for ${event.duration}');
-    
+    AppLogger.event(
+        'Detected ${event.type.name} event: ${event.level.toStringAsFixed(1)}dB for ${event.duration}');
+
     // Keep only recent events (last 24 hours)
-    _detectedEvents.removeWhere(
-      (e) => DateTime.now().difference(e.timestamp) > const Duration(days: 1)
-    );
+    _detectedEvents.removeWhere((e) =>
+        DateTime.now().difference(e.timestamp) > const Duration(days: 1));
   }
 
   /// Get current noise level statistics
@@ -244,10 +245,10 @@ class NoiseEventDetector {
   /// Get peak noise level for specified time window
   double? _getPeakLevel(int windowSeconds) {
     if (_recentLevels.isEmpty) return null;
-    
+
     final cutoff = DateTime.now().subtract(Duration(seconds: windowSeconds));
     double peak = 0.0;
-    
+
     for (int i = _recentTimestamps.length - 1; i >= 0; i--) {
       if (_recentTimestamps.elementAt(i).isAfter(cutoff)) {
         final level = _recentLevels.elementAt(i);
@@ -256,38 +257,35 @@ class NoiseEventDetector {
         break;
       }
     }
-    
+
     return peak > 0 ? peak : null;
   }
 
   /// Get recent events
   List<NoiseEvent> getRecentEvents({int limit = 10}) {
-    return _detectedEvents
-        .take(limit)
-        .toList()
-        .reversed
-        .toList();
+    return _detectedEvents.take(limit).toList().reversed.toList();
   }
 
   /// Check if current conditions warrant recording
   bool shouldTriggerRecording() {
     final stats = getCurrentStats();
-    
+
     // Trigger if sustained noise is active
     if (stats['sustained_active'] == true) return true;
-    
+
     // Trigger if recent spike detected
     final recentSpikes = _detectedEvents
-        .where((e) => e.type == NoiseEventType.spike && 
-                     DateTime.now().difference(e.timestamp) < const Duration(minutes: 1))
+        .where((e) =>
+            e.type == NoiseEventType.spike &&
+            DateTime.now().difference(e.timestamp) < const Duration(minutes: 1))
         .length;
     if (recentSpikes > 0) return true;
-    
+
     // Trigger if current level is significantly above average
     final current = stats['current_level'] as double;
     final avg15min = stats['avg_15min'] as double?;
     if (avg15min != null && current > avg15min + 15) return true;
-    
+
     return false;
   }
 
@@ -295,16 +293,16 @@ class NoiseEventDetector {
   int getRecordingPriority() {
     final stats = getCurrentStats();
     final current = stats['current_level'] as double;
-    
+
     // Critical: Very loud or sustained noise
     if (current > 85 || stats['sustained_active'] == true) return 4;
-    
+
     // High: Loud noise or multiple recent events
     if (current > 75 || _detectedEvents.length > 3) return 3;
-    
+
     // Medium: Moderate noise above threshold
     if (current > _sustainedThreshold) return 2;
-    
+
     // Low: Normal levels
     return 1;
   }
@@ -312,10 +310,11 @@ class NoiseEventDetector {
   /// Export events for recording metadata
   String exportEventsAsJson(DateTime startTime, DateTime endTime) {
     final relevantEvents = _detectedEvents
-        .where((e) => e.timestamp.isAfter(startTime) && e.timestamp.isBefore(endTime))
+        .where((e) =>
+            e.timestamp.isAfter(startTime) && e.timestamp.isBefore(endTime))
         .map((e) => e.toMap())
         .toList();
-    
+
     return jsonEncode(relevantEvents);
   }
 

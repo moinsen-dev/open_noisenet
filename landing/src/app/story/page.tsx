@@ -4,6 +4,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { getAssetPath } from '@/lib/asset-path';
 import { Button } from '@/components/ui/button';
 import NoiseVisualization from '@/components/noise-visualization';
 import { markStoryAsSeen, setSkipStoryPreference } from '@/lib/cookies';
@@ -140,7 +141,7 @@ export default function StoryPage() {
           }}
         >
           <Image
-            src="/onn-7.png"
+            src={getAssetPath('/onn-7.png')}
             alt="Phone monitoring noise by rainy window at night"
             fill
             className="object-cover"
@@ -178,7 +179,7 @@ export default function StoryPage() {
           }}
         >
           <Image
-            src="/onn-2.png"
+            src={getAssetPath('/onn-2.png')}
             alt="Person covering ears from garbage truck noise at night"
             fill
             className="object-cover"
@@ -256,7 +257,7 @@ export default function StoryPage() {
           }}
         >
           <Image
-            src="/onn-5.png"
+            src={getAssetPath('/onn-5.png')}
             alt="Man suffering from headache due to traffic noise"
             fill
             className="object-cover"
@@ -312,7 +313,7 @@ export default function StoryPage() {
           }}
         >
           <Image
-            src="/onn-1.png"
+            src={getAssetPath('/onn-1.png')}
             alt="OpenNoiseNet app interface showing noise monitoring"
             fill
             className="object-contain opacity-20"
@@ -358,7 +359,7 @@ export default function StoryPage() {
               <div className="relative">
                 <div className="bg-slate-800 rounded-2xl p-8 shadow-2xl">
                   <Image
-                    src="/onn-1.png"
+                    src={getAssetPath('/onn-1.png')}
                     alt="OpenNoiseNet App Interface"
                     width={300}
                     height={300}
@@ -387,7 +388,7 @@ export default function StoryPage() {
           }}
         >
           <Image
-            src="/onn-3.png"
+            src={getAssetPath('/onn-3.png')}
             alt="Monitoring device by window capturing noise data"
             fill
             className="object-cover"

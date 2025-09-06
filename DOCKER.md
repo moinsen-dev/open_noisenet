@@ -5,7 +5,6 @@ This project uses a unified `docker-compose.yml` file that includes all services
 ## Services
 
 ### Core Application
-- **Landing Page** (`landing`): Port 3000 - Next.js landing page with story experience
 - **Frontend** (`frontend`): Port 3001 - React frontend application  
 - **Backend** (`backend`): Port 8000 - FastAPI backend
 - **Nginx** (`nginx`): Ports 80/443 - Reverse proxy and load balancer
@@ -33,7 +32,6 @@ This project uses a unified `docker-compose.yml` file that includes all services
    ```
 
 3. Access the services:
-   - **Landing Page**: http://localhost:3000
    - **Frontend App**: http://localhost:3001  
    - **API Backend**: http://localhost:8000
    - **Grafana**: http://localhost:3002
@@ -41,7 +39,6 @@ This project uses a unified `docker-compose.yml` file that includes all services
 ## Port Configuration
 
 Ports can be customized via environment variables:
-- `LANDING_PORT=3000` - Landing page
 - `FRONTEND_PORT=3001` - React frontend
 - `BACKEND_PORT=8000` - FastAPI backend
 - `GRAFANA_PORT=3002` - Grafana dashboard
@@ -49,7 +46,6 @@ Ports can be customized via environment variables:
 ## Routing
 
 Nginx routes traffic as follows:
-- `/` → Landing Page (Next.js)
 - `/app/` → Frontend Application (React)
 - `/api/` → Backend API (FastAPI)
 

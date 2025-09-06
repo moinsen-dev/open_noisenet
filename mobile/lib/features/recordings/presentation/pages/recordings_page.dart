@@ -408,10 +408,26 @@ class _RecordingsPageState extends State<RecordingsPage> {
   }
 
   Future<void> _playRecording(AudioRecording recording) async {
-    // TODO: Implement audio playback
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Audio playback not yet implemented')),
-    );
+    try {
+      await _recordingService.playRecording(recording);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Playing ${recording.id.substring(0, 8)}... (${recording.durationSeconds}s)'),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to play recording: $e'),
+            backgroundColor: Theme.of(context).colorScheme.error,
+          ),
+        );
+      }
+    }
   }
 
   Future<void> _deleteRecording(AudioRecording recording) async {

@@ -5,7 +5,7 @@ import 'package:sqflite/sqflite.dart';
 
 class DatabaseHelper {
   static const String _databaseName = 'noisenet.db';
-  static const int _databaseVersion = 2;
+  static const int _databaseVersion = 3;
 
   // Table names
   static const String tableNoiseMeasurements = 'noise_measurements';
@@ -124,6 +124,11 @@ class DatabaseHelper {
         analysis_result TEXT,
         created_at INTEGER NOT NULL,
         expires_at INTEGER NOT NULL,
+        trigger_type TEXT NOT NULL DEFAULT 'manual',
+        peak_level REAL,
+        avg_level REAL,
+        noise_events TEXT,
+        priority INTEGER NOT NULL DEFAULT 1,
         FOREIGN KEY (event_id) REFERENCES $tableNoiseEvents (id)
       )
     ''');
@@ -190,6 +195,15 @@ class DatabaseHelper {
       
       // Add preferences index
       await db.execute('CREATE INDEX idx_preferences_key ON $tablePreferences(key)');
+    }
+    
+    if (oldVersion < 3) {
+      // Add new columns to audio_recordings table in version 3
+      await db.execute('ALTER TABLE $tableAudioRecordings ADD COLUMN trigger_type TEXT NOT NULL DEFAULT "manual"');
+      await db.execute('ALTER TABLE $tableAudioRecordings ADD COLUMN peak_level REAL');
+      await db.execute('ALTER TABLE $tableAudioRecordings ADD COLUMN avg_level REAL');
+      await db.execute('ALTER TABLE $tableAudioRecordings ADD COLUMN noise_events TEXT');
+      await db.execute('ALTER TABLE $tableAudioRecordings ADD COLUMN priority INTEGER NOT NULL DEFAULT 1');
     }
     
     // Add future migrations here as needed

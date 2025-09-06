@@ -4,6 +4,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
+import { getAssetPath } from '@/lib/asset-path';
 import NoiseVisualization from '@/components/noise-visualization';
 import { ArrowLeft, Github, ChevronDown, Shield, Brain, Clock, Network, BarChart, TrendingUp } from 'lucide-react';
 
@@ -16,7 +17,7 @@ const technologyStories = [
     description: 'Transform dormant smartphones into active environmental sensors. Every drawer has a potential guardian waiting to serve your community.',
     techFocus: 'Hardware transformation and repurposing',
     icon: Shield,
-    image: '/tech-1.png',
+    image: getAssetPath('/tech-1.png'),
   },
   {
     id: 'tech-2',
@@ -26,7 +27,7 @@ const technologyStories = [
     description: 'Edge computing ensures your privacy. Local AI processes sound without storing raw audio - only anonymous patterns reach our servers.',
     techFocus: 'Privacy-preserving architecture',
     icon: Shield,
-    image: '/tech-2.png',
+    image: getAssetPath('/tech-2.png'),
   },
   {
     id: 'tech-3',
@@ -36,7 +37,7 @@ const technologyStories = [
     description: 'On-device machine learning categorizes sounds into meaningful events - garbage trucks, sirens, construction - without compromising privacy.',
     techFocus: 'On-device machine learning',
     icon: Brain,
-    image: '/tech-3.png',
+    image: getAssetPath('/tech-3.png'),
   },
   {
     id: 'tech-4',
@@ -46,7 +47,7 @@ const technologyStories = [
     description: 'Reveal hidden temporal patterns in noise pollution. See when your neighborhood is quiet, when it&apos;s disturbed, and what causes the disruption.',
     techFocus: 'Temporal analysis and pattern recognition',
     icon: Clock,
-    image: '/tech-1.png',
+    image: getAssetPath('/tech-1.png'),
   },
   {
     id: 'tech-5',
@@ -56,7 +57,7 @@ const technologyStories = [
     description: 'Your sensor joins a mesh network of community devices, creating comprehensive coverage that reveals neighborhood-wide patterns.',
     techFocus: 'Distributed sensing and data aggregation',
     icon: Network,
-    image: '/tech-2.png',
+    image: getAssetPath('/tech-2.png'),
   },
   {
     id: 'tech-6',
@@ -66,7 +67,7 @@ const technologyStories = [
     description: 'Transform community frustration into policy evidence. Generate reports, visualizations, and advocacy tools that local governments can&apos;t ignore.',
     techFocus: 'Analytics, reporting, and advocacy tools',
     icon: BarChart,
-    image: '/tech-3.png',
+    image: getAssetPath('/tech-3.png'),
   },
   {
     id: 'tech-7',
@@ -76,7 +77,7 @@ const technologyStories = [
     description: 'Track measurable community improvements. See how data-driven advocacy leads to policy changes and genuinely quieter neighborhoods.',
     techFocus: 'Impact visualization and success metrics',
     icon: TrendingUp,
-    image: '/tech-1.png',
+    image: getAssetPath('/tech-1.png'),
   },
 ];
 

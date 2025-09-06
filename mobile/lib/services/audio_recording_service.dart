@@ -68,8 +68,20 @@ class AudioRecordingService {
     await _recorder.openRecorder();
     AppLogger.recording('FlutterSoundRecorder initialized successfully');
 
-    // Initialize just_audio player with proper configuration
+    // Initialize just_audio player with proper iOS audio session configuration
     _audioPlayer = just_audio.AudioPlayer();
+    
+    // Configure audio session for iOS compatibility
+    try {
+      await _audioPlayer.setAudioSource(
+        just_audio.AudioSource.asset('assets/silence.mp3', package: null),
+      );
+      AppLogger.recording('AudioPlayer pre-initialized with dummy source for iOS compatibility');
+    } catch (e) {
+      // If no silence asset exists, that's fine - we'll handle it during playback
+      AppLogger.recording('No silence asset found, will handle audio session during playback');
+    }
+    
     AppLogger.recording('AudioPlayer initialized successfully');
 
     // Create recordings directory
@@ -417,18 +429,27 @@ class AudioRecordingService {
       await _audioPlayer.stop();
       await _audioPlayer.seek(Duration.zero);
 
-      // Try to load and play the audio file with better error handling
+      // Try to load and play the audio file with better iOS error handling
       try {
-        // First try: Direct file path
-        AppLogger.recording('Trying direct file path method...');
+        // First try: Direct file path with iOS audio session preparation
+        AppLogger.recording('Trying direct file path method with iOS session handling...');
+        
+        // On iOS, prepare audio session before loading
+        await _audioPlayer.setVolume(0.1); // Start with low volume
         await _audioPlayer.setFilePath(recording.filePath);
+        
+        // Wait a brief moment for iOS audio session setup
+        await Future<void>.delayed(const Duration(milliseconds: 100));
         
         // Get duration to validate the file loaded properly
         final duration = _audioPlayer.duration;
         AppLogger.recording('Audio duration detected: $duration');
         
-        // Set volume to ensure it's audible
+        // Gradually increase volume for iOS compatibility
         await _audioPlayer.setVolume(1.0);
+        
+        // Use seek(Duration.zero) to prepare playhead on iOS
+        await _audioPlayer.seek(Duration.zero);
         
         await _audioPlayer.play();
         AppLogger.recording('Successfully started playback using direct path method');
@@ -438,14 +459,20 @@ class AudioRecordingService {
         AppLogger.recording('Direct file path failed ($platformException), trying URI method...');
         
         try {
+          // iOS-compatible URI method with session handling
+          await _audioPlayer.setVolume(0.1); // Start with low volume
           await _audioPlayer.setAudioSource(
             just_audio.AudioSource.uri(Uri.file(recording.filePath)),
           );
+          
+          // Wait for iOS audio session preparation
+          await Future<void>.delayed(const Duration(milliseconds: 100));
           
           final duration = _audioPlayer.duration;
           AppLogger.recording('Audio duration (URI method): $duration');
           
           await _audioPlayer.setVolume(1.0);
+          await _audioPlayer.seek(Duration.zero);
           await _audioPlayer.play();
           AppLogger.recording('Successfully started playback using URI method');
           
@@ -456,13 +483,19 @@ class AudioRecordingService {
           final bytes = await file.readAsBytes();
           AppLogger.recording('Read ${bytes.length} bytes from file');
           
+          // iOS-compatible bytes method with session handling
+          await _audioPlayer.setVolume(0.1); // Start with low volume
           await _audioPlayer.setAudioSource(
             just_audio.AudioSource.uri(
               Uri.dataFromBytes(bytes, mimeType: 'audio/wav'),
             ),
           );
           
+          // Wait for iOS audio session preparation
+          await Future<void>.delayed(const Duration(milliseconds: 100));
+          
           await _audioPlayer.setVolume(1.0);
+          await _audioPlayer.seek(Duration.zero);
           await _audioPlayer.play();
           AppLogger.recording('Successfully started playback using bytes method');
         }
@@ -471,6 +504,13 @@ class AudioRecordingService {
       AppLogger.recording('Failed to play recording ${recording.id}: $e');
       AppLogger.recording('File path: ${recording.filePath}');
       AppLogger.recording('File format: ${recording.format}');
+      
+      // Try iOS-specific error recovery if applicable
+      if (e is Exception && await _handleiOSAudioSessionError(e, recording)) {
+        AppLogger.recording('Successfully recovered from iOS audio session error for recording ${recording.id}');
+        return; // Recovery successful, exit without rethrowing
+      }
+      
       AppLogger.recording('Stack trace: ${StackTrace.current}');
       rethrow;
     }
@@ -490,6 +530,49 @@ class AudioRecordingService {
 
   /// Get current playback position
   Stream<Duration> get playbackPositionStream => _audioPlayer.positionStream;
+  
+  /// Handle iOS-specific audio session errors
+  Future<bool> _handleiOSAudioSessionError(Exception error, AudioRecording recording) async {
+    final errorString = error.toString();
+    
+    // Check if this is a known iOS audio session error
+    if (errorString.contains('561017449') || 
+        errorString.contains('OSStatus') || 
+        errorString.contains('AudioSession')) {
+      
+      AppLogger.recording('Detected iOS audio session error, attempting recovery...');
+      
+      try {
+        // Reset audio player completely
+        await _audioPlayer.stop();
+        await _audioPlayer.dispose();
+        
+        // Wait a moment for cleanup
+        await Future<void>.delayed(const Duration(milliseconds: 200));
+        
+        // Recreate audio player
+        _audioPlayer = just_audio.AudioPlayer();
+        
+        // Try with minimal configuration
+        await _audioPlayer.setVolume(0.5);
+        await _audioPlayer.setFilePath(recording.filePath);
+        
+        // Wait longer for iOS session setup
+        await Future<void>.delayed(const Duration(milliseconds: 500));
+        
+        await _audioPlayer.play();
+        
+        AppLogger.recording('Successfully recovered from iOS audio session error');
+        return true;
+        
+      } catch (recoveryError) {
+        AppLogger.recording('iOS audio session recovery failed: $recoveryError');
+        return false;
+      }
+    }
+    
+    return false;
+  }
   
   /// Create a test recording for debugging purposes
   Future<String?> createTestRecording({Duration duration = const Duration(seconds: 5)}) async {

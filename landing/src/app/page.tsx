@@ -51,6 +51,9 @@ export default function Home() {
               <Link href="/story" className="text-slate-300 hover:text-white transition-colors">
                 Our Story
               </Link>
+              <Link href="/technology" className="text-slate-300 hover:text-white transition-colors">
+                Technology
+              </Link>
               <Link href="#features" className="text-slate-300 hover:text-white transition-colors">
                 Features
               </Link>

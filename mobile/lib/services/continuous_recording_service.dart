@@ -124,8 +124,8 @@ class ContinuousRecordingService {
       _maxBuffers = await _preferences.getMaxRecordingsCount();
       _autoRecordThreshold = await _preferences.getNoiseThreshold();
       
-      // Check if continuous recording is enabled (new setting)
-      _enableContinuousRecording = await _preferences.getBool('continuous_recording_enabled', defaultValue: false);
+      // Check if continuous recording is enabled (new setting) - default to true as this is our main functionality
+      _enableContinuousRecording = await _preferences.getBool('continuous_recording_enabled', defaultValue: true);
       
       print('🔧 Continuous recording settings loaded - Duration: ${_bufferDuration}, Threshold: ${_autoRecordThreshold}dB');
     } catch (e) {

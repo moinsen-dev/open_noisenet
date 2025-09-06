@@ -1,0 +1,167 @@
+services:
+  postgres:
+    image: timescale/timescaledb:latest-pg15
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-noisenet}
+      POSTGRES_USER: ${POSTGRES_USER:-noisenet}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
+      POSTGRES_HOST_AUTH_METHOD: trust
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./infrastructure/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-noisenet}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - noisenet
+
+  redis:
+    image: redis:7-alpine
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-changeme}
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    networks:
+      - noisenet
+
+  backend:
+    build: 
+      context: ./backend
+      dockerfile: Dockerfile
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-noisenet}:${POSTGRES_PASSWORD:-changeme}@postgres:5432/${POSTGRES_DB:-noisenet}
+      REDIS_URL: redis://:${REDIS_PASSWORD:-changeme}@redis:6379
+      SECRET_KEY: ${SECRET_KEY:-changeme-secret-key}
+      ENVIRONMENT: ${ENVIRONMENT:-production}
+      CORS_ORIGINS: ${CORS_ORIGINS:-*}
+    volumes:
+      - audio_uploads:/app/uploads
+    # Remove port mapping - Coolify handles this
+    expose:
+      - "8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - noisenet
+
+  celery:
+    build: 
+      context: ./backend
+      dockerfile: Dockerfile
+    command: celery -A app.workers.celery worker --loglevel=info --concurrency=4
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-noisenet}:${POSTGRES_PASSWORD:-changeme}@postgres:5432/${POSTGRES_DB:-noisenet}
+      REDIS_URL: redis://:${REDIS_PASSWORD:-changeme}@redis:6379
+      SECRET_KEY: ${SECRET_KEY:-changeme-secret-key}
+      ENVIRONMENT: ${ENVIRONMENT:-production}
+    volumes:
+      - audio_uploads:/app/uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - noisenet
+
+  celery-beat:
+    build: 
+      context: ./backend
+      dockerfile: Dockerfile
+    command: celery -A app.workers.celery beat --loglevel=info --schedule=/app/celerybeat-schedule
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-noisenet}:${POSTGRES_PASSWORD:-changeme}@postgres:5432/${POSTGRES_DB:-noisenet}
+      REDIS_URL: redis://:${REDIS_PASSWORD:-changeme}@redis:6379
+      SECRET_KEY: ${SECRET_KEY:-changeme-secret-key}
+      ENVIRONMENT: ${ENVIRONMENT:-production}
+    volumes:
+      - celery_beat:/app/celerybeat-schedule
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - noisenet
+
+  # Main frontend (landing page) - Coolify will expose this
+  frontend:
+    build:
+      context: ./landing
+      dockerfile: Dockerfile
+    environment:
+      - NODE_ENV=production
+      - HOSTNAME=0.0.0.0
+      - PORT=3000
+    # Remove port mapping - Coolify handles this
+    expose:
+      - "3000" 
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:3000 || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - noisenet
+
+  # React app (for /app routes) - internal only
+  react-app:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        - REACT_APP_API_URL=${REACT_APP_API_URL:-/api}
+        - REACT_APP_MAPBOX_TOKEN=${REACT_APP_MAPBOX_TOKEN:-}
+    expose:
+      - "3000"
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - noisenet
+
+  # Simple Nginx for internal routing only
+  nginx:
+    image: nginx:alpine
+    expose:
+      - "80"
+    volumes:
+      - ./infrastructure/nginx/coolify.conf:/etc/nginx/nginx.conf:ro
+      - static_files:/var/www/static:ro
+    depends_on:
+      - backend
+      - frontend
+      - react-app
+    networks:
+      - noisenet
+
+volumes:
+  postgres_data:
+  redis_data:
+  audio_uploads:
+  celery_beat:
+  static_files:
+
+networks:
+  noisenet:
+    driver: bridge

@@ -12,6 +12,7 @@ import '../../../../core/database/dao/daily_statistics_dao.dart';
 import '../../../../core/database/models/daily_statistics.dart';
 import '../../../../widgets/audio_waveform_widget.dart';
 import '../../../../services/continuous_recording_service.dart';
+import '../../../../services/statistics_service.dart';
 
 class NoiseMonitoringPage extends StatefulWidget {
   const NoiseMonitoringPage({super.key});
@@ -25,6 +26,7 @@ class _NoiseMonitoringPageState extends State<NoiseMonitoringPage> {
   final NoiseMeasurementDao _measurementDao = NoiseMeasurementDao();
   final DailyStatisticsDao _dailyStatsDao = DailyStatisticsDao();
   final ContinuousRecordingService _continuousRecordingService = ContinuousRecordingService();
+  final StatisticsService _statisticsService = StatisticsService();
 
   @override
   Widget build(BuildContext context) {
@@ -49,7 +51,7 @@ class _NoiseMonitoringPageState extends State<NoiseMonitoringPage> {
       ),
       body: BlocBuilder<MonitoringBloc, MonitoringState>(
         builder: (context, state) {
-          return Padding(
+          return SingleChildScrollView(
             padding: const EdgeInsets.all(16.0),
             child: Column(
               children: [
@@ -91,12 +93,12 @@ class _NoiseMonitoringPageState extends State<NoiseMonitoringPage> {
                     ),
                   ),
                 
-                const SizedBox(height: 16),
+                const SizedBox(height: 8),
                 
                 // Continuous Recording Status
                 _buildContinuousRecordingStatus(),
                 
-                const SizedBox(height: 16),
+                const SizedBox(height: 8),
                 
                 // Control buttons
                 if (state is MonitoringInactive || state is MonitoringError)
@@ -171,12 +173,12 @@ class _NoiseMonitoringPageState extends State<NoiseMonitoringPage> {
                   ),
                 ],
                 
-                const SizedBox(height: 24),
+                const SizedBox(height: 12),
                 
                 // Status information and real-time statistics
                 Card(
                   child: Padding(
-                    padding: const EdgeInsets.all(16.0),
+                    padding: const EdgeInsets.all(12.0),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -186,26 +188,43 @@ class _NoiseMonitoringPageState extends State<NoiseMonitoringPage> {
                         ),
                         const SizedBox(height: 8),
                         _buildStatusRow('Monitoring', state is MonitoringActive ? 'Active' : 'Inactive'),
-                        FutureBuilder<List<dynamic>>(
-                          future: _measurementDao.getRecent(limit: 1),
+                        StreamBuilder<int>(
+                          stream: _statisticsService.measurementCountStream,
+                          initialData: 0,
                           builder: (context, snapshot) {
                             return _buildStatusRow(
                               'Measurements', 
-                              snapshot.hasData ? (snapshot.data!.isNotEmpty ? '1+' : '0') : '0',
+                              '${snapshot.data ?? 0}',
                             );
                           },
                         ),
-                        _buildStatusRow(
-                          'Active Recordings', 
-                          '${_recordingService.activeRecordingCount}',
-                        ),
-                        FutureBuilder<DailyStatistics?>(
-                          future: _dailyStatsDao.getByDate(_getTodayDateString()),
+                        StreamBuilder<int>(
+                          stream: _statisticsService.activeRecordingsStream,
+                          initialData: 0,
                           builder: (context, snapshot) {
-                            final stats = snapshot.data;
+                            return _buildStatusRow(
+                              'Active Recordings', 
+                              '${snapshot.data ?? 0}',
+                            );
+                          },
+                        ),
+                        StreamBuilder<double?>(
+                          stream: _statisticsService.todaysAverageStream,
+                          builder: (context, snapshot) {
+                            final average = snapshot.data;
                             return _buildStatusRow(
                               'Today\'s Average', 
-                              stats != null ? '${stats.avgLeq.toStringAsFixed(1)} dB' : 'No data',
+                              average != null ? '${average.toStringAsFixed(1)} dB' : 'No data',
+                            );
+                          },
+                        ),
+                        StreamBuilder<double?>(
+                          stream: _statisticsService.realTimeAverageStream,
+                          builder: (context, snapshot) {
+                            final realTimeAvg = snapshot.data;
+                            return _buildStatusRow(
+                              'Real-Time Average', 
+                              realTimeAvg != null ? '${realTimeAvg.toStringAsFixed(1)} dB' : 'No data',
                             );
                           },
                         ),
@@ -251,8 +270,9 @@ class _NoiseMonitoringPageState extends State<NoiseMonitoringPage> {
         }
 
         return Card(
+          margin: const EdgeInsets.symmetric(vertical: 4.0),
           child: Padding(
-            padding: const EdgeInsets.all(16.0),
+            padding: const EdgeInsets.all(12.0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -289,7 +309,7 @@ class _NoiseMonitoringPageState extends State<NoiseMonitoringPage> {
                 ),
                 
                 if (isActive) ...[
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 8),
                   Row(
                     children: [
                       Expanded(
@@ -310,9 +330,9 @@ class _NoiseMonitoringPageState extends State<NoiseMonitoringPage> {
                   
                   // Show recent events if any
                   if (stats['recent_events_count'] != null && (stats['recent_events_count'] as int) > 0) ...[
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 4),
                     Container(
-                      padding: const EdgeInsets.all(8),
+                      padding: const EdgeInsets.all(6),
                       decoration: BoxDecoration(
                         color: Theme.of(context).colorScheme.surfaceVariant,
                         borderRadius: BorderRadius.circular(8),
@@ -330,7 +350,7 @@ class _NoiseMonitoringPageState extends State<NoiseMonitoringPage> {
                     ),
                   ],
                 ] else ...[
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 4),
                   Text(
                     'Continuous recording is disabled. Enable it in Settings to automatically capture noise events.',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
@@ -340,7 +360,7 @@ class _NoiseMonitoringPageState extends State<NoiseMonitoringPage> {
                 ],
                 
                 // Quick action buttons
-                const SizedBox(height: 12),
+                const SizedBox(height: 6),
                 Row(
                   children: [
                     if (isActive) ...[

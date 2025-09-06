@@ -151,7 +151,6 @@ The PostgreSQL container automatically initializes with:
 
 ### 6. Post-Deployment
 
-- **Landing page**: `https://your-domain.com`
 - **React app**: `https://your-domain.com/app`
 - **API**: `https://your-domain.com/api`
 - **Health check**: `https://your-domain.com/api/health`
@@ -205,7 +204,6 @@ HTTP_PORT=80
 HTTPS_PORT=443
 BACKEND_PORT=8000
 FRONTEND_PORT=3001
-LANDING_PORT=3000
 ```
 
 ### 3. SSL Configuration (Production)
@@ -245,7 +243,6 @@ docker-compose exec postgres psql -U noisenet -d noisenet -c "SELECT * FROM pg_e
 
 ### 6. Service Verification
 
-- **Landing Page**: `http://localhost:3000`
 - **React App**: `http://localhost:3001`
 - **API**: `http://localhost:8000`
 - **API Health**: `http://localhost:8000/health`
@@ -533,7 +530,6 @@ docker push gcr.io/YOUR_PROJECT_ID/noisenet-frontend
 
 | Service | Internal Port | External Port | Description |
 |---------|---------------|---------------|-------------|
-| Landing | 3000 | 3000 | Next.js landing page |
 | Frontend | 3000 | 3001 | React dashboard |
 | Backend | 8000 | 8000 | FastAPI server |
 | PostgreSQL | 5432 | 5432 | Database |

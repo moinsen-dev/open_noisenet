@@ -3,6 +3,7 @@ import 'dart:io';
 import 'dart:collection';
 import 'package:path_provider/path_provider.dart';
 import 'package:flutter_sound/flutter_sound.dart';
+import 'package:just_audio/just_audio.dart' as just_audio;
 import 'package:uuid/uuid.dart';
 import 'package:path/path.dart' as path;
 import 'package:permission_handler/permission_handler.dart';
@@ -25,6 +26,7 @@ class AudioRecordingService {
 
   // Services
   late FlutterSoundRecorder _recorder;
+  late just_audio.AudioPlayer _audioPlayer;
   final Uuid _uuid = const Uuid();
   final AudioRecordingDao _recordingDao = AudioRecordingDao();
   final AiAnalysisQueueDao _analysisQueueDao = AiAnalysisQueueDao();
@@ -63,6 +65,9 @@ class AudioRecordingService {
     // Initialize flutter_sound recorder
     _recorder = FlutterSoundRecorder();
     await _recorder.openRecorder();
+
+    // Initialize just_audio player
+    _audioPlayer = just_audio.AudioPlayer();
 
     // Create recordings directory
     final appDir = await getApplicationDocumentsDirectory();
@@ -381,10 +386,68 @@ class AudioRecordingService {
     }
   }
 
+  /// Play an audio recording
+  Future<void> playRecording(AudioRecording recording) async {
+    try {
+      // Check if file exists
+      final file = File(recording.filePath);
+      if (!file.existsSync()) {
+        throw Exception('Audio file not found: ${recording.filePath}');
+      }
+
+      // Check file size
+      final fileSize = file.lengthSync();
+      if (fileSize == 0) {
+        throw Exception('Audio file is empty: ${recording.filePath}');
+      }
+
+      print('🔍 Attempting to play: ${recording.filePath} (${fileSize} bytes, ${recording.format})');
+
+      // Stop any currently playing audio
+      await _audioPlayer.stop();
+
+      // Try to load and play the audio file with better error handling
+      try {
+        await _audioPlayer.setFilePath(recording.filePath);
+        await _audioPlayer.play();
+        print('🔊 Successfully playing audio recording: ${recording.id}');
+      } catch (platformException) {
+        // If direct file path fails, try using setAudioSource with file URI
+        print('🔄 Direct file path failed, trying alternative method...');
+        await _audioPlayer.setAudioSource(
+          just_audio.AudioSource.uri(Uri.file(recording.filePath)),
+        );
+        await _audioPlayer.play();
+        print('🔊 Successfully playing audio recording (alternative method): ${recording.id}');
+      }
+    } catch (e) {
+      print('❌ Failed to play recording ${recording.id}: $e');
+      print('📍 File path: ${recording.filePath}');
+      print('📄 File format: ${recording.format}');
+      rethrow;
+    }
+  }
+
+  /// Stop audio playback
+  Future<void> stopPlayback() async {
+    try {
+      await _audioPlayer.stop();
+    } catch (e) {
+      print('❌ Failed to stop playback: $e');
+    }
+  }
+
+  /// Check if audio is currently playing
+  bool get isPlaying => _audioPlayer.playing;
+
+  /// Get current playback position
+  Stream<Duration> get playbackPositionStream => _audioPlayer.positionStream;
+
   /// Dispose of resources
   Future<void> dispose() async {
     _recordingTimer?.cancel();
     await _recorder.closeRecorder();
+    await _audioPlayer.dispose();
     await _stateController.close();
     await _recordingCompletedController.close();
   }

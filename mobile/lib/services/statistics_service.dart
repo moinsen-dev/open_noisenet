@@ -24,6 +24,12 @@ class StatisticsService {
       StreamController<double?>.broadcast();
   final StreamController<double?> _realTimeAverageController = 
       StreamController<double?>.broadcast();
+  final StreamController<double?> _dayAverageController = 
+      StreamController<double?>.broadcast();
+  final StreamController<double?> _hourAverageController = 
+      StreamController<double?>.broadcast();
+  final StreamController<double?> _fifteenMinPeakController = 
+      StreamController<double?>.broadcast();
 
   // Timers for periodic updates
   Timer? _updateTimer;
@@ -38,6 +44,9 @@ class StatisticsService {
   Stream<int> get activeRecordingsStream => _activeRecordingsController.stream;
   Stream<double?> get todaysAverageStream => _todaysAverageController.stream;
   Stream<double?> get realTimeAverageStream => _realTimeAverageController.stream;
+  Stream<double?> get dayAverageStream => _dayAverageController.stream;
+  Stream<double?> get hourAverageStream => _hourAverageController.stream;
+  Stream<double?> get fifteenMinPeakStream => _fifteenMinPeakController.stream;
 
   /// Start the statistics service with real-time updates
   void start() {
@@ -113,6 +122,16 @@ class StatisticsService {
       final todaysStats = await _getTodaysAverage();
       _todaysAverageController.add(todaysStats);
 
+      // Update time-windowed averages
+      final dayAverage = await _getTimeWindowedAverage(const Duration(hours: 24));
+      _dayAverageController.add(dayAverage);
+
+      final hourAverage = await _getTimeWindowedAverage(const Duration(hours: 1));
+      _hourAverageController.add(hourAverage);
+
+      final fifteenMinPeak = await _getFifteenMinutePeak();
+      _fifteenMinPeakController.add(fifteenMinPeak);
+
     } catch (e) {
       print('❌ StatisticsService: Error updating statistics: $e');
     }
@@ -169,6 +188,81 @@ class StatisticsService {
     await _updateStatistics();
   }
 
+  /// Calculate average Leq for a time window
+  Future<double?> _getTimeWindowedAverage(Duration windowDuration) async {
+    try {
+      final endTime = DateTime.now();
+      final startTime = endTime.subtract(windowDuration);
+      
+      final measurements = await _measurementDao.getByTimeRange(
+        startTimestamp: startTime.millisecondsSinceEpoch ~/ 1000,
+        endTimestamp: endTime.millisecondsSinceEpoch ~/ 1000,
+      );
+
+      if (measurements.isEmpty) {
+        return null;
+      }
+
+      // Calculate average Leq from measurements
+      final totalLeq = measurements
+          .map((m) => m.leqDb)
+          .fold(0.0, (sum, leq) => sum + leq);
+      
+      return totalLeq / measurements.length;
+
+    } catch (e) {
+      print('❌ StatisticsService: Error calculating ${windowDuration.inHours}h average: $e');
+      return null;
+    }
+  }
+
+  /// Calculate 15-minute peak (maximum Leq in 15-minute windows)
+  Future<double?> _getFifteenMinutePeak() async {
+    try {
+      final endTime = DateTime.now();
+      final startTime = endTime.subtract(const Duration(hours: 1)); // Look at last hour
+      
+      final measurements = await _measurementDao.getByTimeRange(
+        startTimestamp: startTime.millisecondsSinceEpoch ~/ 1000,
+        endTimestamp: endTime.millisecondsSinceEpoch ~/ 1000,
+      );
+
+      if (measurements.isEmpty) {
+        return null;
+      }
+
+      // Group measurements into 15-minute windows and find peak
+      double maxLeq = 0.0;
+      final windowSize = const Duration(minutes: 15);
+      
+      for (int i = 0; i < 4; i++) { // 4 windows of 15 minutes in an hour
+        final windowStart = startTime.add(Duration(minutes: i * 15));
+        final windowEnd = windowStart.add(windowSize);
+        
+        final windowMeasurements = measurements.where((m) {
+          final measurementTime = DateTime.fromMillisecondsSinceEpoch(m.timestamp * 1000);
+          return measurementTime.isAfter(windowStart) && measurementTime.isBefore(windowEnd);
+        }).toList();
+        
+        if (windowMeasurements.isNotEmpty) {
+          final windowAvg = windowMeasurements
+              .map((m) => m.leqDb)
+              .fold(0.0, (sum, leq) => sum + leq) / windowMeasurements.length;
+          
+          if (windowAvg > maxLeq) {
+            maxLeq = windowAvg;
+          }
+        }
+      }
+
+      return maxLeq > 0 ? maxLeq : null;
+
+    } catch (e) {
+      print('❌ StatisticsService: Error calculating 15-min peak: $e');
+      return null;
+    }
+  }
+
   /// Get comprehensive statistics for debugging
   Map<String, dynamic> getStatus() {
     return {
@@ -186,5 +280,8 @@ class StatisticsService {
     _activeRecordingsController.close();
     _todaysAverageController.close();
     _realTimeAverageController.close();
+    _dayAverageController.close();
+    _hourAverageController.close();
+    _fifteenMinPeakController.close();
   }
 }

@@ -1,18 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:get_it/get_it.dart';
-import 'package:go_router/go_router.dart';
 
 import '../bloc/monitoring_bloc.dart';
-import '../../../../services/permission_dialog_service.dart';
-import '../../../../services/audio_recording_service.dart';
 import '../../../../services/audio_capture_service.dart';
-import '../../../../core/database/dao/noise_measurement_dao.dart';
-import '../../../../core/database/dao/daily_statistics_dao.dart';
-import '../../../../core/database/models/daily_statistics.dart';
+import '../../../../services/permission_dialog_service.dart';
 import '../../../../widgets/audio_waveform_widget.dart';
 import '../../../../services/continuous_recording_service.dart';
 import '../../../../services/statistics_service.dart';
+import '../../../../widgets/statistics_modal.dart';
 
 class NoiseMonitoringPage extends StatefulWidget {
   const NoiseMonitoringPage({super.key});
@@ -22,39 +18,68 @@ class NoiseMonitoringPage extends StatefulWidget {
 }
 
 class _NoiseMonitoringPageState extends State<NoiseMonitoringPage> {
-  final AudioRecordingService _recordingService = AudioRecordingService();
-  final NoiseMeasurementDao _measurementDao = NoiseMeasurementDao();
-  final DailyStatisticsDao _dailyStatsDao = DailyStatisticsDao();
   final ContinuousRecordingService _continuousRecordingService = ContinuousRecordingService();
   final StatisticsService _statisticsService = StatisticsService();
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Noise Monitor'),
-        automaticallyImplyLeading: false,
-        actions: [
-          IconButton(
-            onPressed: () => context.push('/recordings'),
-            icon: const Icon(Icons.audiotrack),
-            tooltip: 'View Recordings',
+    return BlocBuilder<MonitoringBloc, MonitoringState>(
+      builder: (context, state) {
+        return Scaffold(
+          appBar: AppBar(
+            title: const Text('Noise Monitor'),
+            automaticallyImplyLeading: false,
+            actions: [
+              // Dynamic Start/Stop Monitoring Button
+              if (state is MonitoringInactive || state is MonitoringError)
+                IconButton(
+                  onPressed: () {
+                    context.read<MonitoringBloc>().add(StartMonitoring(context: context));
+                  },
+                  icon: const Icon(Icons.play_arrow),
+                  tooltip: 'Start Monitoring',
+                )
+              else if (state is MonitoringActive)
+                IconButton(
+                  onPressed: () {
+                    context.read<MonitoringBloc>().add(const StopMonitoring());
+                  },
+                  icon: const Icon(Icons.stop),
+                  tooltip: 'Stop Monitoring',
+                  style: IconButton.styleFrom(
+                    foregroundColor: Colors.red,
+                  ),
+                )
+              else if (state is MonitoringStarting || state is MonitoringStopping)
+                const Padding(
+                  padding: EdgeInsets.all(12.0),
+                  child: SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                ),
+              
+              const SizedBox(width: 8),
+              
+              // Statistics Modal Button
+              IconButton(
+                onPressed: () {
+                  showDialog<void>(
+                    context: context,
+                    builder: (context) => const StatisticsModal(),
+                  );
+                },
+                icon: const Icon(Icons.analytics),
+                tooltip: 'View Statistics',
+              ),
+            ],
           ),
-          IconButton(
-            onPressed: () async {
-              await PermissionDialogService().showPermissionStatus(context);
-            },
-            icon: const Icon(Icons.mic),
-            tooltip: 'Microphone Permission Status',
-          ),
-        ],
-      ),
-      body: BlocBuilder<MonitoringBloc, MonitoringState>(
-        builder: (context, state) {
-          return SingleChildScrollView(
+          body: Padding(
             padding: const EdgeInsets.all(16.0),
-            child: Column(
-              children: [
+            child: SingleChildScrollView(
+              child: Column(
+                children: [
                 // Waveform widget with proper lifecycle management
                 if (state is MonitoringActive)
                   AudioWaveformWidget(
@@ -95,34 +120,16 @@ class _NoiseMonitoringPageState extends State<NoiseMonitoringPage> {
                 
                 const SizedBox(height: 8),
                 
+                // Real-time Statistics
+                _buildRealTimeStatistics(),
+                
+                const SizedBox(height: 8),
+                
                 // Continuous Recording Status
                 _buildContinuousRecordingStatus(),
                 
                 const SizedBox(height: 8),
                 
-                // Control buttons
-                if (state is MonitoringInactive || state is MonitoringError)
-                  ElevatedButton(
-                    onPressed: () {
-                      context.read<MonitoringBloc>().add(StartMonitoring(context: context));
-                    },
-                    child: Text(state is MonitoringError ? 'Retry Monitoring' : 'Start Monitoring'),
-                  )
-                else if (state is MonitoringActive)
-                  ElevatedButton(
-                    onPressed: () {
-                      context.read<MonitoringBloc>().add(const StopMonitoring());
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Theme.of(context).colorScheme.error,
-                      foregroundColor: Theme.of(context).colorScheme.onError,
-                    ),
-                    child: const Text('Stop Monitoring'),
-                  )
-                else if (state is MonitoringStarting)
-                  const CircularProgressIndicator()
-                else if (state is MonitoringStopping)
-                  const CircularProgressIndicator(),
 
                 // Error display
                 if (state is MonitoringError) ...[
@@ -172,85 +179,12 @@ class _NoiseMonitoringPageState extends State<NoiseMonitoringPage> {
                     ),
                   ),
                 ],
-                
-                const SizedBox(height: 12),
-                
-                // Status information and real-time statistics
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(12.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Status & Statistics',
-                          style: Theme.of(context).textTheme.titleMedium,
-                        ),
-                        const SizedBox(height: 8),
-                        _buildStatusRow('Monitoring', state is MonitoringActive ? 'Active' : 'Inactive'),
-                        StreamBuilder<int>(
-                          stream: _statisticsService.measurementCountStream,
-                          initialData: 0,
-                          builder: (context, snapshot) {
-                            return _buildStatusRow(
-                              'Measurements', 
-                              '${snapshot.data ?? 0}',
-                            );
-                          },
-                        ),
-                        StreamBuilder<int>(
-                          stream: _statisticsService.activeRecordingsStream,
-                          initialData: 0,
-                          builder: (context, snapshot) {
-                            return _buildStatusRow(
-                              'Active Recordings', 
-                              '${snapshot.data ?? 0}',
-                            );
-                          },
-                        ),
-                        StreamBuilder<double?>(
-                          stream: _statisticsService.todaysAverageStream,
-                          builder: (context, snapshot) {
-                            final average = snapshot.data;
-                            return _buildStatusRow(
-                              'Today\'s Average', 
-                              average != null ? '${average.toStringAsFixed(1)} dB' : 'No data',
-                            );
-                          },
-                        ),
-                        StreamBuilder<double?>(
-                          stream: _statisticsService.realTimeAverageStream,
-                          builder: (context, snapshot) {
-                            final realTimeAvg = snapshot.data;
-                            return _buildStatusRow(
-                              'Real-Time Average', 
-                              realTimeAvg != null ? '${realTimeAvg.toStringAsFixed(1)} dB' : 'No data',
-                            );
-                          },
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
               ],
+              ),
             ),
-          );
-        },
-      ),
-    );
-  }
-  
-  
-  Widget _buildStatusRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4.0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(label),
-          Text(value, style: const TextStyle(fontWeight: FontWeight.bold)),
-        ],
-      ),
+          ),
+        );
+      },
     );
   }
 
@@ -380,12 +314,6 @@ class _NoiseMonitoringPageState extends State<NoiseMonitoringPage> {
                         label: const Text('Save Current'),
                       ),
                     ],
-                    const Spacer(),
-                    TextButton.icon(
-                      onPressed: () => context.push('/settings'),
-                      icon: const Icon(Icons.settings, size: 16),
-                      label: const Text('Settings'),
-                    ),
                   ],
                 ),
               ],
@@ -417,8 +345,110 @@ class _NoiseMonitoringPageState extends State<NoiseMonitoringPage> {
     );
   }
 
-  String _getTodayDateString() {
-    final now = DateTime.now();
-    return '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+  Widget _buildRealTimeStatistics() {
+    return Card(
+      margin: const EdgeInsets.symmetric(vertical: 4.0),
+      child: Padding(
+        padding: const EdgeInsets.all(12.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(
+                  Icons.timeline,
+                  size: 18,
+                  color: Colors.blue,
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  'Real-Time Averages',
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Expanded(
+                  child: _buildCompactStatItem('Day', _statisticsService.dayAverageStream),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _buildCompactStatItem('Hour', _statisticsService.hourAverageStream),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _buildCompactStatItem('15m Peak', _statisticsService.fifteenMinPeakStream),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
   }
+
+  Widget _buildCompactStatItem(String label, Stream<double?> valueStream) {
+    return StreamBuilder<double?>(
+      stream: valueStream,
+      builder: (context, snapshot) {
+        final value = snapshot.data;
+        return Container(
+          padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                label,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+                  fontSize: 11,
+                ),
+                textAlign: TextAlign.center,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: 2),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    value != null ? value.toStringAsFixed(1) : '--',
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: value != null ? _getDecibelColor(value) : null,
+                      fontSize: 16,
+                    ),
+                  ),
+                  const SizedBox(width: 2),
+                  Text(
+                    'dB',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                      fontSize: 10,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Color _getDecibelColor(double db) {
+    if (db < 30) return Colors.green;
+    if (db < 55) return Colors.blue;
+    if (db < 70) return Colors.orange;
+    return Colors.red;
+  }
+
 }

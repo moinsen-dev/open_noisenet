@@ -7,6 +7,7 @@ import '../core/database/dao/daily_statistics_dao.dart';
 import '../core/database/dao/audio_recording_dao.dart';
 import '../core/database/dao/ai_analysis_queue_dao.dart';
 import '../core/database/database_helper.dart';
+import '../core/logging/app_logger.dart';
 
 class DataCleanupService {
   static final DataCleanupService _instance = DataCleanupService._internal();
@@ -57,7 +58,7 @@ class DataCleanupService {
     // Perform initial cleanup
     performCleanup();
 
-    print('🧹 Data cleanup service started');
+    AppLogger.database('Data cleanup service started');
   }
 
   /// Stop the cleanup service
@@ -70,7 +71,7 @@ class DataCleanupService {
     _cleanupTimer = null;
     _healthCheckTimer = null;
 
-    print('🧹 Data cleanup service stopped');
+    AppLogger.database('Data cleanup service stopped');
   }
 
   /// Perform comprehensive data cleanup
@@ -78,7 +79,7 @@ class DataCleanupService {
     final results = <String, int>{};
 
     try {
-      print('🧹 Starting data cleanup...');
+      AppLogger.database('Starting data cleanup...');
 
       // 1. Clean up old measurements (24-hour rolling window)
       results['measurements_deleted'] = await _cleanupMeasurements();
@@ -101,11 +102,11 @@ class DataCleanupService {
 
       final totalDeleted = results.values.reduce((a, b) => a + b);
       if (totalDeleted > 0) {
-        print('🧹 Cleanup completed: deleted $totalDeleted items');
+        AppLogger.database('Cleanup completed: deleted $totalDeleted items');
       }
 
     } catch (e) {
-      print('❌ Cleanup failed: $e');
+      AppLogger.database('Cleanup failed: $e');
       results['error'] = 1;
     }
 
@@ -117,7 +118,7 @@ class DataCleanupService {
     final healthReport = <String, dynamic>{};
 
     try {
-      print('🏥 Starting database health check...');
+      AppLogger.database('Starting database health check...');
 
       // Get database size
       final dbSize = await _databaseHelper.getDatabaseSize();
@@ -142,10 +143,10 @@ class DataCleanupService {
       // Determine overall health status
       healthReport['health_status'] = _calculateHealthStatus(healthReport);
 
-      print('🏥 Health check completed: ${healthReport['health_status']}');
+      AppLogger.database('Health check completed: ${healthReport['health_status']}');
 
     } catch (e) {
-      print('❌ Health check failed: $e');
+      AppLogger.database('Health check failed: $e');
       healthReport['error'] = e.toString();
       healthReport['health_status'] = 'error';
     }
@@ -182,7 +183,7 @@ class DataCleanupService {
         },
       };
     } catch (e) {
-      print('❌ Failed to get cleanup stats: $e');
+      AppLogger.database('Failed to get cleanup stats: $e');
       return {'error': e.toString()};
     }
   }
@@ -213,11 +214,11 @@ class DataCleanupService {
     try {
       final deletedCount = await _measurementDao.deleteOlderThan24Hours();
       if (deletedCount > 0) {
-        print('🗑️ Deleted $deletedCount old measurements');
+        AppLogger.database('Deleted $deletedCount old measurements');
       }
       return deletedCount;
     } catch (e) {
-      print('❌ Failed to cleanup measurements: $e');
+      AppLogger.database('Failed to cleanup measurements: $e');
       return 0;
     }
   }
@@ -227,11 +228,11 @@ class DataCleanupService {
     try {
       final deletedCount = await _hourlyDao.deleteOlderThanDays(hourlyStatsRetentionDays);
       if (deletedCount > 0) {
-        print('🗑️ Deleted $deletedCount old hourly statistics');
+        AppLogger.database('Deleted $deletedCount old hourly statistics');
       }
       return deletedCount;
     } catch (e) {
-      print('❌ Failed to cleanup hourly statistics: $e');
+      AppLogger.database('Failed to cleanup hourly statistics: $e');
       return 0;
     }
   }
@@ -241,11 +242,11 @@ class DataCleanupService {
     try {
       final deletedCount = await _dailyDao.deleteOlderThanDays(dailyStatsRetentionDays);
       if (deletedCount > 0) {
-        print('🗑️ Deleted $deletedCount old daily statistics');
+        AppLogger.database('Deleted $deletedCount old daily statistics');
       }
       return deletedCount;
     } catch (e) {
-      print('❌ Failed to cleanup daily statistics: $e');
+      AppLogger.database('Failed to cleanup daily statistics: $e');
       return 0;
     }
   }
@@ -273,17 +274,17 @@ class DataCleanupService {
 
           deletedCount++;
         } catch (e) {
-          print('❌ Failed to delete recording ${recording.id}: $e');
+          AppLogger.database('Failed to delete recording ${recording.id}: $e');
         }
       }
 
       if (deletedCount > 0) {
-        print('🗑️ Deleted $deletedCount expired recordings');
+        AppLogger.database('Deleted $deletedCount expired recordings');
       }
 
       return deletedCount;
     } catch (e) {
-      print('❌ Failed to cleanup audio recordings: $e');
+      AppLogger.database('Failed to cleanup audio recordings: $e');
       return 0;
     }
   }
@@ -306,16 +307,16 @@ class DataCleanupService {
       // Reset any stuck processing items to pending
       final resetCount = await _analysisQueueDao.resetProcessingToPending();
       if (resetCount > 0) {
-        print('🔄 Reset $resetCount stuck processing items to pending');
+        AppLogger.database('Reset $resetCount stuck processing items to pending');
       }
 
       if (deletedCount > 0) {
-        print('🗑️ Deleted $deletedCount old analysis queue items');
+        AppLogger.database('Deleted $deletedCount old analysis queue items');
       }
 
       return deletedCount;
     } catch (e) {
-      print('❌ Failed to cleanup analysis queue: $e');
+      AppLogger.database('Failed to cleanup analysis queue: $e');
       return 0;
     }
   }
@@ -328,19 +329,19 @@ class DataCleanupService {
 
       // Vacuum if database is larger than threshold
       if (dbSizeMB > maxDatabaseSizeMB * 0.8) {
-        print('💽 Database size ${dbSizeMB.toStringAsFixed(2)} MB, performing vacuum...');
+        AppLogger.database('Database size ${dbSizeMB.toStringAsFixed(2)} MB, performing vacuum...');
         await _databaseHelper.vacuum();
         
         final newSize = await _databaseHelper.getDatabaseSize();
         final newSizeMB = newSize / (1024 * 1024);
-        print('💽 Vacuum completed, new size: ${newSizeMB.toStringAsFixed(2)} MB');
+        AppLogger.database('Vacuum completed, new size: ${newSizeMB.toStringAsFixed(2)} MB');
         
         return true;
       }
 
       return false;
     } catch (e) {
-      print('❌ Failed to vacuum database: $e');
+      AppLogger.database('Failed to vacuum database: $e');
       return false;
     }
   }

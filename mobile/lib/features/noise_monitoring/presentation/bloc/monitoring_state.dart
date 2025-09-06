@@ -36,3 +36,39 @@ class MonitoringError extends MonitoringState {
   @override
   List<Object?> get props => [message];
 }
+
+class BackgroundMonitoringInactive extends MonitoringState {
+  const BackgroundMonitoringInactive();
+}
+
+class BackgroundMonitoringStarting extends MonitoringState {
+  const BackgroundMonitoringStarting();
+}
+
+class BackgroundMonitoringActive extends MonitoringState {
+  const BackgroundMonitoringActive({
+    this.lastRunTime,
+    this.nextRunTime,
+    this.status,
+  });
+  
+  final DateTime? lastRunTime;
+  final DateTime? nextRunTime;
+  final Map<String, dynamic>? status;
+  
+  @override
+  List<Object?> get props => [lastRunTime, nextRunTime, status];
+}
+
+class BackgroundMonitoringStopping extends MonitoringState {
+  const BackgroundMonitoringStopping();
+}
+
+class BackgroundMonitoringError extends MonitoringState {
+  const BackgroundMonitoringError(this.message);
+  
+  final String message;
+  
+  @override
+  List<Object?> get props => [message];
+}

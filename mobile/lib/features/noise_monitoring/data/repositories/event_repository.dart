@@ -3,6 +3,7 @@ import 'dart:convert';
 
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../../../core/logging/app_logger.dart';
 import '../models/noise_event_model.dart';
 
 class EventRepository {
@@ -38,7 +39,7 @@ class EventRepository {
       await _addToPendingList(key);
     }
     
-    print('💾 Saved event: ${event.toString()}');
+    AppLogger.database('Saved event: ${event.toString()}');
   }
   
   /// Get event by key
@@ -50,7 +51,7 @@ class EventRepository {
       final json = jsonDecode(jsonString) as Map<String, dynamic>;
       return NoiseEventModel.fromLocalJson(json);
     } catch (e) {
-      print('❌ Error loading event $eventKey: $e');
+      AppLogger.database('Error loading event $eventKey: $e');
       return null;
     }
   }
@@ -125,7 +126,7 @@ class EventRepository {
     // Save updated event
     await saveEvent(updatedEvent);
     
-    print('✅ Marked event as submitted: $key');
+    AppLogger.database('Marked event as submitted: $key');
   }
   
   /// Update event retry count
@@ -142,7 +143,7 @@ class EventRepository {
     await _removeFromPendingList(key);
     await _removeFromSubmittedList(key);
     
-    print('🗑️ Deleted event: $key');
+    AppLogger.database('Deleted event: $key');
   }
   
   /// Clear all events
@@ -157,7 +158,7 @@ class EventRepository {
     await _prefs.remove(_keyPendingList);
     await _prefs.remove(_keySubmittedList);
     
-    print('🗑️ Cleared all events');
+    AppLogger.database('Cleared all events');
   }
   
   /// Get event statistics

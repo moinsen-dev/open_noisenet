@@ -8,7 +8,9 @@ import '../../../../core/database/dao/audio_recording_dao.dart';
 import '../../../../core/database/models/noise_measurement.dart';
 import '../../../../core/database/models/daily_statistics.dart';
 import '../../../../core/database/models/audio_recording.dart';
+import '../../../../core/logging/app_logger.dart';
 import '../../../../services/audio_recording_service.dart';
+import 'audio_player_page.dart';
 
 class EventsDashboardPage extends StatefulWidget {
   const EventsDashboardPage({super.key});
@@ -22,7 +24,7 @@ class _EventsDashboardPageState extends State<EventsDashboardPage> {
   final DailyStatisticsDao _dailyStatsDao = DailyStatisticsDao();
   final AudioRecordingDao _audioRecordingDao = AudioRecordingDao();
   final AudioRecordingService _audioRecordingService = AudioRecordingService();
-  
+
   bool _isAudioServiceInitialized = false;
 
   @override
@@ -40,7 +42,7 @@ class _EventsDashboardPageState extends State<EventsDashboardPage> {
         });
       }
     } catch (e) {
-      print('Failed to initialize audio service: $e');
+      AppLogger.ui('Failed to initialize audio service: $e');
     }
   }
 
@@ -51,6 +53,12 @@ class _EventsDashboardPageState extends State<EventsDashboardPage> {
         title: const Text('Events Dashboard'),
         centerTitle: false,
         actions: [
+          // Test recording button for debugging audio playback
+          IconButton(
+            onPressed: _createTestRecording,
+            icon: const Icon(Icons.mic),
+            tooltip: 'Create test recording (5s)',
+          ),
           IconButton(
             onPressed: () => context.push('/statistics'),
             icon: const Icon(Icons.analytics),
@@ -69,11 +77,11 @@ class _EventsDashboardPageState extends State<EventsDashboardPage> {
               // Statistics Overview Cards
               _buildStatisticsCards(),
               const SizedBox(height: 24),
-              
+
               // 24-hour Chart
               _build24HourChart(),
               const SizedBox(height: 24),
-              
+
               // Recent Events
               _buildRecentEvents(),
             ],
@@ -88,7 +96,7 @@ class _EventsDashboardPageState extends State<EventsDashboardPage> {
       future: _dailyStatsDao.getByDate(_getTodayDateString()),
       builder: (context, snapshot) {
         final stats = snapshot.data;
-        
+
         return Row(
           children: [
             Expanded(
@@ -160,9 +168,9 @@ class _EventsDashboardPageState extends State<EventsDashboardPage> {
                   child: Text(
                     value,
                     style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      color: color,
-                      fontWeight: FontWeight.bold,
-                    ),
+                          color: color,
+                          fontWeight: FontWeight.bold,
+                        ),
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
@@ -231,9 +239,11 @@ class _EventsDashboardPageState extends State<EventsDashboardPage> {
                             showTitles: true,
                             reservedSize: 30,
                             getTitlesWidget: (value, meta) {
-                              final hour = (DateTime.now().hour - 
-                                (measurements.length - value.toInt())) % 24;
-                              return Text('${hour.toString().padLeft(2, '0')}:00');
+                              final hour = (DateTime.now().hour -
+                                      (measurements.length - value.toInt())) %
+                                  24;
+                              return Text(
+                                  '${hour.toString().padLeft(2, '0')}:00');
                             },
                           ),
                         ),
@@ -253,7 +263,10 @@ class _EventsDashboardPageState extends State<EventsDashboardPage> {
                           barWidth: 2,
                           belowBarData: BarAreaData(
                             show: true,
-                            color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
+                            color: Theme.of(context)
+                                .colorScheme
+                                .primary
+                                .withValues(alpha: 0.3),
                           ),
                           dotData: const FlDotData(show: false),
                         ),
@@ -319,12 +332,13 @@ class _EventsDashboardPageState extends State<EventsDashboardPage> {
                       measurement.timestamp * 1000,
                     );
                     final maxDb = measurement.lmaxDb ?? measurement.leqDb;
-                    
+
                     return FutureBuilder<AudioRecording?>(
                       future: _findAssociatedRecording(measurement),
                       builder: (context, recordingSnapshot) {
-                        final hasRecording = recordingSnapshot.hasData && recordingSnapshot.data != null;
-                        
+                        final hasRecording = recordingSnapshot.hasData &&
+                            recordingSnapshot.data != null;
+
                         return ListTile(
                           leading: CircleAvatar(
                             backgroundColor: _getEventColor(maxDb),
@@ -346,18 +360,19 @@ class _EventsDashboardPageState extends State<EventsDashboardPage> {
                             children: [
                               if (hasRecording)
                                 IconButton(
-                                  onPressed: _isAudioServiceInitialized 
-                                    ? () => _playEventRecording(recordingSnapshot.data!)
-                                    : null,
+                                  onPressed: _isAudioServiceInitialized
+                                      ? () => _playEventRecording(
+                                          recordingSnapshot.data!)
+                                      : null,
                                   icon: Icon(
                                     Icons.play_circle_filled,
-                                    color: _isAudioServiceInitialized 
-                                      ? null 
-                                      : Colors.grey,
+                                    color: _isAudioServiceInitialized
+                                        ? null
+                                        : Colors.grey,
                                   ),
-                                  tooltip: _isAudioServiceInitialized 
-                                    ? 'Play recording' 
-                                    : 'Audio service initializing...',
+                                  tooltip: _isAudioServiceInitialized
+                                      ? 'Play recording'
+                                      : 'Audio service initializing...',
                                   constraints: const BoxConstraints(
                                     minWidth: 32,
                                     minHeight: 32,
@@ -400,7 +415,7 @@ class _EventsDashboardPageState extends State<EventsDashboardPage> {
   String _formatTimeAgo(DateTime dateTime) {
     final now = DateTime.now();
     final difference = now.difference(dateTime);
-    
+
     if (difference.inMinutes < 60) {
       return '${difference.inMinutes}m ago';
     } else if (difference.inHours < 24) {
@@ -416,24 +431,25 @@ class _EventsDashboardPageState extends State<EventsDashboardPage> {
   }
 
   /// Find audio recording associated with a noise measurement
-  Future<AudioRecording?> _findAssociatedRecording(NoiseMeasurement measurement) async {
+  Future<AudioRecording?> _findAssociatedRecording(
+      NoiseMeasurement measurement) async {
     try {
       // Look for recordings that overlap with the measurement timestamp (+/- 30 seconds)
       final measurementTime = measurement.timestamp;
       final startTime = measurementTime - 30;
       final endTime = measurementTime + 30;
-      
+
       final recordings = await _audioRecordingDao.getByTimeRange(
         startTimestamp: startTime,
         endTimestamp: endTime,
         limit: 1,
         orderBy: 'timestamp_start DESC',
       );
-      
+
       if (recordings.isNotEmpty) {
         return recordings.first;
       }
-      
+
       return null;
     } catch (e) {
       return null;
@@ -445,39 +461,96 @@ class _EventsDashboardPageState extends State<EventsDashboardPage> {
     if (!_isAudioServiceInitialized) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Audio service is still initializing, please try again'),
+          content:
+              Text('Audio service is still initializing, please try again'),
+        ),
+      );
+      return;
+    }
+
+    // Navigate to full-screen audio player page
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (context) => AudioPlayerPage(recording: recording),
+      ),
+    );
+  }
+
+  Future<void> _refreshData() async {
+    setState(() {}); // Trigger rebuild to refresh FutureBuilders
+  }
+
+  /// Create a test recording for debugging audio playback
+  Future<void> _createTestRecording() async {
+    if (!_isAudioServiceInitialized) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Audio service not initialized yet. Please wait...'),
         ),
       );
       return;
     }
 
     try {
-      await _audioRecordingService.playRecording(recording);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Playing noise event recording (${recording.durationSeconds}s)'),
-            duration: const Duration(seconds: 2),
-            action: SnackBarAction(
-              label: 'Stop',
-              onPressed: () => _audioRecordingService.stopPlayback(),
-            ),
+      // Show progress dialog
+      showDialog<void>(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const AlertDialog(
+          content: Row(
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(width: 16),
+              Text('Recording test audio (5s)...'),
+            ],
           ),
-        );
+        ),
+      );
+
+      AppLogger.ui('Starting test recording creation...');
+      final recordingId = await _audioRecordingService.createTestRecording();
+
+      // Close progress dialog
+      if (mounted) Navigator.of(context).pop();
+
+      if (recordingId != null) {
+        AppLogger.ui('Test recording created successfully: $recordingId');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                  'Test recording created! ID: ${recordingId.substring(0, 8)}...'),
+              action: SnackBarAction(
+                label: 'Refresh',
+                onPressed: () => _refreshData(),
+              ),
+            ),
+          );
+        }
+      } else {
+        AppLogger.ui('Failed to create test recording');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                  'Failed to create test recording. Check logs for details.'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
       }
     } catch (e) {
+      AppLogger.ui('Error creating test recording: $e');
+      // Close progress dialog if still open
       if (mounted) {
+        Navigator.of(context).pop();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to play recording: $e'),
-            backgroundColor: Theme.of(context).colorScheme.error,
+            content: Text('Error: $e'),
+            backgroundColor: Colors.red,
           ),
         );
       }
     }
-  }
-
-  Future<void> _refreshData() async {
-    setState(() {}); // Trigger rebuild to refresh FutureBuilders
   }
 }

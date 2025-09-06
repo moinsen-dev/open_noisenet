@@ -12,6 +12,7 @@ import '../core/database/models/audio_recording.dart';
 import '../core/database/dao/audio_recording_dao.dart';
 import '../core/database/models/ai_analysis_queue.dart';
 import '../core/database/dao/ai_analysis_queue_dao.dart';
+import '../core/logging/app_logger.dart';
 
 enum RecordingState {
   stopped,
@@ -65,14 +66,29 @@ class AudioRecordingService {
     // Initialize flutter_sound recorder
     _recorder = FlutterSoundRecorder();
     await _recorder.openRecorder();
+    AppLogger.recording('FlutterSoundRecorder initialized successfully');
 
-    // Initialize just_audio player
+    // Initialize just_audio player with proper iOS audio session configuration
     _audioPlayer = just_audio.AudioPlayer();
+    
+    // Configure audio session for iOS compatibility
+    try {
+      await _audioPlayer.setAudioSource(
+        just_audio.AudioSource.asset('assets/silence.mp3', package: null),
+      );
+      AppLogger.recording('AudioPlayer pre-initialized with dummy source for iOS compatibility');
+    } catch (e) {
+      // If no silence asset exists, that's fine - we'll handle it during playback
+      AppLogger.recording('No silence asset found, will handle audio session during playback');
+    }
+    
+    AppLogger.recording('AudioPlayer initialized successfully');
 
     // Create recordings directory
     final appDir = await getApplicationDocumentsDirectory();
     _recordingsDirectory = path.join(appDir.path, 'recordings');
     await Directory(_recordingsDirectory!).create(recursive: true);
+    AppLogger.recording('Recordings directory created: $_recordingsDirectory');
 
     // Load existing recordings from database
     await _loadActiveRecordings();
@@ -140,11 +156,11 @@ class AudioRecordingService {
       // Set timer to automatically stop recording
       _recordingTimer = Timer(recordingDuration, () => stopRecording());
 
-      print('🎤 Started audio recording: $recordingId');
+      AppLogger.recording('Started audio recording: $recordingId');
       return recordingId;
 
     } catch (e) {
-      print('❌ Failed to start recording: $e');
+      AppLogger.recording('Failed to start recording: $e');
       return null;
     }
   }
@@ -192,11 +208,11 @@ class AudioRecordingService {
 
       _currentRecording = null;
 
-      print('🎤 Completed recording: ${completedRecording.id}');
+      AppLogger.recording('Completed recording: ${completedRecording.id}');
       return completedRecording;
 
     } catch (e) {
-      print('❌ Failed to stop recording: $e');
+      AppLogger.recording('Failed to stop recording: $e');
       _state = RecordingState.stopped;
       _stateController.add(_state);
       _currentRecording = null;
@@ -214,7 +230,7 @@ class AudioRecordingService {
       _state = RecordingState.paused;
       _stateController.add(_state);
     } catch (e) {
-      print('❌ Failed to pause recording: $e');
+      AppLogger.recording('Failed to pause recording: $e');
     }
   }
 
@@ -238,7 +254,7 @@ class AudioRecordingService {
       _state = RecordingState.recording;
       _stateController.add(_state);
     } catch (e) {
-      print('❌ Failed to resume recording: $e');
+      AppLogger.recording('Failed to resume recording: $e');
     }
   }
 
@@ -273,10 +289,10 @@ class AudioRecordingService {
       // Delete analysis queue items
       await _analysisQueueDao.deleteByRecordingId(id);
 
-      print('🗑️ Deleted recording: $id');
+      AppLogger.recording('Deleted recording: $id');
       return true;
     } catch (e) {
-      print('❌ Failed to delete recording $id: $e');
+      AppLogger.recording('Failed to delete recording $id: $e');
       return false;
     }
   }
@@ -307,7 +323,7 @@ class AudioRecordingService {
       _activeRecordings.clear();
       _activeRecordings.addAll(recordings);
     } catch (e) {
-      print('❌ Failed to load active recordings: $e');
+      AppLogger.recording('Failed to load active recordings: $e');
     }
   }
 
@@ -333,9 +349,9 @@ class AudioRecordingService {
       );
 
       await _analysisQueueDao.insert(analysisItem);
-      print('📊 Queued recording for AI analysis: ${recording.id}');
+      AppLogger.recording('Queued recording for AI analysis: ${recording.id}');
     } catch (e) {
-      print('❌ Failed to queue for analysis: $e');
+      AppLogger.recording('Failed to queue for analysis: $e');
     }
   }
 
@@ -352,12 +368,12 @@ class AudioRecordingService {
       }
 
       if (deletedCount > 0) {
-        print('🧹 Cleaned up $deletedCount expired recordings');
+        AppLogger.recording('Cleaned up $deletedCount expired recordings');
       }
 
       return deletedCount;
     } catch (e) {
-      print('❌ Failed to cleanup expired recordings: $e');
+      AppLogger.recording('Failed to cleanup expired recordings: $e');
       return 0;
     }
   }
@@ -395,35 +411,107 @@ class AudioRecordingService {
         throw Exception('Audio file not found: ${recording.filePath}');
       }
 
-      // Check file size
+      // Check file size and validate it's not empty
       final fileSize = file.lengthSync();
       if (fileSize == 0) {
         throw Exception('Audio file is empty: ${recording.filePath}');
       }
+      
+      // Add more detailed file validation
+      if (fileSize < 1024) { // Less than 1KB is likely empty/invalid
+        AppLogger.recording('Warning: Audio file is very small ($fileSize bytes) and may not contain actual audio data');
+      }
 
-      print('🔍 Attempting to play: ${recording.filePath} (${fileSize} bytes, ${recording.format})');
+      AppLogger.recording('Attempting to play: ${recording.filePath} ($fileSize bytes, ${recording.format})');
+      AppLogger.recording('File exists: ${file.existsSync()}, Can read: ${await file.exists()}');
 
       // Stop any currently playing audio
       await _audioPlayer.stop();
+      await _audioPlayer.seek(Duration.zero);
 
-      // Try to load and play the audio file with better error handling
+      // Try to load and play the audio file with better iOS error handling
       try {
+        // First try: Direct file path with iOS audio session preparation
+        AppLogger.recording('Trying direct file path method with iOS session handling...');
+        
+        // On iOS, prepare audio session before loading
+        await _audioPlayer.setVolume(0.1); // Start with low volume
         await _audioPlayer.setFilePath(recording.filePath);
+        
+        // Wait a brief moment for iOS audio session setup
+        await Future<void>.delayed(const Duration(milliseconds: 100));
+        
+        // Get duration to validate the file loaded properly
+        final duration = _audioPlayer.duration;
+        AppLogger.recording('Audio duration detected: $duration');
+        
+        // Gradually increase volume for iOS compatibility
+        await _audioPlayer.setVolume(1.0);
+        
+        // Use seek(Duration.zero) to prepare playhead on iOS
+        await _audioPlayer.seek(Duration.zero);
+        
         await _audioPlayer.play();
-        print('🔊 Successfully playing audio recording: ${recording.id}');
+        AppLogger.recording('Successfully started playback using direct path method');
+        
       } catch (platformException) {
-        // If direct file path fails, try using setAudioSource with file URI
-        print('🔄 Direct file path failed, trying alternative method...');
-        await _audioPlayer.setAudioSource(
-          just_audio.AudioSource.uri(Uri.file(recording.filePath)),
-        );
-        await _audioPlayer.play();
-        print('🔊 Successfully playing audio recording (alternative method): ${recording.id}');
+        // Second try: File URI method
+        AppLogger.recording('Direct file path failed ($platformException), trying URI method...');
+        
+        try {
+          // iOS-compatible URI method with session handling
+          await _audioPlayer.setVolume(0.1); // Start with low volume
+          await _audioPlayer.setAudioSource(
+            just_audio.AudioSource.uri(Uri.file(recording.filePath)),
+          );
+          
+          // Wait for iOS audio session preparation
+          await Future<void>.delayed(const Duration(milliseconds: 100));
+          
+          final duration = _audioPlayer.duration;
+          AppLogger.recording('Audio duration (URI method): $duration');
+          
+          await _audioPlayer.setVolume(1.0);
+          await _audioPlayer.seek(Duration.zero);
+          await _audioPlayer.play();
+          AppLogger.recording('Successfully started playback using URI method');
+          
+        } catch (uriException) {
+          // Third try: File bytes method
+          AppLogger.recording('URI method also failed ($uriException), trying bytes method...');
+          
+          final bytes = await file.readAsBytes();
+          AppLogger.recording('Read ${bytes.length} bytes from file');
+          
+          // iOS-compatible bytes method with session handling
+          await _audioPlayer.setVolume(0.1); // Start with low volume
+          await _audioPlayer.setAudioSource(
+            just_audio.AudioSource.uri(
+              Uri.dataFromBytes(bytes, mimeType: 'audio/wav'),
+            ),
+          );
+          
+          // Wait for iOS audio session preparation
+          await Future<void>.delayed(const Duration(milliseconds: 100));
+          
+          await _audioPlayer.setVolume(1.0);
+          await _audioPlayer.seek(Duration.zero);
+          await _audioPlayer.play();
+          AppLogger.recording('Successfully started playback using bytes method');
+        }
       }
     } catch (e) {
-      print('❌ Failed to play recording ${recording.id}: $e');
-      print('📍 File path: ${recording.filePath}');
-      print('📄 File format: ${recording.format}');
+      AppLogger.recording('Failed to play recording ${recording.id}: $e');
+      AppLogger.recording('File path: ${recording.filePath}');
+      AppLogger.recording('File format: ${recording.format}');
+      
+      // Try iOS-specific error recovery if applicable
+      if (e is Exception && await _handleiOSAudioSessionError(e, recording)) {
+        AppLogger.recording('Successfully recovered from iOS audio session error for recording ${recording.id}');
+        return; // Recovery successful, exit without rethrowing
+      }
+      
+      AppLogger.recording('Stack trace: ${StackTrace.current}');
       rethrow;
     }
   }
@@ -433,7 +521,7 @@ class AudioRecordingService {
     try {
       await _audioPlayer.stop();
     } catch (e) {
-      print('❌ Failed to stop playback: $e');
+      AppLogger.recording('Failed to stop playback: $e');
     }
   }
 
@@ -442,6 +530,123 @@ class AudioRecordingService {
 
   /// Get current playback position
   Stream<Duration> get playbackPositionStream => _audioPlayer.positionStream;
+  
+  /// Handle iOS-specific audio session errors
+  Future<bool> _handleiOSAudioSessionError(Exception error, AudioRecording recording) async {
+    final errorString = error.toString();
+    
+    // Check if this is a known iOS audio session error
+    if (errorString.contains('561017449') || 
+        errorString.contains('OSStatus') || 
+        errorString.contains('AudioSession')) {
+      
+      AppLogger.recording('Detected iOS audio session error, attempting recovery...');
+      
+      try {
+        // Reset audio player completely
+        await _audioPlayer.stop();
+        await _audioPlayer.dispose();
+        
+        // Wait a moment for cleanup
+        await Future<void>.delayed(const Duration(milliseconds: 200));
+        
+        // Recreate audio player
+        _audioPlayer = just_audio.AudioPlayer();
+        
+        // Try with minimal configuration
+        await _audioPlayer.setVolume(0.5);
+        await _audioPlayer.setFilePath(recording.filePath);
+        
+        // Wait longer for iOS session setup
+        await Future<void>.delayed(const Duration(milliseconds: 500));
+        
+        await _audioPlayer.play();
+        
+        AppLogger.recording('Successfully recovered from iOS audio session error');
+        return true;
+        
+      } catch (recoveryError) {
+        AppLogger.recording('iOS audio session recovery failed: $recoveryError');
+        return false;
+      }
+    }
+    
+    return false;
+  }
+  
+  /// Create a test recording for debugging purposes
+  Future<String?> createTestRecording({Duration duration = const Duration(seconds: 5)}) async {
+    try {
+      // Check microphone permission first
+      final permission = await Permission.microphone.request();
+      if (!permission.isGranted) {
+        throw Exception('Microphone permission not granted');
+      }
+
+      final recordingId = _uuid.v4();
+      final now = DateTime.now();
+      
+      // Create filename for test recording
+      final testPath = path.join(
+        _recordingsDirectory!,
+        'test_recording_${now.millisecondsSinceEpoch}.wav',
+      );
+      
+      AppLogger.recording('Creating test recording: $testPath');
+      
+      // Start test recording
+      await _recorder.startRecorder(
+        toFile: testPath,
+        codec: Codec.pcm16WAV,
+        sampleRate: sampleRate,
+        bitRate: 128000,
+      );
+      
+      // Wait for specified duration
+      await Future<void>.delayed(duration);
+      
+      // Stop recording
+      await _recorder.stopRecorder();
+      
+      // Check if file was created and has content
+      final file = File(testPath);
+      if (await file.exists()) {
+        final fileSize = await file.length();
+        AppLogger.recording('Test recording completed: $fileSize bytes');
+        
+        if (fileSize > 0) {
+          // Create AudioRecording model for the test file
+          final testRecording = AudioRecording(
+            id: recordingId,
+            timestampStart: now.millisecondsSinceEpoch ~/ 1000,
+            timestampEnd: DateTime.now().millisecondsSinceEpoch ~/ 1000,
+            durationSeconds: duration.inSeconds,
+            filePath: testPath,
+            fileSize: fileSize,
+            format: 'wav',
+            sampleRate: sampleRate,
+            createdAt: now.millisecondsSinceEpoch ~/ 1000,
+            expiresAt: now.add(const Duration(hours: 1)).millisecondsSinceEpoch ~/ 1000,
+            triggerType: 'manual_test',
+            avgLevel: 60.0, // dummy value
+          );
+          
+          // Save to database
+          await _recordingDao.insert(testRecording);
+          AppLogger.recording('Test recording saved to database: $recordingId');
+          
+          return recordingId;
+        } else {
+          throw Exception('Test recording file is empty');
+        }
+      } else {
+        throw Exception('Test recording file was not created');
+      }
+    } catch (e) {
+      AppLogger.recording('Failed to create test recording: $e');
+      return null;
+    }
+  }
 
   /// Dispose of resources
   Future<void> dispose() async {

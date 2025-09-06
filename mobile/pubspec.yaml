@@ -50,6 +50,9 @@ dependencies:
   workmanager: ^0.5.2
   tflite_flutter: ^0.10.4
 
+  # Logging
+  talker_flutter: ^4.4.1
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

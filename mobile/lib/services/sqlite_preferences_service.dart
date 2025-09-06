@@ -343,6 +343,22 @@ class SQLitePreferencesService {
     
     debugPrint('✅ SQLitePreferencesService: Imported ${preferences.length} preferences');
   }
+
+  // ONBOARDING SETTINGS
+
+  /// Get onboarding completion status
+  Future<bool> getOnboardingComplete() async {
+    _ensureInitialized();
+    return await _dao.getBool(PreferenceKeys.onboardingComplete, defaultValue: false);
+  }
+
+  /// Set onboarding completion status
+  Future<void> setOnboardingComplete(bool completed) async {
+    _ensureInitialized();
+    await _dao.setBool(PreferenceKeys.onboardingComplete, completed,
+        description: 'Whether user has completed onboarding flow');
+    debugPrint('👋 Onboarding: Complete status set to $completed');
+  }
 }
 
 /// Location accuracy options (moved from old settings service)

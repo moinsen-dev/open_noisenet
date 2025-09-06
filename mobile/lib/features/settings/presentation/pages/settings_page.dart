@@ -5,8 +5,8 @@ import 'package:get_it/get_it.dart';
 import '../../../../features/app/presentation/bloc/app_bloc.dart';
 import '../../../../services/audio_capture_service.dart';
 import '../../../../services/location_service.dart';
+import '../../../../services/recording_service.dart';
 import '../../../../services/sqlite_preferences_service.dart';
-import '../../../../services/continuous_recording_service.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -16,10 +16,12 @@ class SettingsPage extends StatefulWidget {
 }
 
 class _SettingsPageState extends State<SettingsPage> {
-  final SQLitePreferencesService _preferencesService = GetIt.instance<SQLitePreferencesService>();
+  final SQLitePreferencesService _preferencesService =
+      GetIt.instance<SQLitePreferencesService>();
   final LocationService _locationService = LocationService();
-  final AudioCaptureService _audioService = GetIt.instance<AudioCaptureService>();
-  final ContinuousRecordingService _continuousRecordingService = ContinuousRecordingService();
+  final AudioCaptureService _audioService =
+      GetIt.instance<AudioCaptureService>();
+  final RecordingService _recordingService = RecordingService();
 
   @override
   Widget build(BuildContext context) {
@@ -127,8 +129,8 @@ class _SettingsPageState extends State<SettingsPage> {
   Widget _buildContinuousRecordingSection(BuildContext context) {
     return FutureBuilder<Map<String, dynamic>>(
       future: () async {
-        final settings = _continuousRecordingService.getSettings();
-        final state = _continuousRecordingService.state;
+        final settings = _recordingService.getSettings();
+        final state = _recordingService.state;
         return {
           ...settings,
           'state': state.name,
@@ -138,24 +140,26 @@ class _SettingsPageState extends State<SettingsPage> {
         final data = snapshot.data;
         final isEnabled = data?['enabled'] == true;
         final isActive = data?['state'] == 'active';
-        
+
         return Column(
           children: [
             ListTile(
               leading: Icon(
-                isActive ? Icons.fiber_smart_record : Icons.radio_button_unchecked,
+                isActive
+                    ? Icons.fiber_smart_record
+                    : Icons.radio_button_unchecked,
                 color: isActive ? Colors.red : null,
               ),
               title: const Text('Continuous Recording'),
-              subtitle: Text(
-                isEnabled 
-                  ? (isActive ? 'Active - Auto-detecting noise events' : 'Enabled - Ready to start')
-                  : 'Disabled - Manual recording only'
-              ),
+              subtitle: Text(isEnabled
+                  ? (isActive
+                      ? 'Active - Auto-detecting noise events'
+                      : 'Enabled - Ready to start')
+                  : 'Disabled - Manual recording only'),
               trailing: Switch(
                 value: isEnabled,
                 onChanged: (value) async {
-                  await _continuousRecordingService.updateSettings(
+                  await _recordingService.updateSettings(
                     enableContinuousRecording: value,
                   );
                   setState(() {});
@@ -307,8 +311,9 @@ class _SettingsPageState extends State<SettingsPage> {
 
   void _showContinuousRecordingDialog(BuildContext context) async {
     // Load current settings
-    final settings = _continuousRecordingService.getSettings();
-    double bufferDuration = (settings['buffer_duration_minutes'] as int).toDouble();
+    final settings = _recordingService.getSettings();
+    double bufferDuration =
+        (settings['buffer_duration_minutes'] as int).toDouble();
     double autoRecordThreshold = settings['auto_record_threshold'] as double;
     int maxBuffers = settings['max_buffers'] as int;
 
@@ -326,9 +331,10 @@ class _SettingsPageState extends State<SettingsPage> {
                   style: TextStyle(fontSize: 14),
                 ),
                 const SizedBox(height: 16),
-                
+
                 // Buffer Duration Slider
-                Text('Recording Buffer Duration: ${bufferDuration.toInt()} minutes'),
+                Text(
+                    'Recording Buffer Duration: ${bufferDuration.toInt()} minutes'),
                 Slider(
                   value: bufferDuration,
                   min: 5.0,
@@ -342,9 +348,10 @@ class _SettingsPageState extends State<SettingsPage> {
                   },
                 ),
                 const SizedBox(height: 16),
-                
+
                 // Auto Record Threshold Slider
-                Text('Auto-Record Threshold: ${autoRecordThreshold.toInt()} dB'),
+                Text(
+                    'Auto-Record Threshold: ${autoRecordThreshold.toInt()} dB'),
                 Slider(
                   value: autoRecordThreshold,
                   min: 50.0,
@@ -358,7 +365,7 @@ class _SettingsPageState extends State<SettingsPage> {
                   },
                 ),
                 const SizedBox(height: 16),
-                
+
                 // Max Buffers Slider
                 Text('Maximum Buffers: $maxBuffers'),
                 Slider(
@@ -373,7 +380,7 @@ class _SettingsPageState extends State<SettingsPage> {
                     });
                   },
                 ),
-                
+
                 const SizedBox(height: 16),
                 const Text(
                   'Higher thresholds save storage but may miss quieter events. Lower thresholds capture more events but use more space.',
@@ -390,7 +397,7 @@ class _SettingsPageState extends State<SettingsPage> {
           ),
           ElevatedButton(
             onPressed: () async {
-              await _continuousRecordingService.updateSettings(
+              await _recordingService.updateSettings(
                 bufferDuration: Duration(minutes: bufferDuration.toInt()),
                 autoRecordThreshold: autoRecordThreshold,
                 maxBuffers: maxBuffers,
@@ -410,8 +417,9 @@ class _SettingsPageState extends State<SettingsPage> {
   void _showSyncDialog(BuildContext context) async {
     // Load current values asynchronously
     final backendUrl = await _preferencesService.getBackendUrl();
-    final autoSubmissionEnabled = await _preferencesService.getAutoSubmissionEnabled();
-    
+    final autoSubmissionEnabled =
+        await _preferencesService.getAutoSubmissionEnabled();
+
     final controller = TextEditingController(text: backendUrl);
 
     showDialog(

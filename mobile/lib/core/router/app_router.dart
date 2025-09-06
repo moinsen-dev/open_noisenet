@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../features/app/presentation/pages/splash_page.dart';
 import '../../features/auth/presentation/pages/login_page.dart';
 import '../../features/device_setup/presentation/pages/setup_page.dart';
+import '../../features/onboarding/presentation/pages/onboarding_page.dart';
 import '../../features/home/presentation/pages/home_page.dart';
 import '../../features/settings/presentation/pages/settings_page.dart';
 import '../../features/statistics/presentation/pages/statistics_page.dart';
@@ -32,6 +33,13 @@ class AppRouter {
         path: '/setup',
         name: 'setup',
         builder: (context, state) => const DeviceSetupPage(),
+      ),
+      
+      // Onboarding Flow
+      GoRoute(
+        path: '/onboarding',
+        name: 'onboarding',
+        builder: (context, state) => const OnboardingPage(),
       ),
       
       // Main Home Screen with Bottom Navigation

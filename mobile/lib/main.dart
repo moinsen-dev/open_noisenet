@@ -3,16 +3,25 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'core/di/injection.dart';
+import 'core/logging/app_logger.dart';
 import 'core/router/app_router.dart';
 import 'core/theme/app_theme.dart';
 import 'features/app/presentation/bloc/app_bloc.dart';
 import 'features/noise_monitoring/presentation/bloc/monitoring_bloc.dart';
+import 'services/background_monitoring_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
+  // Initialize logging framework
+  AppLogger.initialize(enableInRelease: false);
+  
   // Initialize dependency injection
   await configureDependencies();
+  
+  // Initialize background monitoring service
+  final backgroundService = BackgroundMonitoringService();
+  await backgroundService.initialize();
   
   // Set preferred orientations
   await SystemChrome.setPreferredOrientations([

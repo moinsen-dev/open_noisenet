@@ -1,14 +1,21 @@
 # Open NoiseNet Deployment Guide
 
-This document provides comprehensive deployment instructions for Open NoiseNet infrastructure, covering both Coolify and Terraform deployment options.
+This document provides comprehensive deployment instructions for Open NoiseNet infrastructure.
 
 ## 🏗️ Architecture Overview
 
-Open NoiseNet consists of the following components:
+Open NoiseNet uses a **separated deployment architecture**:
 
-- **Landing Page**: Next.js application (main public interface)
-- **React Frontend**: React app for noise monitoring dashboard (`/app` routes)
-- **FastAPI Backend**: Python API server with event ingestion and processing
+### **Landing Page** (GitHub Pages)
+- **Next.js static site** deployed to GitHub Pages
+- **Automatic deployment** on `landing_v*` tags
+- **Global CDN** via GitHub Pages
+- **Free SSL** and custom domain support
+- **URL**: https://moinsen-dev.github.io/open_noisenet/
+
+### **Application Infrastructure** (Docker)
+- **React Frontend**: Dashboard for noise monitoring
+- **FastAPI Backend**: API server with event ingestion and processing
 - **PostgreSQL + TimescaleDB**: Time-series database for noise events
 - **Redis**: Message broker for Celery workers
 - **Celery Workers**: Background processing for audio analysis and ML
@@ -17,7 +24,65 @@ Open NoiseNet consists of the following components:
 
 ---
 
-## 🚀 Deployment Option 1: Coolify (Recommended)
+## 🌐 Landing Page Deployment (GitHub Pages)
+
+The landing page is deployed separately using GitHub Actions and hosted on GitHub Pages.
+
+### Automatic Deployment
+
+1. **Create a landing page release tag**:
+   ```bash
+   git tag landing_v0.2.0
+   git push origin landing_v0.2.0
+   ```
+
+2. **GitHub Actions automatically**:
+   - Builds Next.js with static export
+   - Deploys to GitHub Pages
+   - Available at: https://moinsen-dev.github.io/open_noisenet/
+
+### Custom Domain Setup
+
+To use a custom domain (e.g., `opennoisenet.org`):
+
+1. **Configure GitHub Pages**:
+   - Go to repository Settings → Pages
+   - Add your custom domain
+   - Enable "Enforce HTTPS"
+
+2. **Update Next.js configuration**:
+   ```typescript
+   // landing/next.config.ts
+   const nextConfig: NextConfig = {
+     output: 'export',
+     trailingSlash: true,
+     images: { unoptimized: true },
+     // Remove basePath and assetPrefix for custom domains
+   };
+   ```
+
+3. **Add CNAME file**:
+   ```bash
+   # Add to landing/public/CNAME
+   echo "opennoisenet.org" > landing/public/CNAME
+   ```
+
+### Local Development
+
+```bash
+cd landing/
+pnpm install
+pnpm dev
+# Available at http://localhost:3000
+```
+
+---
+
+## 🚀 Application Infrastructure Deployment
+
+The backend API and frontend dashboard are deployed together using Docker.
+
+### Option 1: Coolify (Recommended)
 
 Coolify is the simplest deployment method, providing automated deployments with GitHub integration.
 

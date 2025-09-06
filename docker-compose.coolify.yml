@@ -98,29 +98,8 @@ services:
     networks:
       - noisenet
 
-  # Main frontend (landing page) - Coolify will expose this
+  # Main frontend (React dashboard) - Coolify will expose this
   frontend:
-    build:
-      context: ./landing
-      dockerfile: Dockerfile
-    environment:
-      - NODE_ENV=production
-      - HOSTNAME=0.0.0.0
-      - PORT=3000
-    # Remove port mapping - Coolify handles this
-    expose:
-      - "3000" 
-    healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:3000 || exit 1"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
-    networks:
-      - noisenet
-
-  # React app (for /app routes) - internal only
-  react-app:
     build:
       context: ./frontend
       dockerfile: Dockerfile
@@ -151,7 +130,6 @@ services:
     depends_on:
       - backend
       - frontend
-      - react-app
     networks:
       - noisenet
 

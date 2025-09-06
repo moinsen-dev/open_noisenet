@@ -104,25 +104,6 @@ services:
     networks:
       - noisenet
 
-  # OpenNoiseNet Landing Page
-  landing:
-    build:
-      context: ./landing
-      dockerfile: Dockerfile
-    environment:
-      - NODE_ENV=${NODE_ENV:-development}
-      - HOSTNAME=0.0.0.0
-      - PORT=3000
-    ports:
-      - "${LANDING_PORT:-3000}:3000"
-    healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:3000 || exit 1"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
-    networks:
-      - noisenet
 
   frontend:
     build:
@@ -156,7 +137,6 @@ services:
     depends_on:
       - backend
       - frontend
-      - landing
     networks:
       - noisenet
 

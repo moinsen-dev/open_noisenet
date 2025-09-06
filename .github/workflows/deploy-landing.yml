@@ -81,5 +81,5 @@ jobs:
       - name: Add deployment status
         run: |
           echo "🚀 Landing page deployed successfully!"
-          echo "📍 URL: ${{ steps.deployment.outputs.page_url }}"
+          echo "📍 URL: https://moinsen-dev.github.io/open_noisenet/"
           echo "🏷️ Tag: ${{ github.ref_name }}"

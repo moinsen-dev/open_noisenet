@@ -34,7 +34,7 @@
 
 While we have thousands of air quality monitoring stations worldwide, **noise monitoring is virtually non-existent**:
 
-- Most cities have **fewer than 5 noise monitoring stations** for millions of residents  
+- Most cities have **fewer than 5 noise monitoring stations** for millions of residents
 - Expensive commercial systems cost **€10,000-50,000** per unit
 - Data is often **proprietary, limited, or completely unavailable** to citizens
 - Communities suffering from noise pollution have **no evidence** to support policy changes
@@ -61,7 +61,7 @@ While we have thousands of air quality monitoring stations worldwide, **noise mo
 
 🗺️ **Open Data Platform**
 - Global noise pollution map with real-time data
-- Open data exports for researchers and policymakers  
+- Open data exports for researchers and policymakers
 - Community dashboards for local advocacy
 
 ⚖️ **Privacy-First Design**
@@ -126,7 +126,7 @@ With your help, Open NoiseNet will:
 #### ✅ Local Data Storage (Privacy-First)
 - **Minute-level Aggregates**: L10, L50, L90 percentiles with sample counts
 - **24-hour Rolling Window**: Automatic cleanup of old measurements
-- **Hourly Statistics**: Automated aggregation with exceedance tracking  
+- **Hourly Statistics**: Automated aggregation with exceedance tracking
 - **Daily Statistics**: Peak/quiet hour identification, weekly patterns
 - **Storage Optimization**: Database vacuuming, compression, health monitoring
 
@@ -171,7 +171,7 @@ With your help, Open NoiseNet will:
 
 ---
 
-## 🚨 **JOIN THE REVOLUTION!** 
+## 🚨 **JOIN THE REVOLUTION!**
 
 **Open NoiseNet is transforming from concept to reality - we need passionate contributors to complete the mission!**
 
@@ -227,21 +227,21 @@ We welcome community support for:
 
 **Your support will be recognized in all project materials and you'll have direct input on the roadmap.**
 
-### 📢 **Creators & Influencers** 
+### 📢 **Creators & Influencers**
 
 **Help us amplify this message!**
 
 This project needs visibility to succeed. We're looking for:
 
 - **Tech YouTubers**: Help explain the technology and problem
-- **Environmental advocates**: Connect with climate and health communities  
+- **Environmental advocates**: Connect with climate and health communities
 - **Maker community**: Showcase DIY hardware builds and tutorials
 - **Policy influencers**: Bridge to government and regulatory discussions
 - **Social media**: Spread awareness about noise pollution impacts
 
 **Content collaboration opportunities:**
 - Hardware build videos and tutorials
-- Noise pollution awareness campaigns  
+- Noise pollution awareness campaigns
 - Citizen science and DIY electronics content
 - Environmental justice and community advocacy
 - Urban planning and smart city discussions
@@ -359,7 +359,7 @@ We need people to:
 
 ### **Community Goals**
 - 🎯 **Q1 2025**: 500 GitHub stars, 50 contributors
-- 🎯 **Q2 2025**: 1,000 beta users, 5 partner organizations  
+- 🎯 **Q2 2025**: 1,000 beta users, 5 partner organizations
 - 🎯 **Q3 2025**: 5,000 app downloads, 100 deployed devices
 - 🎯 **Q4 2025**: 10,000 users, 500 active devices
 - 🎯 **Q1 2026**: 50,000 users, 2,000 devices globally
@@ -384,7 +384,7 @@ We need people to:
 - [ ] **Backend API Development** - Start FastAPI server implementation
 - [ ] **Partnership Outreach** - Contact environmental NGOs and universities
 - [ ] **Funding Applications** - Apply for grants and accelerator programs
-- [ ] **Content Marketing** - Create technical blog posts and demo videos  
+- [ ] **Content Marketing** - Create technical blog posts and demo videos
 
 ---
 
@@ -394,14 +394,14 @@ We need people to:
 
 #### **Quick Start**
 1. 🍴 **Fork the repository** and explore our Flutter mobile app
-2. 📖 **[Read CONTRIBUTING.md](./CONTRIBUTING.md)** - Development setup and guidelines  
+2. 📖 **[Read CONTRIBUTING.md](./CONTRIBUTING.md)** - Development setup and guidelines
 3. 🎯 **[Check Open Issues](../../issues)** - Find tasks matching your skills
 4. 💬 **[Join Discussions](../../discussions)** - Introduce yourself and ask questions
 5. 🚀 **Submit your first PR** - Start with documentation or UI improvements
 
 #### **Current Opportunities**
 - **🔥 URGENT**: Mobile app UI completion (Flutter/Dart)
-- **🔥 URGENT**: Backend API development (Python/FastAPI)  
+- **🔥 URGENT**: Backend API development (Python/FastAPI)
 - **🟡 HIGH**: Web dashboard frontend (React/TypeScript)
 - **🟡 HIGH**: ESP32 firmware development (C++/Arduino)
 - **🟢 MEDIUM**: Technical documentation and guides
@@ -410,7 +410,7 @@ We need people to:
 
 #### **Partnership Opportunities**
 1. **🏢 Enterprise Partners**: [Contact us](../../issues/new?template=partnership.md) for collaboration opportunities
-2. **🏛️ Government Partners**: Pilot programs for smart city initiatives  
+2. **🏛️ Government Partners**: Pilot programs for smart city initiatives
 3. **🎓 Research Institutions**: Joint research and data collaboration
 4. **🌱 NGO Partners**: Community deployment and advocacy support
 
@@ -453,7 +453,7 @@ We need people to:
 
 ### **Social & Communication**
 - **🌐 Project Website**: *Coming Soon - Professional landing page*
-- **📧 Email**: *Coming Soon - Contact and partnership inquiries*  
+- **📧 Email**: *Coming Soon - Contact and partnership inquiries*
 - **📱 Social Media**: *Coming Soon - Follow for updates and announcements*
 
 ### **Project Status Updates**
@@ -499,6 +499,6 @@ We need people to:
 
 ---
 
-*Active development since Q4 2024 • Mobile app 75% complete • Ready for global deployment*
+*Active development since September 2025 • Mobile app in progress • Ready for global deployment*
 
 </div>

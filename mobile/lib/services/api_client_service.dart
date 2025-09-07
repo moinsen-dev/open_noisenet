@@ -7,6 +7,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:talker_flutter/talker_flutter.dart';
 
 import '../core/models/api_models.dart';
+import '../features/noise_monitoring/data/models/noise_event_model.dart' as monitoring;
+import 'network_utils.dart';
 
 class ApiClientService {
   static const String _baseUrlKey = 'api_base_url';
@@ -16,16 +18,13 @@ class ApiClientService {
   
   // Smart backend URL detection for development
   static String get _defaultBaseUrl {
-    // For iOS simulator, use host machine IP since localhost refers to simulator
-    if (!kIsWeb && Platform.isIOS && !kReleaseMode) {
-      // Use host machine IP for simulator connectivity to Docker
-      return 'http://192.168.178.157:8100/api/v1';
+    // For release builds, use production URL
+    if (kReleaseMode) {
+      return 'https://api.open-noisenet.org/api/v1';
     }
-    // For Android emulator, 10.0.2.2 maps to host machine localhost
-    if (!kIsWeb && Platform.isAndroid && !kReleaseMode) {
-      return 'http://10.0.2.2:8100/api/v1';
-    }
-    // Default for other platforms or production builds
+    
+    // For development builds, use localhost as fallback
+    // The NetworkUtils.getRecommendedBackendUrl() will provide better detection
     return 'http://localhost:8100/api/v1';
   }
   
@@ -338,7 +337,7 @@ class ApiClientService {
     }
   }
 
-  // Health check
+  // Health check with detailed error information
   Future<Map<String, dynamic>> healthCheck() async {
     try {
       // Health check is at root level, not under /api/v1
@@ -348,6 +347,52 @@ class ApiClientService {
     } catch (e) {
       _logger.error('Health check failed', e);
       rethrow;
+    }
+  }
+
+  // Enhanced connection test with detailed error info
+  Future<ConnectionTestResult> testConnectionDetailed() async {
+    try {
+      final startTime = DateTime.now();
+      await healthCheck();
+      final endTime = DateTime.now();
+      final latency = endTime.difference(startTime);
+      
+      return ConnectionTestResult(
+        success: true,
+        latencyMs: latency.inMilliseconds,
+        error: null,
+        baseUrl: _baseUrl,
+      );
+    } catch (e) {
+      String errorMessage;
+      if (e is DioException) {
+        switch (e.type) {
+          case DioExceptionType.connectionTimeout:
+            errorMessage = 'Connection timeout - server not responding';
+            break;
+          case DioExceptionType.receiveTimeout:
+            errorMessage = 'Receive timeout - slow server response';
+            break;
+          case DioExceptionType.connectionError:
+            errorMessage = 'Connection failed - check URL and network';
+            break;
+          case DioExceptionType.badResponse:
+            errorMessage = 'Server error (${e.response?.statusCode})';
+            break;
+          default:
+            errorMessage = 'Network error: ${e.message}';
+        }
+      } else {
+        errorMessage = 'Unexpected error: ${e.toString()}';
+      }
+      
+      return ConnectionTestResult(
+        success: false,
+        latencyMs: null,
+        error: errorMessage,
+        baseUrl: _baseUrl,
+      );
     }
   }
 
@@ -397,6 +442,35 @@ class ApiClientService {
   // Check if backend is available for any functionality
   Future<bool> isBackendAvailable() async {
     return await testConnection();
+  }
+
+  // Get recommended backend URLs for the current platform
+  Future<List<BackendPreset>> getRecommendedUrls() async {
+    final networkUtils = NetworkUtils();
+    final presets = networkUtils.getCommonPresets();
+    
+    // Update auto-detect preset with actual detected IP
+    for (int i = 0; i < presets.length; i++) {
+      if (presets[i].isAutoDetect) {
+        final detectedUrl = await networkUtils.getRecommendedBackendUrl(port: 8100);
+        presets[i] = presets[i].withUrl(detectedUrl);
+        break;
+      }
+    }
+    
+    return presets;
+  }
+
+  // Get current network information for debugging
+  Future<Map<String, dynamic>> getNetworkDebugInfo() async {
+    final networkUtils = NetworkUtils();
+    final networkInfo = await networkUtils.getNetworkInfo();
+    
+    networkInfo['currentBackendUrl'] = _baseUrl;
+    networkInfo['isAuthenticated'] = isAuthenticated;
+    networkInfo['deviceId'] = _deviceId;
+    
+    return networkInfo;
   }
 
   // Submit events with fallback to queue for later submission

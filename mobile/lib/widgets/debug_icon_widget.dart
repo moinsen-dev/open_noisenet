@@ -199,6 +199,15 @@ class _DebugIconWidgetState extends State<DebugIconWidget>
     );
   }
 
+  /// Reset badge counts (called when history is cleared)
+  void _resetCounts() {
+    setState(() {
+      _errorCount = 0;
+      _warningCount = 0;
+      _hasRecentError = false;
+    });
+  }
+
   /// Open Talker debug screen
   void _openTalkerScreen() {
     AppLogger.ui('Opening Talker logs viewer');
@@ -209,7 +218,10 @@ class _DebugIconWidgetState extends State<DebugIconWidget>
           appBarTitle: 'OpenNoiseNet Debug Logs',
         ),
       ),
-    );
+    ).then((_) {
+      // When user returns from TalkerScreen, update counts in case history was cleared
+      _updateErrorCounts();
+    });
   }
 
 }

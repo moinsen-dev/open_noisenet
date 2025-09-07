@@ -219,3 +219,27 @@ class HeartbeatRequest {
   factory HeartbeatRequest.fromJson(Map<String, dynamic> json) => _$HeartbeatRequestFromJson(json);
   Map<String, dynamic> toJson() => _$HeartbeatRequestToJson(this);
 }
+
+/// Result of connection testing with detailed information
+class ConnectionTestResult {
+  final bool success;
+  final int? latencyMs;
+  final String? error;
+  final String baseUrl;
+
+  const ConnectionTestResult({
+    required this.success,
+    this.latencyMs,
+    this.error,
+    required this.baseUrl,
+  });
+
+  @override
+  String toString() {
+    if (success) {
+      return 'Connection successful (${latencyMs}ms)';
+    } else {
+      return 'Connection failed: $error';
+    }
+  }
+}

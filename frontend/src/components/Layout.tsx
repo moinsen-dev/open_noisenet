@@ -21,6 +21,7 @@ import {
   Devices,
   AdminPanelSettings,
   VolumeUp,
+  Event,
 } from '@mui/icons-material'
 import { useNavigate, useLocation } from 'react-router-dom'
 
@@ -28,6 +29,7 @@ const DRAWER_WIDTH = 240
 
 const navigationItems = [
   { label: 'Home', path: '/', icon: Home },
+  { label: 'Events', path: '/events', icon: Event },
   { label: 'Noise Map', path: '/map', icon: Map },
   { label: 'Devices', path: '/devices', icon: Devices },
   { label: 'Admin', path: '/admin', icon: AdminPanelSettings },

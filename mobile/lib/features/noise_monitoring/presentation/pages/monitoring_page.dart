@@ -1,15 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:get_it/get_it.dart';
-import 'package:talker_flutter/talker_flutter.dart';
-
-import '../../../../core/logging/app_logger.dart';
 import '../../../../services/audio_capture_service.dart';
 import '../../../../services/permission_dialog_service.dart';
 import '../../../../services/recording_service.dart';
 import '../../../../services/statistics_service.dart';
 import '../../../../widgets/audio_waveform_widget.dart';
-import '../../../../widgets/statistics_modal.dart';
+import '../../../../widgets/shared_app_bar.dart';
 import '../bloc/monitoring_bloc.dart';
 
 class NoiseMonitoringPage extends StatefulWidget {
@@ -28,74 +25,8 @@ class _NoiseMonitoringPageState extends State<NoiseMonitoringPage> {
     return BlocBuilder<MonitoringBloc, MonitoringState>(
       builder: (context, state) {
         return Scaffold(
-          appBar: AppBar(
-            title: const Text('Noise Monitor'),
-            automaticallyImplyLeading: false,
-            actions: [
-              // Dynamic Start/Stop Monitoring Button
-              if (state is MonitoringInactive || state is MonitoringError)
-                IconButton(
-                  onPressed: () {
-                    context
-                        .read<MonitoringBloc>()
-                        .add(StartMonitoring(context: context));
-                  },
-                  icon: const Icon(Icons.play_arrow),
-                  tooltip: 'Start Monitoring',
-                )
-              else if (state is MonitoringActive)
-                IconButton(
-                  onPressed: () {
-                    context.read<MonitoringBloc>().add(const StopMonitoring());
-                  },
-                  icon: const Icon(Icons.stop),
-                  tooltip: 'Stop Monitoring',
-                  style: IconButton.styleFrom(
-                    foregroundColor: Colors.red,
-                  ),
-                )
-              else if (state is MonitoringStarting ||
-                  state is MonitoringStopping)
-                const Padding(
-                  padding: EdgeInsets.all(12.0),
-                  child: SizedBox(
-                    width: 24,
-                    height: 24,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  ),
-                ),
-
-              const SizedBox(width: 8),
-
-              // Statistics Modal Button
-              IconButton(
-                onPressed: () {
-                  showDialog<void>(
-                    context: context,
-                    builder: (context) => const StatisticsModal(),
-                  );
-                },
-                icon: const Icon(Icons.analytics),
-                tooltip: 'View Statistics',
-              ),
-              
-              // Talker Logs Viewer Button
-              IconButton(
-                onPressed: () {
-                  AppLogger.ui('Opening Talker logs viewer');
-                  Navigator.of(context).push(
-                    MaterialPageRoute<void>(
-                      builder: (context) => TalkerScreen(
-                        talker: AppLogger.instance,
-                        appBarTitle: 'OpenNoiseNet Logs',
-                      ),
-                    ),
-                  );
-                },
-                icon: const Icon(Icons.bug_report),
-                tooltip: 'View Debug Logs',
-              ),
-            ],
+          appBar: const SharedAppBar(
+            pageTitle: 'Monitor',
           ),
           body: Padding(
             padding: const EdgeInsets.all(16.0),
@@ -407,7 +338,10 @@ class _NoiseMonitoringPageState extends State<NoiseMonitoringPage> {
         Text(
           label,
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                color: Theme.of(context)
+                    .colorScheme
+                    .onSurface
+                    .withValues(alpha: 0.6),
               ),
         ),
         Text(

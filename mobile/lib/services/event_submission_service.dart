@@ -55,7 +55,8 @@ class EventSubmissionService {
       logPrint: (object) => AppLogger.network('HTTP: $object'),
     ));
 
-    AppLogger.network('EventSubmissionService initialized with baseUrl: $_baseUrl');
+    AppLogger.network(
+        'EventSubmissionService initialized with baseUrl: $_baseUrl');
   }
 
   /// Start automatic submission of pending events
@@ -89,7 +90,7 @@ class EventSubmissionService {
     try {
       // Apply privacy settings before submission
       final sanitizedEvent = await _sanitizeEventForSubmission(event);
-      
+
       final response = await _dio.post<Map<String, dynamic>>(
         '/events/',
         data: sanitizedEvent.toJson(),
@@ -194,7 +195,8 @@ class EventSubmissionService {
       for (final event in pendingEvents) {
         // Check retry count
         if (event.retryCount! >= _maxRetries) {
-          AppLogger.network('Skipping event with max retries: ${event.toString()}');
+          AppLogger.network(
+              'Skipping event with max retries: ${event.toString()}');
           continue;
         }
 
@@ -309,7 +311,8 @@ class EventSubmissionService {
   }
 
   /// Sanitize event based on privacy settings before submission
-  Future<NoiseEventModel> _sanitizeEventForSubmission(NoiseEventModel event) async {
+  Future<NoiseEventModel> _sanitizeEventForSubmission(
+      NoiseEventModel event) async {
     // If privacy mode is enabled, remove location data
     if (_settingsService.isPrivacyMode) {
       return NoiseEventModel(

@@ -104,7 +104,6 @@ class DataCleanupService {
       if (totalDeleted > 0) {
         AppLogger.database('Cleanup completed: deleted $totalDeleted items');
       }
-
     } catch (e) {
       AppLogger.database('Cleanup failed: $e');
       results['error'] = 1;
@@ -123,7 +122,8 @@ class DataCleanupService {
       // Get database size
       final dbSize = await _databaseHelper.getDatabaseSize();
       healthReport['database_size_bytes'] = dbSize;
-      healthReport['database_size_mb'] = (dbSize / (1024 * 1024)).toStringAsFixed(2);
+      healthReport['database_size_mb'] =
+          (dbSize / (1024 * 1024)).toStringAsFixed(2);
 
       // Get record counts
       healthReport['record_counts'] = {
@@ -143,8 +143,8 @@ class DataCleanupService {
       // Determine overall health status
       healthReport['health_status'] = _calculateHealthStatus(healthReport);
 
-      AppLogger.database('Health check completed: ${healthReport['health_status']}');
-
+      AppLogger.database(
+          'Health check completed: ${healthReport['health_status']}');
     } catch (e) {
       AppLogger.database('Health check failed: $e');
       healthReport['error'] = e.toString();
@@ -226,7 +226,8 @@ class DataCleanupService {
   /// Clean up old hourly statistics
   Future<int> _cleanupHourlyStatistics() async {
     try {
-      final deletedCount = await _hourlyDao.deleteOlderThanDays(hourlyStatsRetentionDays);
+      final deletedCount =
+          await _hourlyDao.deleteOlderThanDays(hourlyStatsRetentionDays);
       if (deletedCount > 0) {
         AppLogger.database('Deleted $deletedCount old hourly statistics');
       }
@@ -240,7 +241,8 @@ class DataCleanupService {
   /// Clean up old daily statistics
   Future<int> _cleanupDailyStatistics() async {
     try {
-      final deletedCount = await _dailyDao.deleteOlderThanDays(dailyStatsRetentionDays);
+      final deletedCount =
+          await _dailyDao.deleteOlderThanDays(dailyStatsRetentionDays);
       if (deletedCount > 0) {
         AppLogger.database('Deleted $deletedCount old daily statistics');
       }
@@ -307,7 +309,8 @@ class DataCleanupService {
       // Reset any stuck processing items to pending
       final resetCount = await _analysisQueueDao.resetProcessingToPending();
       if (resetCount > 0) {
-        AppLogger.database('Reset $resetCount stuck processing items to pending');
+        AppLogger.database(
+            'Reset $resetCount stuck processing items to pending');
       }
 
       if (deletedCount > 0) {
@@ -329,13 +332,15 @@ class DataCleanupService {
 
       // Vacuum if database is larger than threshold
       if (dbSizeMB > maxDatabaseSizeMB * 0.8) {
-        AppLogger.database('Database size ${dbSizeMB.toStringAsFixed(2)} MB, performing vacuum...');
+        AppLogger.database(
+            'Database size ${dbSizeMB.toStringAsFixed(2)} MB, performing vacuum...');
         await _databaseHelper.vacuum();
-        
+
         final newSize = await _databaseHelper.getDatabaseSize();
         final newSizeMB = newSize / (1024 * 1024);
-        AppLogger.database('Vacuum completed, new size: ${newSizeMB.toStringAsFixed(2)} MB');
-        
+        AppLogger.database(
+            'Vacuum completed, new size: ${newSizeMB.toStringAsFixed(2)} MB');
+
         return true;
       }
 
@@ -353,13 +358,12 @@ class DataCleanupService {
     try {
       // Check for orphaned records
       checks['orphaned_analysis_queue'] = await _checkOrphanedAnalysisQueue();
-      
+
       // Check data consistency
       checks['data_consistency'] = await _checkDataConsistency();
-      
+
       // Check file system consistency
       checks['file_system_consistency'] = await _checkFileSystemConsistency();
-
     } catch (e) {
       checks['error'] = e.toString();
     }
@@ -377,7 +381,8 @@ class DataCleanupService {
         'database_size_mb': (dbSize / (1024 * 1024)).toStringAsFixed(2),
         'database_size_warning': dbSize > maxDatabaseSizeMB * 1024 * 1024 * 0.8,
         'total_recording_size_mb': recordingStats['total_size'] != null
-            ? ((recordingStats['total_size'] as int) / (1024 * 1024)).toStringAsFixed(2)
+            ? ((recordingStats['total_size'] as int) / (1024 * 1024))
+                .toStringAsFixed(2)
             : '0',
         'recording_count': recordingStats['total_recordings'],
       };
@@ -403,7 +408,7 @@ class DataCleanupService {
       // Check that we have reasonable data ranges
       final measurementCount = await _measurementDao.count();
       final hourlyCount = await _hourlyDao.count();
-      
+
       // Basic sanity checks
       return measurementCount >= 0 && hourlyCount >= 0;
     } catch (e) {
@@ -440,8 +445,10 @@ class DataCleanupService {
   String _calculateHealthStatus(Map<String, dynamic> healthReport) {
     try {
       final dbSizeMB = double.parse(healthReport['database_size_mb'] as String);
-      final storageHealth = healthReport['storage_health'] as Map<String, dynamic>;
-      final integrityChecks = healthReport['integrity_checks'] as Map<String, dynamic>;
+      final storageHealth =
+          healthReport['storage_health'] as Map<String, dynamic>;
+      final integrityChecks =
+          healthReport['integrity_checks'] as Map<String, dynamic>;
 
       // Check for critical issues
       if (healthReport.containsKey('error') ||

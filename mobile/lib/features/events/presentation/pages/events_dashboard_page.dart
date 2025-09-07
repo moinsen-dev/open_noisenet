@@ -10,6 +10,7 @@ import '../../../../core/database/models/daily_statistics.dart';
 import '../../../../core/database/models/audio_recording.dart';
 import '../../../../core/logging/app_logger.dart';
 import '../../../../services/audio_recording_service.dart';
+import '../../../../widgets/shared_app_bar.dart';
 import 'audio_player_page.dart';
 
 class EventsDashboardPage extends StatefulWidget {
@@ -49,22 +50,8 @@ class _EventsDashboardPageState extends State<EventsDashboardPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Events Dashboard'),
-        centerTitle: false,
-        actions: [
-          // Test recording button for debugging audio playback
-          IconButton(
-            onPressed: _createTestRecording,
-            icon: const Icon(Icons.mic),
-            tooltip: 'Create test recording (5s)',
-          ),
-          IconButton(
-            onPressed: () => context.push('/statistics'),
-            icon: const Icon(Icons.analytics),
-            tooltip: 'View detailed statistics',
-          ),
-        ],
+      appBar: const SharedAppBar(
+        pageTitle: 'Dashboard',
       ),
       body: RefreshIndicator(
         onRefresh: _refreshData,
@@ -78,10 +65,6 @@ class _EventsDashboardPageState extends State<EventsDashboardPage> {
               _buildStatisticsCards(),
               const SizedBox(height: 24),
 
-              // 24-hour Chart
-              _build24HourChart(),
-              const SizedBox(height: 24),
-
               // Recent Events
               _buildRecentEvents(),
             ],
@@ -92,41 +75,109 @@ class _EventsDashboardPageState extends State<EventsDashboardPage> {
   }
 
   Widget _buildStatisticsCards() {
-    return FutureBuilder<DailyStatistics?>(
-      future: _dailyStatsDao.getByDate(_getTodayDateString()),
+    return FutureBuilder<List<dynamic>>(
+      future: Future.wait([
+        _dailyStatsDao.getByDate(_getTodayDateString()),
+        _audioRecordingDao.count(),
+        _audioRecordingDao.countAnalyzed(),
+        _measurementDao.count(),
+      ]),
       builder: (context, snapshot) {
-        final stats = snapshot.data;
+        if (!snapshot.hasData) {
+          return const Center(child: CircularProgressIndicator());
+        }
 
-        return Row(
+        final stats = snapshot.data![0] as DailyStatistics?;
+        final totalRecordings = snapshot.data![1] as int;
+        final analyzedRecordings = snapshot.data![2] as int;
+        final totalMeasurements = snapshot.data![3] as int;
+
+        return Column(
           children: [
-            Expanded(
-              child: _buildStatCard(
-                'Today\'s Average',
-                stats?.avgLeq.toStringAsFixed(1) ?? '--',
-                'dB',
-                Icons.volume_up,
-                Colors.blue,
-              ),
+            // First row - Primary stats
+            Row(
+              children: [
+                Expanded(
+                  child: _buildStatCard(
+                    'Today\'s Average',
+                    stats?.avgLeq.toStringAsFixed(1) ?? '--',
+                    'dB',
+                    Icons.volume_up,
+                    Colors.blue,
+                    onTap: () => context.push('/noise-levels'),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _buildStatCard(
+                    'Peak Level',
+                    stats?.maxLeq.toStringAsFixed(1) ?? '--',
+                    'dB',
+                    Icons.trending_up,
+                    Colors.red,
+                    onTap: () => context.push('/noise-levels'),
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _buildStatCard(
-                'Peak Level',
-                stats?.maxLeq.toStringAsFixed(1) ?? '--',
-                'dB',
-                Icons.trending_up,
-                Colors.red,
-              ),
+            const SizedBox(height: 12),
+            // Second row - Events and Recordings
+            Row(
+              children: [
+                Expanded(
+                  child: _buildStatCard(
+                    'Noise Events',
+                    '${stats?.totalExceedances ?? 0}',
+                    'today',
+                    Icons.warning,
+                    Colors.orange,
+                    onTap: () => context.push('/noise-events'),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _buildStatCard(
+                    'Audio Files',
+                    '$totalRecordings',
+                    'recordings',
+                    Icons.audiotrack,
+                    Colors.green,
+                    onTap: () => context.push('/audio-files'),
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _buildStatCard(
-                'Exceedances',
-                '${stats?.totalExceedances ?? 0}',
-                'events',
-                Icons.warning,
-                Colors.orange,
-              ),
+            const SizedBox(height: 12),
+            // Third row - Analysis and Storage
+            Row(
+              children: [
+                Expanded(
+                  child: _buildStatCard(
+                    'Analyzed Files',
+                    '$analyzedRecordings',
+                    'processed',
+                    Icons.analytics,
+                    Colors.purple,
+                    onTap: () => context.push('/analysis-results'),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: FutureBuilder<int>(
+                    future: _audioRecordingDao.getTotalFileSize(),
+                    builder: (context, sizeSnapshot) {
+                      return _buildStatCard(
+                        'Storage Used',
+                        _formatFileSize(sizeSnapshot.data ?? 0),
+                        '',
+                        Icons.storage,
+                        Colors.brown,
+                        onTap: () => context.push('/storage-management'),
+                      );
+                    },
+                  ),
+                ),
+              ],
             ),
           ],
         );
@@ -139,28 +190,36 @@ class _EventsDashboardPageState extends State<EventsDashboardPage> {
     String value,
     String unit,
     IconData icon,
-    Color color,
-  ) {
+    Color color, {
+    VoidCallback? onTap,
+  }) {
     return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.all(16.0), // More comfortable padding
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
             Row(
               children: [
-                Icon(icon, size: 20, color: color),
-                const SizedBox(width: 8),
+                Icon(icon, size: 24, color: color), // Larger icon
+                const SizedBox(width: 12),
                 Expanded(
                   child: Text(
                     title,
-                    style: Theme.of(context).textTheme.bodySmall,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                        ),
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 12), // More spacing
             Row(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
@@ -168,24 +227,30 @@ class _EventsDashboardPageState extends State<EventsDashboardPage> {
                   child: Text(
                     value,
                     style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                          // Larger value text
                           color: color,
                           fontWeight: FontWeight.bold,
                         ),
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
-                const SizedBox(width: 4),
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 2),
-                  child: Text(
-                    unit,
-                    style: Theme.of(context).textTheme.bodySmall,
+                if (unit.isNotEmpty) ...[
+                  const SizedBox(width: 2),
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 1),
+                    child: Text(
+                      unit,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            fontSize: 11, // Smaller unit text
+                          ),
+                    ),
                   ),
-                ),
+                ],
               ],
             ),
           ],
         ),
+      ),
       ),
     );
   }
@@ -428,6 +493,48 @@ class _EventsDashboardPageState extends State<EventsDashboardPage> {
   String _getTodayDateString() {
     final now = DateTime.now();
     return '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+  }
+
+  String _formatLargeNumber(int number) {
+    if (number >= 1000000) {
+      return '${(number / 1000000).toStringAsFixed(1)}M';
+    } else if (number >= 1000) {
+      return '${(number / 1000).toStringAsFixed(1)}K';
+    }
+    return number.toString();
+  }
+
+  String _formatFileSize(int bytes) {
+    if (bytes >= 1024 * 1024 * 1024) {
+      return '${(bytes / (1024 * 1024 * 1024)).toStringAsFixed(1)}GB';
+    } else if (bytes >= 1024 * 1024) {
+      return '${(bytes / (1024 * 1024)).toStringAsFixed(1)}MB';
+    } else if (bytes >= 1024) {
+      return '${(bytes / 1024).toStringAsFixed(1)}KB';
+    }
+    return '${bytes}B';
+  }
+
+  Future<int> _calculateMonitoringDays() async {
+    try {
+      // Get measurements with oldest first
+      final measurements = await _measurementDao.getByTimeRange(
+        startTimestamp: 0,
+        endTimestamp: DateTime.now().millisecondsSinceEpoch ~/ 1000,
+        orderBy: 'timestamp ASC',
+        limit: 1,
+      );
+
+      if (measurements.isEmpty) return 0;
+
+      final oldestDate = DateTime.fromMillisecondsSinceEpoch(
+        measurements.first.timestamp * 1000,
+      );
+      final now = DateTime.now();
+      return now.difference(oldestDate).inDays + 1;
+    } catch (e) {
+      return 0;
+    }
   }
 
   /// Find audio recording associated with a noise measurement

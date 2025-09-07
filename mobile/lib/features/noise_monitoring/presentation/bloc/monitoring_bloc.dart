@@ -24,12 +24,14 @@ class MonitoringBloc extends Bloc<MonitoringEvent, MonitoringState> {
     on<UpdateBackgroundStatus>(_onUpdateBackgroundStatus);
   }
 
-  final AudioCaptureService _audioCaptureService = GetIt.instance<AudioCaptureService>();
+  final AudioCaptureService _audioCaptureService =
+      GetIt.instance<AudioCaptureService>();
   final RecordingService _recordingService = RecordingService();
   final EventDetectionService _eventDetectionService = EventDetectionService();
   final StatisticsService _statisticsService = StatisticsService();
-  final BackgroundMonitoringService _backgroundMonitoringService = BackgroundMonitoringService();
-  
+  final BackgroundMonitoringService _backgroundMonitoringService =
+      BackgroundMonitoringService();
+
   StreamSubscription<double>? _splSubscription;
   StreamSubscription<BackgroundMonitoringState>? _backgroundStateSubscription;
   StreamSubscription<Map<String, dynamic>>? _backgroundStatusSubscription;
@@ -51,13 +53,14 @@ class MonitoringBloc extends Bloc<MonitoringEvent, MonitoringState> {
 
       // Initialize continuous recording service
       await _recordingService.initialize();
-      
-      // Start continuous recording if enabled
+
+      // Ensure continuous recording is enabled and start it
+      await _recordingService.updateSettings(enableContinuousRecording: true);
       await _recordingService.startRecording();
-      
+
       // Start event detection service for database storage
       _eventDetectionService.startMonitoring();
-      
+
       // Start statistics service for real-time updates
       _statisticsService.start();
 
@@ -67,13 +70,13 @@ class MonitoringBloc extends Bloc<MonitoringEvent, MonitoringState> {
           if (!isClosed) {
             // Feed noise measurements to continuous recording service
             _recordingService.addNoiseMeasurement(spl);
-            
+
             // Feed SPL data to event detection service for database storage
             _eventDetectionService.addSample(spl);
-            
+
             // Feed SPL data to statistics service for real-time averages
             _statisticsService.addSample(spl);
-            
+
             add(UpdateNoiseLevel(spl));
           }
         },
@@ -94,19 +97,19 @@ class MonitoringBloc extends Bloc<MonitoringEvent, MonitoringState> {
   Future<void> _onStopMonitoring(
       StopMonitoring event, Emitter<MonitoringState> emit) async {
     emit(const MonitoringStopping());
-    
+
     await _splSubscription?.cancel();
     _splSubscription = null;
 
     // Stop audio capture
     await _audioCaptureService.stopCapture();
-    
+
     // Stop continuous recording
     await _recordingService.stopRecording();
-    
+
     // Stop event detection service
     _eventDetectionService.stopMonitoring();
-    
+
     // Stop statistics service
     _statisticsService.stop();
 
@@ -127,7 +130,8 @@ class MonitoringBloc extends Bloc<MonitoringEvent, MonitoringState> {
       emit(const BackgroundMonitoringStarting());
 
       // Subscribe to background service state changes
-      _backgroundStateSubscription = _backgroundMonitoringService.stateStream.listen((state) {
+      _backgroundStateSubscription =
+          _backgroundMonitoringService.stateStream.listen((state) {
         switch (state) {
           case BackgroundMonitoringState.running:
             if (!isClosed) {
@@ -141,7 +145,8 @@ class MonitoringBloc extends Bloc<MonitoringEvent, MonitoringState> {
             break;
           case BackgroundMonitoringState.error:
             if (!isClosed) {
-              emit(const BackgroundMonitoringError('Background monitoring failed'));
+              emit(const BackgroundMonitoringError(
+                  'Background monitoring failed'));
             }
             break;
           default:
@@ -150,21 +155,24 @@ class MonitoringBloc extends Bloc<MonitoringEvent, MonitoringState> {
       });
 
       // Subscribe to background service status updates
-      _backgroundStatusSubscription = _backgroundMonitoringService.statusStream.listen((status) {
+      _backgroundStatusSubscription =
+          _backgroundMonitoringService.statusStream.listen((status) {
         if (!isClosed) {
           add(UpdateBackgroundStatus(status));
         }
       });
 
       // Start background monitoring
-      final success = await _backgroundMonitoringService.startBackgroundMonitoring(
+      final success =
+          await _backgroundMonitoringService.startBackgroundMonitoring(
         monitoringInterval: event.monitoringInterval,
         requiresCharging: event.requiresCharging,
         requiresWifi: event.requiresWifi,
       );
 
       if (!success) {
-        emit(const BackgroundMonitoringError('Failed to start background monitoring'));
+        emit(const BackgroundMonitoringError(
+            'Failed to start background monitoring'));
       }
     } catch (e) {
       emit(BackgroundMonitoringError(e.toString()));
@@ -174,7 +182,7 @@ class MonitoringBloc extends Bloc<MonitoringEvent, MonitoringState> {
   Future<void> _onStopBackgroundMonitoring(
       StopBackgroundMonitoring event, Emitter<MonitoringState> emit) async {
     emit(const BackgroundMonitoringStopping());
-    
+
     await _backgroundStateSubscription?.cancel();
     await _backgroundStatusSubscription?.cancel();
     _backgroundStateSubscription = null;
@@ -192,12 +200,12 @@ class MonitoringBloc extends Bloc<MonitoringEvent, MonitoringState> {
     if (state is BackgroundMonitoringActive) {
       emit(BackgroundMonitoringActive(
         status: event.status,
-        lastRunTime: event.status['started_at'] != null 
-          ? DateTime.tryParse(event.status['started_at'].toString())
-          : null,
-        nextRunTime: event.status['next_run_at'] != null 
-          ? DateTime.tryParse(event.status['next_run_at'].toString())
-          : null,
+        lastRunTime: event.status['started_at'] != null
+            ? DateTime.tryParse(event.status['started_at'].toString())
+            : null,
+        nextRunTime: event.status['next_run_at'] != null
+            ? DateTime.tryParse(event.status['next_run_at'].toString())
+            : null,
       ));
     }
   }

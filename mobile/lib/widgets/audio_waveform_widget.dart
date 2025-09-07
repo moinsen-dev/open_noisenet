@@ -27,7 +27,7 @@ class _AudioWaveformWidgetState extends State<AudioWaveformWidget> {
   final int _maxDataPoints = 100; // Show last 100 readings
   double _currentSpl = 0.0;
   double _peakHold = 0.0;
-  
+
   StreamSubscription<double>? _streamSubscription;
 
   @override
@@ -37,7 +37,7 @@ class _AudioWaveformWidgetState extends State<AudioWaveformWidget> {
     _streamSubscription = widget.splStream.listen((spl) {
       // Check if widget is still mounted before calling setState
       if (!mounted) return;
-      
+
       setState(() {
         _currentSpl = spl;
 

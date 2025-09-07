@@ -19,15 +19,18 @@ class PersistentAudioWaveformWrapper extends StatefulWidget {
   });
 
   @override
-  State<PersistentAudioWaveformWrapper> createState() => _PersistentAudioWaveformWrapperState();
+  State<PersistentAudioWaveformWrapper> createState() =>
+      _PersistentAudioWaveformWrapperState();
 }
 
-class _PersistentAudioWaveformWrapperState extends State<PersistentAudioWaveformWrapper> {
-  final AudioCaptureService _audioCaptureService = GetIt.instance<AudioCaptureService>();
+class _PersistentAudioWaveformWrapperState
+    extends State<PersistentAudioWaveformWrapper> {
+  final AudioCaptureService _audioCaptureService =
+      GetIt.instance<AudioCaptureService>();
   AudioWaveformWidget? _waveformWidget;
   StreamController<double>? _proxySplController;
   StreamSubscription<double>? _sourceSubscription;
-  
+
   @override
   void initState() {
     super.initState();
@@ -36,14 +39,14 @@ class _PersistentAudioWaveformWrapperState extends State<PersistentAudioWaveform
 
   void _initializeProxyStream() {
     _proxySplController = StreamController<double>.broadcast();
-    
+
     // Create the persistent waveform widget with our proxy stream
     _waveformWidget = AudioWaveformWidget(
       splStream: _proxySplController!.stream,
       width: widget.width,
       height: widget.height,
     );
-    
+
     // Add a small delay to ensure the audio service is ready
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _updateStreamConnection();
@@ -61,9 +64,10 @@ class _PersistentAudioWaveformWrapperState extends State<PersistentAudioWaveform
   void _startForwarding() {
     // Cancel any existing subscription
     _sourceSubscription?.cancel();
-    
-    debugPrint('🎵 PersistentAudioWaveformWrapper: Starting stream forwarding...');
-    
+
+    debugPrint(
+        '🎵 PersistentAudioWaveformWrapper: Starting stream forwarding...');
+
     // Subscribe to the actual audio service stream and forward to proxy
     _sourceSubscription = _audioCaptureService.splStream.listen(
       (spl) {
@@ -79,14 +83,14 @@ class _PersistentAudioWaveformWrapperState extends State<PersistentAudioWaveform
         }
       },
     );
-    
+
     debugPrint('🎵 Stream forwarding subscription created');
   }
 
   void _stopForwarding() {
     _sourceSubscription?.cancel();
     _sourceSubscription = null;
-    
+
     // Send zeros to indicate inactive state
     if (mounted && !_proxySplController!.isClosed) {
       _proxySplController!.add(0.0);
@@ -96,7 +100,7 @@ class _PersistentAudioWaveformWrapperState extends State<PersistentAudioWaveform
   @override
   void didUpdateWidget(PersistentAudioWaveformWrapper oldWidget) {
     super.didUpdateWidget(oldWidget);
-    
+
     if (oldWidget.isActive != widget.isActive) {
       _updateStreamConnection();
     }

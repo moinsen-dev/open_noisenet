@@ -30,7 +30,7 @@ class DatabaseHelper {
   Future<Database> _initDatabase() async {
     Directory documentsDirectory = await getApplicationDocumentsDirectory();
     String path = join(documentsDirectory.path, _databaseName);
-    
+
     return await openDatabase(
       path,
       version: _databaseVersion,
@@ -167,14 +167,22 @@ class DatabaseHelper {
   }
 
   Future<void> _createIndexes(Database db) async {
-    await db.execute('CREATE INDEX idx_measurements_timestamp ON $tableNoiseMeasurements(timestamp)');
-    await db.execute('CREATE INDEX idx_events_timestamp ON $tableNoiseEvents(timestamp_start)');
-    await db.execute('CREATE INDEX idx_events_status ON $tableNoiseEvents(status)');
-    await db.execute('CREATE INDEX idx_recordings_event ON $tableAudioRecordings(event_id)');
-    await db.execute('CREATE INDEX idx_recordings_expires ON $tableAudioRecordings(expires_at)');
-    await db.execute('CREATE INDEX idx_hourly_timestamp ON $tableHourlyStatistics(hour_timestamp)');
-    await db.execute('CREATE INDEX idx_daily_date ON $tableDailyStatistics(date)');
-    await db.execute('CREATE INDEX idx_preferences_key ON $tablePreferences(key)');
+    await db.execute(
+        'CREATE INDEX idx_measurements_timestamp ON $tableNoiseMeasurements(timestamp)');
+    await db.execute(
+        'CREATE INDEX idx_events_timestamp ON $tableNoiseEvents(timestamp_start)');
+    await db
+        .execute('CREATE INDEX idx_events_status ON $tableNoiseEvents(status)');
+    await db.execute(
+        'CREATE INDEX idx_recordings_event ON $tableAudioRecordings(event_id)');
+    await db.execute(
+        'CREATE INDEX idx_recordings_expires ON $tableAudioRecordings(expires_at)');
+    await db.execute(
+        'CREATE INDEX idx_hourly_timestamp ON $tableHourlyStatistics(hour_timestamp)');
+    await db
+        .execute('CREATE INDEX idx_daily_date ON $tableDailyStatistics(date)');
+    await db
+        .execute('CREATE INDEX idx_preferences_key ON $tablePreferences(key)');
   }
 
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
@@ -192,20 +200,26 @@ class DatabaseHelper {
           updated_at TEXT NOT NULL
         )
       ''');
-      
+
       // Add preferences index
-      await db.execute('CREATE INDEX idx_preferences_key ON $tablePreferences(key)');
+      await db.execute(
+          'CREATE INDEX idx_preferences_key ON $tablePreferences(key)');
     }
-    
+
     if (oldVersion < 3) {
       // Add new columns to audio_recordings table in version 3
-      await db.execute('ALTER TABLE $tableAudioRecordings ADD COLUMN trigger_type TEXT NOT NULL DEFAULT "manual"');
-      await db.execute('ALTER TABLE $tableAudioRecordings ADD COLUMN peak_level REAL');
-      await db.execute('ALTER TABLE $tableAudioRecordings ADD COLUMN avg_level REAL');
-      await db.execute('ALTER TABLE $tableAudioRecordings ADD COLUMN noise_events TEXT');
-      await db.execute('ALTER TABLE $tableAudioRecordings ADD COLUMN priority INTEGER NOT NULL DEFAULT 1');
+      await db.execute(
+          'ALTER TABLE $tableAudioRecordings ADD COLUMN trigger_type TEXT NOT NULL DEFAULT "manual"');
+      await db.execute(
+          'ALTER TABLE $tableAudioRecordings ADD COLUMN peak_level REAL');
+      await db.execute(
+          'ALTER TABLE $tableAudioRecordings ADD COLUMN avg_level REAL');
+      await db.execute(
+          'ALTER TABLE $tableAudioRecordings ADD COLUMN noise_events TEXT');
+      await db.execute(
+          'ALTER TABLE $tableAudioRecordings ADD COLUMN priority INTEGER NOT NULL DEFAULT 1');
     }
-    
+
     // Add future migrations here as needed
   }
 
@@ -243,7 +257,8 @@ class DatabaseHelper {
   }
 
   /// Execute raw SQL query (for debugging/admin purposes)
-  Future<List<Map<String, dynamic>>> rawQuery(String sql, [List<dynamic>? arguments]) async {
+  Future<List<Map<String, dynamic>>> rawQuery(String sql,
+      [List<dynamic>? arguments]) async {
     final db = await database;
     return await db.rawQuery(sql, arguments);
   }

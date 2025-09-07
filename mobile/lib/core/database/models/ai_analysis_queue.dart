@@ -183,9 +183,9 @@ class AiAnalysisQueue {
   @override
   bool operator ==(Object other) {
     if (identical(this, other)) return true;
-    return other is AiAnalysisQueue && 
-           other.recordingId == recordingId &&
-           other.analysisType == analysisType;
+    return other is AiAnalysisQueue &&
+        other.recordingId == recordingId &&
+        other.analysisType == analysisType;
   }
 
   @override

@@ -85,7 +85,15 @@ class DailyStatistics {
 
   /// Get weekday name
   String get weekdayName {
-    const weekdays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+    const weekdays = [
+      'Monday',
+      'Tuesday',
+      'Wednesday',
+      'Thursday',
+      'Friday',
+      'Saturday',
+      'Sunday'
+    ];
     return weekdays[dateTime.weekday - 1];
   }
 
@@ -141,8 +149,7 @@ class DailyStatistics {
   @override
   bool operator ==(Object other) {
     if (identical(this, other)) return true;
-    return other is DailyStatistics && 
-           other.date == date;
+    return other is DailyStatistics && other.date == date;
   }
 
   @override

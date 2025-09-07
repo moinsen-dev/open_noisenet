@@ -15,11 +15,12 @@ Future<void> configureDependencies() async {
   // Register external dependencies
   final sharedPreferences = await SharedPreferences.getInstance();
   getIt.registerSingleton<SharedPreferences>(sharedPreferences);
-  
+
   // Configure Dio
   final dio = Dio();
   dio.options = BaseOptions(
-    baseUrl: const String.fromEnvironment('API_BASE_URL', defaultValue: 'http://localhost:8000'),
+    baseUrl: const String.fromEnvironment('API_BASE_URL',
+        defaultValue: 'http://localhost:8000'),
     connectTimeout: const Duration(seconds: 5),
     receiveTimeout: const Duration(seconds: 3),
     headers: {
@@ -27,7 +28,7 @@ Future<void> configureDependencies() async {
       'Accept': 'application/json',
     },
   );
-  
+
   // Add logging interceptor in debug mode
   if (const bool.fromEnvironment('DEBUG', defaultValue: false)) {
     dio.interceptors.add(LogInterceptor(
@@ -38,19 +39,19 @@ Future<void> configureDependencies() async {
       responseBody: true,
     ));
   }
-  
+
   getIt.registerSingleton<Dio>(dio);
-  
+
   // Initialize SQLite preferences system
   final sqlitePreferencesService = SQLitePreferencesService();
   await sqlitePreferencesService.initialize();
   getIt.registerSingleton<SQLitePreferencesService>(sqlitePreferencesService);
-  
+
   // Initialize AudioCaptureService and load calibration settings
   final audioCaptureService = AudioCaptureService();
   await audioCaptureService.loadCalibrationSettings();
   getIt.registerSingleton<AudioCaptureService>(audioCaptureService);
-  
+
   // Perform preferences migration if needed
   final migrationService = PreferencesMigrationService();
   try {
@@ -58,7 +59,7 @@ Future<void> configureDependencies() async {
   } catch (e) {
     debugPrint('⚠️ Preferences migration failed, continuing with defaults: $e');
   }
-  
+
   // Register BLoCs
   getIt.registerFactory(() => AppBloc());
   getIt.registerFactory(() => MonitoringBloc());

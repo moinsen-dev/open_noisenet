@@ -17,17 +17,17 @@ class NoiseMeasurementDao {
   /// Insert multiple measurements in a batch
   Future<void> insertBatch(List<NoiseMeasurement> measurements) async {
     if (measurements.isEmpty) return;
-    
+
     final db = await _databaseHelper.database;
     final batch = db.batch();
-    
+
     for (final measurement in measurements) {
       batch.insert(
         DatabaseHelper.tableNoiseMeasurements,
         measurement.toMap(),
       );
     }
-    
+
     await batch.commit(noResult: true);
   }
 
@@ -40,7 +40,7 @@ class NoiseMeasurementDao {
       whereArgs: [id],
       limit: 1,
     );
-    
+
     if (maps.isEmpty) return null;
     return NoiseMeasurement.fromMap(maps.first);
   }
@@ -60,7 +60,7 @@ class NoiseMeasurementDao {
       orderBy: orderBy,
       limit: limit,
     );
-    
+
     return maps.map((map) => NoiseMeasurement.fromMap(map)).toList();
   }
 
@@ -75,7 +75,7 @@ class NoiseMeasurementDao {
       orderBy: orderBy,
       limit: limit,
     );
-    
+
     return maps.map((map) => NoiseMeasurement.fromMap(map)).toList();
   }
 
@@ -83,7 +83,7 @@ class NoiseMeasurementDao {
   Future<List<NoiseMeasurement>> getLast24Hours() async {
     final now = DateTime.now();
     final yesterday = now.subtract(const Duration(hours: 24));
-    
+
     return await getByTimeRange(
       startTimestamp: yesterday.millisecondsSinceEpoch ~/ 1000,
       endTimestamp: now.millisecondsSinceEpoch ~/ 1000,
@@ -94,7 +94,7 @@ class NoiseMeasurementDao {
   Future<List<NoiseMeasurement>> getByHour(DateTime hour) async {
     final startOfHour = DateTime(hour.year, hour.month, hour.day, hour.hour);
     final endOfHour = startOfHour.add(const Duration(hours: 1));
-    
+
     return await getByTimeRange(
       startTimestamp: startOfHour.millisecondsSinceEpoch ~/ 1000,
       endTimestamp: endOfHour.millisecondsSinceEpoch ~/ 1000,
@@ -105,7 +105,7 @@ class NoiseMeasurementDao {
   Future<List<NoiseMeasurement>> getByDay(DateTime day) async {
     final startOfDay = DateTime(day.year, day.month, day.day);
     final endOfDay = startOfDay.add(const Duration(days: 1));
-    
+
     return await getByTimeRange(
       startTimestamp: startOfDay.millisecondsSinceEpoch ~/ 1000,
       endTimestamp: endOfDay.millisecondsSinceEpoch ~/ 1000,
@@ -130,7 +130,7 @@ class NoiseMeasurementDao {
       FROM ${DatabaseHelper.tableNoiseMeasurements}
       WHERE timestamp >= ? AND timestamp <= ?
     ''', [startTimestamp, endTimestamp]);
-    
+
     if (result.isEmpty) {
       return {
         'avg_leq': null,
@@ -142,7 +142,7 @@ class NoiseMeasurementDao {
         'count': 0,
       };
     }
-    
+
     final row = result.first;
     return {
       'avg_leq': row['avg_leq'] as double?,
@@ -239,7 +239,7 @@ class NoiseMeasurementDao {
       orderBy: 'timestamp DESC',
       limit: limit,
     );
-    
+
     return maps.map((map) => NoiseMeasurement.fromMap(map)).toList();
   }
 }

@@ -1,12 +1,21 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:get_it/get_it.dart';
+import 'package:path_provider/path_provider.dart';
 
 import '../../../../features/app/presentation/bloc/app_bloc.dart';
 import '../../../../services/audio_capture_service.dart';
 import '../../../../services/location_service.dart';
 import '../../../../services/recording_service.dart';
 import '../../../../services/sqlite_preferences_service.dart';
+import '../../../../services/audio_recording_service.dart';
+import '../../../../core/database/dao/noise_measurement_dao.dart';
+import '../../../../core/database/dao/daily_statistics_dao.dart';
+import '../../../../core/database/dao/audio_recording_dao.dart';
+import '../../../../core/database/dao/ai_analysis_queue_dao.dart';
+import '../../../../core/logging/app_logger.dart';
+import '../../../../widgets/shared_app_bar.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -22,12 +31,19 @@ class _SettingsPageState extends State<SettingsPage> {
   final AudioCaptureService _audioService =
       GetIt.instance<AudioCaptureService>();
   final RecordingService _recordingService = RecordingService();
+  final AudioRecordingService _audioRecordingService = AudioRecordingService();
+
+  // Database DAOs for data management
+  final NoiseMeasurementDao _measurementDao = NoiseMeasurementDao();
+  final DailyStatisticsDao _statisticsDao = DailyStatisticsDao();
+  final AudioRecordingDao _audioRecordingDao = AudioRecordingDao();
+  final AiAnalysisQueueDao _aiAnalysisDao = AiAnalysisQueueDao();
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Settings'),
+      appBar: const SharedAppBar(
+        pageTitle: 'Settings',
       ),
       body: BlocBuilder<AppBloc, AppState>(
         builder: (context, appState) {
@@ -51,6 +67,10 @@ class _SettingsPageState extends State<SettingsPage> {
 
               // Sync Settings
               _buildSyncSection(context),
+              const Divider(),
+
+              // Data Management
+              _buildDataManagementSection(context),
               const Divider(),
 
               // Privacy & Info
@@ -207,6 +227,49 @@ class _SettingsPageState extends State<SettingsPage> {
           onTap: () => _showSyncDialog(context),
         );
       },
+    );
+  }
+
+  Widget _buildDataManagementSection(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: Text(
+            'Data Management',
+            style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                  color: Theme.of(context).colorScheme.primary,
+                  fontWeight: FontWeight.w600,
+                ),
+          ),
+        ),
+        ListTile(
+          leading: const Icon(Icons.delete_sweep, color: Colors.orange),
+          title: const Text('Clear All Data'),
+          subtitle:
+              const Text('Remove all recordings, measurements, and events'),
+          onTap: () => _showClearAllDataDialog(context),
+        ),
+        ListTile(
+          leading: const Icon(Icons.folder_delete, color: Colors.orange),
+          title: const Text('Clear Recording Files'),
+          subtitle: const Text('Delete audio files but keep measurement data'),
+          onTap: () => _showClearRecordingFilesDialog(context),
+        ),
+        ListTile(
+          leading: const Icon(Icons.settings_backup_restore, color: Colors.red),
+          title: const Text('Reset Settings'),
+          subtitle: const Text('Restore all settings to defaults'),
+          onTap: () => _showResetSettingsDialog(context),
+        ),
+        ListTile(
+          leading: const Icon(Icons.storage),
+          title: const Text('Storage Usage'),
+          subtitle: const Text('View disk usage and data statistics'),
+          onTap: () => _showStorageUsageDialog(context),
+        ),
+      ],
     );
   }
 
@@ -498,6 +561,226 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
+  void _showClearAllDataDialog(BuildContext context) {
+    showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.warning, color: Colors.orange),
+            SizedBox(width: 8),
+            Text('Clear All Data'),
+          ],
+        ),
+        content: const Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('This will permanently delete:'),
+            SizedBox(height: 8),
+            Text('• All noise measurements and events'),
+            Text('• All audio recording files'),
+            Text('• Daily statistics and analysis data'),
+            Text('• AI analysis queue items'),
+            SizedBox(height: 16),
+            Text(
+              'This action cannot be undone!',
+              style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              await _clearAllData();
+              if (context.mounted) {
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('All data cleared successfully'),
+                    backgroundColor: Colors.green,
+                  ),
+                );
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Clear All Data'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showClearRecordingFilesDialog(BuildContext context) {
+    showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.folder_delete, color: Colors.orange),
+            SizedBox(width: 8),
+            Text('Clear Recording Files'),
+          ],
+        ),
+        content: const Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('This will delete:'),
+            SizedBox(height: 8),
+            Text('• All audio recording files (.wav files)'),
+            Text('• Audio recording database entries'),
+            SizedBox(height: 8),
+            Text('This will keep:'),
+            SizedBox(height: 8),
+            Text('• Noise measurements and events'),
+            Text('• Daily statistics'),
+            SizedBox(height: 16),
+            Text(
+              'Deleted files cannot be recovered!',
+              style:
+                  TextStyle(fontWeight: FontWeight.bold, color: Colors.orange),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              await _clearRecordingFiles();
+              if (context.mounted) {
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Recording files cleared successfully'),
+                    backgroundColor: Colors.green,
+                  ),
+                );
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.orange,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Clear Files'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showResetSettingsDialog(BuildContext context) {
+    showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.settings_backup_restore, color: Colors.red),
+            SizedBox(width: 8),
+            Text('Reset Settings'),
+          ],
+        ),
+        content: const Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('This will reset to defaults:'),
+            SizedBox(height: 8),
+            Text('• Audio calibration settings'),
+            Text('• Recording preferences'),
+            Text('• Sync and backend settings'),
+            Text('• Theme preferences'),
+            SizedBox(height: 16),
+            Text('Your data will not be affected.'),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              await _resetSettings();
+              if (context.mounted) {
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Settings reset to defaults'),
+                    backgroundColor: Colors.green,
+                  ),
+                );
+                // Refresh the page to show updated settings
+                setState(() {});
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Reset Settings'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showStorageUsageDialog(BuildContext context) async {
+    // Calculate storage usage
+    final storageInfo = await _calculateStorageUsage();
+
+    showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.storage),
+            SizedBox(width: 8),
+            Text('Storage Usage'),
+          ],
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Database Records:',
+                  style: Theme.of(context).textTheme.titleSmall),
+              const SizedBox(height: 8),
+              Text('• Noise Measurements: ${storageInfo['measurementCount']}'),
+              Text('• Audio Recordings: ${storageInfo['recordingCount']}'),
+              Text('• Daily Statistics: ${storageInfo['statisticsCount']}'),
+              Text('• Analysis Queue: ${storageInfo['analysisCount']}'),
+              const SizedBox(height: 16),
+              Text('Storage Size:',
+                  style: Theme.of(context).textTheme.titleSmall),
+              const SizedBox(height: 8),
+              Text('• Audio Files: ${storageInfo['audioFilesSize']}'),
+              Text('• Database: ${storageInfo['databaseSize']}'),
+              Text('• Total Usage: ${storageInfo['totalSize']}'),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _showAboutDialog(BuildContext context) {
     showAboutDialog(
       context: context,
@@ -512,5 +795,194 @@ class _SettingsPageState extends State<SettingsPage> {
         ),
       ],
     );
+  }
+
+  /// Clear all data including measurements, recordings, and statistics
+  Future<void> _clearAllData() async {
+    try {
+      AppLogger.ui('Starting complete data clear...');
+
+      // Clear all database tables
+      await _measurementDao.deleteAll();
+      await _statisticsDao.deleteAll();
+      await _audioRecordingDao.deleteAll();
+      await _aiAnalysisDao.deleteAll();
+
+      // Clear all recording files
+      await _clearRecordingFilesOnly();
+
+      AppLogger.ui('All data cleared successfully');
+    } catch (e) {
+      AppLogger.ui('Error clearing all data: $e');
+      rethrow;
+    }
+  }
+
+  /// Clear only recording files and audio recording database entries
+  Future<void> _clearRecordingFiles() async {
+    try {
+      AppLogger.ui('Starting recording files clear...');
+
+      // Clear audio recording database entries
+      await _audioRecordingDao.deleteAll();
+
+      // Clear actual files
+      await _clearRecordingFilesOnly();
+
+      AppLogger.ui('Recording files cleared successfully');
+    } catch (e) {
+      AppLogger.ui('Error clearing recording files: $e');
+      rethrow;
+    }
+  }
+
+  /// Clear only the physical recording files from disk
+  Future<void> _clearRecordingFilesOnly() async {
+    try {
+      final appDir = await getApplicationDocumentsDirectory();
+      final recordingsDir = Directory('${appDir.path}/recordings');
+      final continuousRecordingsDir =
+          Directory('${appDir.path}/continuous_recordings');
+
+      // Delete recordings directory
+      if (await recordingsDir.exists()) {
+        await recordingsDir.delete(recursive: true);
+        AppLogger.ui('Deleted recordings directory');
+      }
+
+      // Delete continuous recordings directory
+      if (await continuousRecordingsDir.exists()) {
+        await continuousRecordingsDir.delete(recursive: true);
+        AppLogger.ui('Deleted continuous recordings directory');
+      }
+
+      // Recreate empty directories
+      await recordingsDir.create(recursive: true);
+      await continuousRecordingsDir.create(recursive: true);
+    } catch (e) {
+      AppLogger.ui('Error clearing recording files: $e');
+      rethrow;
+    }
+  }
+
+  /// Reset all settings to defaults
+  Future<void> _resetSettings() async {
+    try {
+      AppLogger.ui('Starting settings reset...');
+
+      // Reset audio calibration
+      _audioService.setCalibrationOffset(0.0);
+      await _preferencesService.setCalibrationOffset(0.0);
+
+      // Reset backend URL to default
+      await _preferencesService.setBackendUrl('http://localhost:8000/api/v1');
+
+      // Reset auto-submission
+      await _preferencesService.setAutoSubmissionEnabled(false);
+
+      // Reset recording settings to defaults
+      await _recordingService.updateSettings(
+        enableContinuousRecording: false,
+        bufferDuration: const Duration(minutes: 15),
+        autoRecordThreshold: 65.0,
+        maxBuffers: 3,
+      );
+
+      // Reset theme to default (dark mode)
+      if (context.mounted) {
+        context.read<AppBloc>().add(const AppThemeChanged(isDarkMode: true));
+      }
+
+      AppLogger.ui('Settings reset to defaults successfully');
+    } catch (e) {
+      AppLogger.ui('Error resetting settings: $e');
+      rethrow;
+    }
+  }
+
+  /// Calculate storage usage statistics
+  Future<Map<String, dynamic>> _calculateStorageUsage() async {
+    try {
+      // Get database record counts
+      final measurementCount = await _measurementDao.count();
+      final recordingCount = await _audioRecordingDao.count();
+      final statisticsCount = await _statisticsDao.count();
+      final analysisCount = await _aiAnalysisDao.count();
+
+      // Calculate file sizes
+      final appDir = await getApplicationDocumentsDirectory();
+      final recordingsDir = Directory('${appDir.path}/recordings');
+      final continuousRecordingsDir =
+          Directory('${appDir.path}/continuous_recordings');
+
+      int audioFilesSize = 0;
+
+      // Calculate recordings directory size
+      if (await recordingsDir.exists()) {
+        audioFilesSize += await _calculateDirectorySize(recordingsDir);
+      }
+
+      // Calculate continuous recordings directory size
+      if (await continuousRecordingsDir.exists()) {
+        audioFilesSize +=
+            await _calculateDirectorySize(continuousRecordingsDir);
+      }
+
+      // Estimate database size (rough calculation)
+      int databaseSize =
+          (measurementCount * 150) + // ~150 bytes per measurement
+              (recordingCount * 200) + // ~200 bytes per recording entry
+              (statisticsCount * 100) + // ~100 bytes per statistic
+              (analysisCount * 50); // ~50 bytes per analysis queue item
+
+      final totalSize = audioFilesSize + databaseSize;
+
+      return {
+        'measurementCount': measurementCount,
+        'recordingCount': recordingCount,
+        'statisticsCount': statisticsCount,
+        'analysisCount': analysisCount,
+        'audioFilesSize': _formatBytes(audioFilesSize),
+        'databaseSize': _formatBytes(databaseSize),
+        'totalSize': _formatBytes(totalSize),
+      };
+    } catch (e) {
+      AppLogger.ui('Error calculating storage usage: $e');
+      return {
+        'measurementCount': 0,
+        'recordingCount': 0,
+        'statisticsCount': 0,
+        'analysisCount': 0,
+        'audioFilesSize': 'Unknown',
+        'databaseSize': 'Unknown',
+        'totalSize': 'Unknown',
+      };
+    }
+  }
+
+  /// Calculate the total size of a directory
+  Future<int> _calculateDirectorySize(Directory directory) async {
+    int size = 0;
+
+    await for (FileSystemEntity entity in directory.list(recursive: true)) {
+      if (entity is File) {
+        try {
+          size += await entity.length();
+        } catch (e) {
+          // Ignore files that can't be read
+        }
+      }
+    }
+
+    return size;
+  }
+
+  /// Format bytes into human-readable format
+  String _formatBytes(int bytes) {
+    if (bytes < 1024) return '$bytes B';
+    if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} KB';
+    if (bytes < 1024 * 1024 * 1024)
+      return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
+    return '${(bytes / (1024 * 1024 * 1024)).toStringAsFixed(1)} GB';
   }
 }

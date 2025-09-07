@@ -43,7 +43,8 @@ class AppLoaded extends AppState {
   }
 
   @override
-  List<Object?> get props => [isAuthenticated, isDarkMode, language, isOnboardingComplete];
+  List<Object?> get props =>
+      [isAuthenticated, isDarkMode, language, isOnboardingComplete];
 }
 
 class AppError extends AppState {

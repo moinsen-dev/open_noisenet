@@ -137,7 +137,7 @@ class EventDetectionService {
 
     final now = DateTime.now();
     _rollingWindow.add(_TimestampedSample(now, splDb));
-    
+
     // Also add to minute buffer for aggregation
     _minuteBuffer.add(_TimestampedSample(now, splDb));
 
@@ -160,7 +160,8 @@ class EventDetectionService {
   void setThreshold(double thresholdDb) {
     if (thresholdDb != _thresholdDb) {
       _thresholdDb = thresholdDb;
-      AppLogger.event('EventDetectionService: Threshold updated to $_thresholdDb dB');
+      AppLogger.event(
+          'EventDetectionService: Threshold updated to $_thresholdDb dB');
     }
   }
 
@@ -247,13 +248,13 @@ class EventDetectionService {
     if (_currentEvent!.duration.inSeconds >= 30) {
       // Get current location for the event
       final location = await _locationService.getCurrentLocation();
-      
+
       // Create a NoiseEventModel for storage/submission
       final eventModel = await _createNoiseEventModel(_currentEvent!, location);
-      
+
       // Store the event in the database
       await _storeEvent(eventModel);
-      
+
       _eventController.add(_currentEvent!);
       AppLogger.event('Event emitted with location: ${_currentEvent!}');
     }
@@ -262,9 +263,10 @@ class EventDetectionService {
   }
 
   /// Create a NoiseEventModel from a NoiseEvent with location data
-  Future<NoiseEventModel> _createNoiseEventModel(NoiseEvent event, LocationData? location) async {
-    final deviceId = Platform.isAndroid 
-        ? 'android-${_uuid.v4().substring(0, 8)}' 
+  Future<NoiseEventModel> _createNoiseEventModel(
+      NoiseEvent event, LocationData? location) async {
+    final deviceId = Platform.isAndroid
+        ? 'android-${_uuid.v4().substring(0, 8)}'
         : 'ios-${_uuid.v4().substring(0, 8)}';
 
     return NoiseEventModel.fromDetectedEvent(
@@ -305,8 +307,9 @@ class EventDetectionService {
     if (_minuteBuffer.isEmpty) return;
 
     final now = DateTime.now();
-    final currentMinute = DateTime(now.year, now.month, now.day, now.hour, now.minute);
-    
+    final currentMinute =
+        DateTime(now.year, now.month, now.day, now.hour, now.minute);
+
     // Check if we have a complete minute to process
     if (_lastMinuteProcessed != null && currentMinute == _lastMinuteProcessed) {
       return; // Already processed this minute
@@ -319,7 +322,7 @@ class EventDetectionService {
 
     // Filter samples for the previous minute
     final minuteSamples = _minuteBuffer
-        .where((sample) => 
+        .where((sample) =>
             sample.timestamp.millisecondsSinceEpoch >= minuteStart &&
             sample.timestamp.millisecondsSinceEpoch < minuteEnd)
         .map((sample) => sample.splDb)
@@ -327,8 +330,9 @@ class EventDetectionService {
 
     if (minuteSamples.isNotEmpty) {
       // Calculate minute statistics
-      final measurement = _createNoiseMeasurement(previousMinute, minuteSamples);
-      
+      final measurement =
+          _createNoiseMeasurement(previousMinute, minuteSamples);
+
       // Store in database
       try {
         await _measurementDao.insert(measurement);
@@ -339,14 +343,15 @@ class EventDetectionService {
     }
 
     // Clean up processed samples from buffer
-    _minuteBuffer.removeWhere((sample) => 
-        sample.timestamp.millisecondsSinceEpoch < minuteEnd);
+    _minuteBuffer.removeWhere(
+        (sample) => sample.timestamp.millisecondsSinceEpoch < minuteEnd);
 
     _lastMinuteProcessed = currentMinute;
   }
 
   /// Create NoiseMeasurement from samples
-  NoiseMeasurement _createNoiseMeasurement(DateTime timestamp, List<double> samples) {
+  NoiseMeasurement _createNoiseMeasurement(
+      DateTime timestamp, List<double> samples) {
     if (samples.isEmpty) {
       throw ArgumentError('Cannot create measurement from empty samples');
     }
@@ -367,9 +372,11 @@ class EventDetectionService {
     final leq = 10 * log(averageEnergy) / ln10;
 
     // Calculate percentiles
-    final l10Index = ((count - 1) * 0.9).round(); // 90th percentile (loud events)
+    final l10Index =
+        ((count - 1) * 0.9).round(); // 90th percentile (loud events)
     final l50Index = ((count - 1) * 0.5).round(); // 50th percentile (median)
-    final l90Index = ((count - 1) * 0.1).round(); // 10th percentile (background)
+    final l90Index =
+        ((count - 1) * 0.1).round(); // 10th percentile (background)
 
     final l10Db = sortedSamples[l10Index];
     final l50Db = sortedSamples[l50Index];

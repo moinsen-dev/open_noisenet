@@ -38,15 +38,15 @@ class _LoginPageState extends State<LoginPage> {
     try {
       // TODO: Implement actual authentication logic
       await Future.delayed(const Duration(seconds: 2)); // Simulate API call
-      
+
       AppLogger.success('Login successful for ${_emailController.text}');
-      
+
       if (mounted) {
         context.go('/home');
       }
     } catch (e) {
       AppLogger.failure('Login failed', e);
-      
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -101,7 +101,7 @@ class _LoginPageState extends State<LoginPage> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 const SizedBox(height: 32),
-                
+
                 // App logo/icon
                 Icon(
                   Icons.headset_mic_rounded,
@@ -109,7 +109,7 @@ class _LoginPageState extends State<LoginPage> {
                   color: colorScheme.primary,
                 ),
                 const SizedBox(height: 16),
-                
+
                 // Welcome text
                 Text(
                   'Welcome to OpenNoiseNet',
@@ -166,7 +166,9 @@ class _LoginPageState extends State<LoginPage> {
                     prefixIcon: const Icon(Icons.lock_outline),
                     suffixIcon: IconButton(
                       icon: Icon(
-                        _obscurePassword ? Icons.visibility : Icons.visibility_off,
+                        _obscurePassword
+                            ? Icons.visibility
+                            : Icons.visibility_off,
                       ),
                       onPressed: () {
                         setState(() {

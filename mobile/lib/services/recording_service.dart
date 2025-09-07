@@ -26,6 +26,14 @@ enum RecordingState {
   stopping, // Shutting down
 }
 
+/// Buffer processing state
+enum BufferState {
+  recording, // Currently recording
+  beingSaved, // Being processed for saving
+  saved, // Already saved to database
+  discarded, // Discarded without saving
+}
+
 /// Recording buffer entry
 class RecordingBuffer {
   final String id;
@@ -33,6 +41,7 @@ class RecordingBuffer {
   final String filePath;
   final FlutterSoundRecorder recorder;
   bool isActive;
+  BufferState state;
   Timer? durationTimer;
 
   RecordingBuffer({
@@ -41,6 +50,7 @@ class RecordingBuffer {
     required this.filePath,
     required this.recorder,
     this.isActive = false,
+    this.state = BufferState.recording,
   });
 }
 
@@ -215,7 +225,8 @@ class RecordingService {
 
     // Create directory if needed
     await Directory(path.dirname(bufferPath)).create(recursive: true);
-    AppLogger.recording('Creating buffer directory: ${path.dirname(bufferPath)}');
+    AppLogger.recording(
+        'Creating buffer directory: ${path.dirname(bufferPath)}');
 
     // Create recorder
     final recorder = FlutterSoundRecorder();
@@ -234,9 +245,10 @@ class RecordingService {
       sampleRate: sampleRate,
       bitRate: 128000,
     );
-    
+
     AppLogger.recording('Started recording to: $bufferPath');
-    AppLogger.recording('Recording settings - Sample rate: $sampleRate, Codec: pcm16WAV, Bit rate: 128000');
+    AppLogger.recording(
+        'Recording settings - Sample rate: $sampleRate, Codec: pcm16WAV, Bit rate: 128000');
 
     final buffer = RecordingBuffer(
       id: bufferId,
@@ -250,7 +262,8 @@ class RecordingService {
     buffer.durationTimer = Timer(_bufferDuration, () => _stopBuffer(buffer));
 
     _activeBuffers.add(buffer);
-    AppLogger.recording('Created new recording buffer: $bufferId (duration: ${_bufferDuration.inMinutes}min)');
+    AppLogger.recording(
+        'Created new recording buffer: $bufferId (duration: ${_bufferDuration.inMinutes}min)');
 
     // Emit stats update
     _emitStatsUpdate();
@@ -290,26 +303,34 @@ class RecordingService {
       }
 
       await buffer.recorder.closeRecorder();
-      
+
+      // Update buffer state
+      buffer.state =
+          savePermanently ? BufferState.saved : BufferState.discarded;
+
       // Check file size before deciding to delete
       final file = File(buffer.filePath);
       if (await file.exists()) {
         final fileSize = await file.length();
         AppLogger.recording('Buffer ${buffer.id} file size: $fileSize bytes');
-        
+
         // Log warning for very small files
         if (fileSize < 1024) {
-          AppLogger.recording('Warning: Buffer ${buffer.id} produced very small file ($fileSize bytes)');
+          AppLogger.recording(
+              'Warning: Buffer ${buffer.id} produced very small file ($fileSize bytes)');
         }
-        
+
         if (!savePermanently) {
           await file.delete();
-          AppLogger.recording('Deleted temporary buffer file: ${buffer.filePath}');
+          AppLogger.recording(
+              'Deleted temporary buffer file: ${buffer.filePath}');
         } else {
-          AppLogger.recording('Keeping permanent buffer file: ${buffer.filePath} ($fileSize bytes)');
+          AppLogger.recording(
+              'Keeping permanent buffer file: ${buffer.filePath} ($fileSize bytes)');
         }
       } else {
-        AppLogger.recording('Warning: Buffer file does not exist: ${buffer.filePath}');
+        AppLogger.recording(
+            'Warning: Buffer file does not exist: ${buffer.filePath}');
       }
 
       final status = savePermanently ? ' (saved)' : ' (deleted)';
@@ -347,55 +368,80 @@ class RecordingService {
   Future<void> _saveCurrentBufferForEvent(NoiseEvent event) async {
     if (_activeBuffers.isEmpty) return;
 
+    RecordingBuffer? bufferToSave;
+
+    // Find the most recent buffer that's not already being processed
+    for (int i = _activeBuffers.length - 1; i >= 0; i--) {
+      final buffer = _activeBuffers.elementAt(i);
+      if (buffer.state == BufferState.recording) {
+        // Atomically claim this buffer for processing
+        buffer.state = BufferState.beingSaved;
+        bufferToSave = buffer;
+        break;
+      }
+    }
+
+    // No available buffer to save
+    if (bufferToSave == null) {
+      AppLogger.recording(
+          'No available buffer to save for ${event.type.name} event');
+      return;
+    }
+
     try {
-      // Get the most recent buffer
-      final buffer = _activeBuffers.last;
-
       // Stop the buffer and save it permanently
-      await buffer.recorder.stopRecorder();
-      buffer.isActive = false;
+      await bufferToSave.recorder.stopRecorder();
+      bufferToSave.isActive = false;
 
-      // Create AudioRecording model
+      // Create AudioRecording model with unique ID
+      final recordingId = _uuid.v4(); // Generate unique ID for recording
       final endTime = DateTime.now();
-      final file = File(buffer.filePath);
+      final file = File(bufferToSave.filePath);
       final fileSize = await file.exists() ? await file.length() : 0;
 
       final recording = AudioRecording(
-        id: buffer.id,
-        timestampStart: buffer.startTime.millisecondsSinceEpoch ~/ 1000,
+        id: recordingId, // Use unique recording ID, not buffer ID
+        timestampStart: bufferToSave.startTime.millisecondsSinceEpoch ~/ 1000,
         timestampEnd: endTime.millisecondsSinceEpoch ~/ 1000,
-        durationSeconds: endTime.difference(buffer.startTime).inSeconds,
-        filePath: buffer.filePath,
+        durationSeconds: endTime.difference(bufferToSave.startTime).inSeconds,
+        filePath: bufferToSave.filePath,
         fileSize: fileSize,
         format: audioFormat,
         sampleRate: sampleRate,
-        createdAt: buffer.startTime.millisecondsSinceEpoch ~/ 1000,
+        createdAt: bufferToSave.startTime.millisecondsSinceEpoch ~/ 1000,
         expiresAt: endTime.add(retentionPeriod).millisecondsSinceEpoch ~/ 1000,
         triggerType: event.type.name,
         peakLevel: event.level,
         avgLevel: _eventDetector.getCurrentStats()['avg_5min'] as double?,
         noiseEvents:
-            _eventDetector.exportEventsAsJson(buffer.startTime, endTime),
+            _eventDetector.exportEventsAsJson(bufferToSave.startTime, endTime),
         priority: _eventDetector.getRecordingPriority(),
       );
 
       // Save to database
       await _recordingDao.insert(recording);
 
+      // Mark buffer as saved
+      bufferToSave.state = BufferState.saved;
+
       // Queue for AI analysis if high priority
       if (recording.priority >= 3) {
         await _queueForAnalysis(recording);
       }
 
-      // Remove from active buffers and restart a new one
-      _activeBuffers.removeLast();
+      // Remove the saved buffer from active buffers and restart a new one
+      _activeBuffers.remove(bufferToSave);
       await _createNewBuffer();
 
       _recordingCreatedController.add(recording);
       AppLogger.success(
-          'Saved event-triggered recording: ${recording.id} (${event.type.name})');
+          'Saved event-triggered recording: ${recording.id} (${event.type.name}) from buffer: ${bufferToSave.id}');
     } catch (e) {
-      AppLogger.error('Failed to save buffer for event', e);
+      // Reset buffer state on error so it can be retried
+      if (bufferToSave.state == BufferState.beingSaved) {
+        bufferToSave.state = BufferState.recording;
+      }
+      AppLogger.error('Failed to save buffer ${bufferToSave.id} for event', e);
     }
   }
 
@@ -423,8 +469,6 @@ class RecordingService {
     }
 
     try {
-      final buffer = _activeBuffers.last;
-
       // Create a fake manual trigger event
       final manualEvent = NoiseEvent(
         timestamp: DateTime.now(),
@@ -432,14 +476,22 @@ class RecordingService {
             50.0,
         type: NoiseEventType.spike,
         duration: const Duration(seconds: 1),
-        metadata: {'manual_trigger': true},
+        metadata: {'manual_trigger': true, 'manual_save': true},
       );
+
+      // Record the count of recordings before saving
+      final recordingsBefore = await _recordingDao.count();
 
       await _saveCurrentBufferForEvent(manualEvent);
 
-      // Find the saved recording
-      final recent = await _recordingDao.getRecent(limit: 1);
-      return recent.isNotEmpty ? recent.first : null;
+      // Find the most recently added recording
+      final recordingsAfter = await _recordingDao.getRecent(limit: 1);
+      if (recordingsAfter.isNotEmpty &&
+          await _recordingDao.count() > recordingsBefore) {
+        return recordingsAfter.first;
+      }
+
+      return null;
     } catch (e) {
       AppLogger.error('Failed to manually save buffer', e);
       return null;

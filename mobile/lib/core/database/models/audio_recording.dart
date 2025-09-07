@@ -4,7 +4,7 @@ part 'audio_recording.g.dart';
 
 /// Trigger types for recordings
 enum RecordingTriggerType {
-  manual,    // User started recording manually
+  manual, // User started recording manually
   threshold, // Triggered by noise threshold
   sustained, // Triggered by sustained noise
   scheduled, // Triggered by schedule
@@ -12,9 +12,9 @@ enum RecordingTriggerType {
 
 /// Priority levels for recordings
 enum RecordingPriority {
-  low,      // 1 - Normal recordings
-  medium,   // 2 - Interesting noise events
-  high,     // 3 - Significant noise pollution
+  low, // 1 - Normal recordings
+  medium, // 2 - Interesting noise events
+  high, // 3 - Significant noise pollution
   critical, // 4 - Urgent noise violations
 }
 
@@ -128,16 +128,20 @@ class AudioRecording {
   }
 
   /// Get start DateTime
-  DateTime get startDateTime => DateTime.fromMillisecondsSinceEpoch(timestampStart * 1000);
+  DateTime get startDateTime =>
+      DateTime.fromMillisecondsSinceEpoch(timestampStart * 1000);
 
   /// Get end DateTime
-  DateTime get endDateTime => DateTime.fromMillisecondsSinceEpoch(timestampEnd * 1000);
+  DateTime get endDateTime =>
+      DateTime.fromMillisecondsSinceEpoch(timestampEnd * 1000);
 
   /// Get creation DateTime
-  DateTime get createdDateTime => DateTime.fromMillisecondsSinceEpoch(createdAt * 1000);
+  DateTime get createdDateTime =>
+      DateTime.fromMillisecondsSinceEpoch(createdAt * 1000);
 
   /// Get expiration DateTime
-  DateTime get expiresDateTime => DateTime.fromMillisecondsSinceEpoch(expiresAt * 1000);
+  DateTime get expiresDateTime =>
+      DateTime.fromMillisecondsSinceEpoch(expiresAt * 1000);
 
   /// Check if recording has expired
   bool get hasExpired => DateTime.now().isAfter(expiresDateTime);
@@ -271,8 +275,7 @@ class AudioRecording {
   @override
   bool operator ==(Object other) {
     if (identical(this, other)) return true;
-    return other is AudioRecording && 
-           other.id == id;
+    return other is AudioRecording && other.id == id;
   }
 
   @override

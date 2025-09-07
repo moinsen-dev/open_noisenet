@@ -18,10 +18,10 @@ class DailyStatisticsDao {
   /// Insert multiple statistics in a batch
   Future<void> insertBatch(List<DailyStatistics> statisticsList) async {
     if (statisticsList.isEmpty) return;
-    
+
     final db = await _databaseHelper.database;
     final batch = db.batch();
-    
+
     for (final statistics in statisticsList) {
       batch.insert(
         DatabaseHelper.tableDailyStatistics,
@@ -29,7 +29,7 @@ class DailyStatisticsDao {
         conflictAlgorithm: ConflictAlgorithm.replace,
       );
     }
-    
+
     await batch.commit(noResult: true);
   }
 
@@ -42,7 +42,7 @@ class DailyStatisticsDao {
       whereArgs: [date],
       limit: 1,
     );
-    
+
     if (maps.isEmpty) return null;
     return DailyStatistics.fromMap(maps.first);
   }
@@ -50,8 +50,8 @@ class DailyStatisticsDao {
   /// Get statistics for a specific day
   Future<DailyStatistics?> getByDay(DateTime day) async {
     final dateString = '${day.year.toString().padLeft(4, '0')}-'
-                     '${day.month.toString().padLeft(2, '0')}-'
-                     '${day.day.toString().padLeft(2, '0')}';
+        '${day.month.toString().padLeft(2, '0')}-'
+        '${day.day.toString().padLeft(2, '0')}';
     return await getByDate(dateString);
   }
 
@@ -75,7 +75,7 @@ class DailyStatisticsDao {
       orderBy: orderBy,
       limit: limit,
     );
-    
+
     return maps.map((map) => DailyStatistics.fromMap(map)).toList();
   }
 
@@ -83,14 +83,14 @@ class DailyStatisticsDao {
   Future<List<DailyStatistics>> getLastNDays(int days) async {
     final endDate = DateTime.now();
     final startDate = endDate.subtract(Duration(days: days - 1));
-    
+
     final endDateString = '${endDate.year.toString().padLeft(4, '0')}-'
-                         '${endDate.month.toString().padLeft(2, '0')}-'
-                         '${endDate.day.toString().padLeft(2, '0')}';
+        '${endDate.month.toString().padLeft(2, '0')}-'
+        '${endDate.day.toString().padLeft(2, '0')}';
     final startDateString = '${startDate.year.toString().padLeft(4, '0')}-'
-                          '${startDate.month.toString().padLeft(2, '0')}-'
-                          '${startDate.day.toString().padLeft(2, '0')}';
-    
+        '${startDate.month.toString().padLeft(2, '0')}-'
+        '${startDate.day.toString().padLeft(2, '0')}';
+
     return await getByDateRange(
       startDate: startDateString,
       endDate: endDateString,
@@ -106,13 +106,13 @@ class DailyStatisticsDao {
   Future<List<DailyStatistics>> getCurrentMonth() async {
     final now = DateTime.now();
     final startOfMonth = DateTime(now.year, now.month, 1);
-    
+
     final startDateString = '${startOfMonth.year.toString().padLeft(4, '0')}-'
-                          '${startOfMonth.month.toString().padLeft(2, '0')}-01';
+        '${startOfMonth.month.toString().padLeft(2, '0')}-01';
     final endDateString = '${now.year.toString().padLeft(4, '0')}-'
-                         '${now.month.toString().padLeft(2, '0')}-'
-                         '${now.day.toString().padLeft(2, '0')}';
-    
+        '${now.month.toString().padLeft(2, '0')}-'
+        '${now.day.toString().padLeft(2, '0')}';
+
     return await getByDateRange(
       startDate: startDateString,
       endDate: endDateString,
@@ -130,7 +130,7 @@ class DailyStatisticsDao {
       orderBy: orderBy,
       limit: limit,
     );
-    
+
     return maps.map((map) => DailyStatistics.fromMap(map)).toList();
   }
 
@@ -140,15 +140,15 @@ class DailyStatisticsDao {
     String? endDate,
   }) async {
     final db = await _databaseHelper.database;
-    
+
     String whereClause = '';
     List<dynamic> whereArgs = [];
-    
+
     if (startDate != null && endDate != null) {
       whereClause = 'WHERE date >= ? AND date <= ?';
       whereArgs = [startDate, endDate];
     }
-    
+
     final maps = await db.query(
       DatabaseHelper.tableDailyStatistics,
       where: whereClause.isEmpty ? null : whereClause,
@@ -156,7 +156,7 @@ class DailyStatisticsDao {
       orderBy: 'avg_leq DESC',
       limit: 1,
     );
-    
+
     if (maps.isEmpty) return null;
     return DailyStatistics.fromMap(maps.first);
   }
@@ -167,15 +167,15 @@ class DailyStatisticsDao {
     String? endDate,
   }) async {
     final db = await _databaseHelper.database;
-    
+
     String whereClause = '';
     List<dynamic> whereArgs = [];
-    
+
     if (startDate != null && endDate != null) {
       whereClause = 'WHERE date >= ? AND date <= ?';
       whereArgs = [startDate, endDate];
     }
-    
+
     final maps = await db.query(
       DatabaseHelper.tableDailyStatistics,
       where: whereClause.isEmpty ? null : whereClause,
@@ -183,7 +183,7 @@ class DailyStatisticsDao {
       orderBy: 'avg_leq ASC',
       limit: 1,
     );
-    
+
     if (maps.isEmpty) return null;
     return DailyStatistics.fromMap(maps.first);
   }
@@ -193,15 +193,16 @@ class DailyStatisticsDao {
     int? weeksPeriod,
   }) async {
     // SQLite doesn't have direct day-of-week function, so we'll calculate it in Dart
-    final statistics = await getRecent(limit: weeksPeriod != null ? weeksPeriod * 7 : null);
+    final statistics =
+        await getRecent(limit: weeksPeriod != null ? weeksPeriod * 7 : null);
     final weeklyData = <int, List<double>>{};
-    
+
     for (final stat in statistics) {
       final weekday = stat.dateTime.weekday; // 1=Monday, 7=Sunday
       weeklyData.putIfAbsent(weekday, () => []);
       weeklyData[weekday]!.add(stat.avgLeq);
     }
-    
+
     final result = <Map<String, dynamic>>[];
     for (int weekday = 1; weekday <= 7; weekday++) {
       final values = weeklyData[weekday] ?? [];
@@ -214,7 +215,7 @@ class DailyStatisticsDao {
         });
       }
     }
-    
+
     return result;
   }
 
@@ -253,8 +254,8 @@ class DailyStatisticsDao {
   Future<int> deleteOlderThanDays(int days) async {
     final cutoff = DateTime.now().subtract(Duration(days: days));
     final cutoffString = '${cutoff.year.toString().padLeft(4, '0')}-'
-                        '${cutoff.month.toString().padLeft(2, '0')}-'
-                        '${cutoff.day.toString().padLeft(2, '0')}';
+        '${cutoff.month.toString().padLeft(2, '0')}-'
+        '${cutoff.day.toString().padLeft(2, '0')}';
     return await deleteOlderThan(cutoffString);
   }
 
@@ -299,7 +300,7 @@ class DailyStatisticsDao {
       orderBy: 'date DESC',
       limit: limit,
     );
-    
+
     return maps.map((map) => DailyStatistics.fromMap(map)).toList();
   }
 
@@ -309,15 +310,15 @@ class DailyStatisticsDao {
     String? endDate,
   }) async {
     final db = await _databaseHelper.database;
-    
+
     String whereClause = '';
     List<dynamic> whereArgs = [];
-    
+
     if (startDate != null && endDate != null) {
       whereClause = 'WHERE date >= ? AND date <= ?';
       whereArgs = [startDate, endDate];
     }
-    
+
     final result = await db.rawQuery('''
       SELECT 
         AVG(avg_leq) as avg_leq,
@@ -329,7 +330,7 @@ class DailyStatisticsDao {
       FROM ${DatabaseHelper.tableDailyStatistics}
       $whereClause
     ''', whereArgs);
-    
+
     if (result.isEmpty) {
       return {
         'avg_leq': null,
@@ -340,7 +341,7 @@ class DailyStatisticsDao {
         'days_count': 0,
       };
     }
-    
+
     final row = result.first;
     return {
       'avg_leq': row['avg_leq'] as double?,

@@ -32,8 +32,9 @@ class AudioCaptureService {
   // Calibration offset (device-specific, can be adjusted)
   double _calibrationOffset = 0.0;
   double get calibrationOffset => _calibrationOffset;
-  
-  final SQLitePreferencesService _preferencesService = GetIt.instance<SQLitePreferencesService>();
+
+  final SQLitePreferencesService _preferencesService =
+      GetIt.instance<SQLitePreferencesService>();
 
   // A-weighting compensation (approximate)
   // This helps match readings with typical sound level meters and Apple Watch

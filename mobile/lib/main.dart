@@ -12,23 +12,23 @@ import 'services/background_monitoring_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
+
   // Initialize logging framework
   AppLogger.initialize(enableInRelease: false);
-  
+
   // Initialize dependency injection
   await configureDependencies();
-  
+
   // Initialize background monitoring service
   final backgroundService = BackgroundMonitoringService();
   await backgroundService.initialize();
-  
+
   // Set preferred orientations
   await SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,
   ]);
-  
+
   runApp(const NoiseNetApp());
 }
 
@@ -51,19 +51,19 @@ class NoiseNetApp extends StatelessWidget {
           return MaterialApp.router(
             title: 'OpenNoiseNet',
             debugShowCheckedModeBanner: false,
-            
+
             // Theme configuration
             theme: AppTheme.lightTheme,
             darkTheme: AppTheme.darkTheme,
             themeMode: _getThemeMode(state),
-            
+
             // Router configuration
             routerConfig: AppRouter.router,
-            
+
             // Localization (to be implemented)
             // localizationsDelegates: AppLocalizations.localizationsDelegates,
             // supportedLocales: AppLocalizations.supportedLocales,
-            
+
             builder: (context, child) {
               // Global error handling and loading states
               return BlocListener<AppBloc, AppState>(

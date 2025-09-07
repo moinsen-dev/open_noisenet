@@ -9,6 +9,11 @@ import '../../features/home/presentation/pages/home_page.dart';
 import '../../features/settings/presentation/pages/settings_page.dart';
 import '../../features/statistics/presentation/pages/statistics_page.dart';
 import '../../features/recordings/presentation/pages/recordings_page.dart';
+import '../../features/events/presentation/pages/audio_files_page.dart';
+import '../../features/events/presentation/pages/noise_events_detail_page.dart';
+import '../../features/events/presentation/pages/noise_levels_detail_page.dart';
+import '../../features/events/presentation/pages/analysis_results_page.dart';
+import '../../features/events/presentation/pages/storage_management_page.dart';
 
 class AppRouter {
   static final GoRouter router = GoRouter(
@@ -20,64 +25,99 @@ class AppRouter {
         name: 'splash',
         builder: (context, state) => const SplashPage(),
       ),
-      
+
       // Authentication
       GoRoute(
         path: '/login',
         name: 'login',
         builder: (context, state) => const LoginPage(),
       ),
-      
+
       // Device Setup
       GoRoute(
         path: '/setup',
         name: 'setup',
         builder: (context, state) => const DeviceSetupPage(),
       ),
-      
+
       // Onboarding Flow
       GoRoute(
         path: '/onboarding',
         name: 'onboarding',
         builder: (context, state) => const OnboardingPage(),
       ),
-      
+
       // Main Home Screen with Bottom Navigation
       GoRoute(
         path: '/home',
         name: 'home',
         builder: (context, state) => const HomePage(),
       ),
-      
+
       // Legacy monitoring route - redirect to home
       GoRoute(
         path: '/monitoring',
         name: 'monitoring',
         redirect: (context, state) => '/home',
       ),
-      
+
       // Settings
       GoRoute(
         path: '/settings',
         name: 'settings',
         builder: (context, state) => const SettingsPage(),
       ),
-      
+
       // Statistics
       GoRoute(
         path: '/statistics',
         name: 'statistics',
         builder: (context, state) => const StatisticsPage(),
       ),
-      
+
       // Recordings
       GoRoute(
         path: '/recordings',
         name: 'recordings',
         builder: (context, state) => const RecordingsPage(),
       ),
+
+      // Audio Files Detail Page
+      GoRoute(
+        path: '/audio-files',
+        name: 'audio-files',
+        builder: (context, state) => const AudioFilesPage(),
+      ),
+
+      // Noise Events Detail Page
+      GoRoute(
+        path: '/noise-events',
+        name: 'noise-events',
+        builder: (context, state) => const NoiseEventsDetailPage(),
+      ),
+
+      // Noise Levels Detail Page  
+      GoRoute(
+        path: '/noise-levels',
+        name: 'noise-levels',
+        builder: (context, state) => const NoiseLevelsDetailPage(),
+      ),
+
+      // Analysis Results Page
+      GoRoute(
+        path: '/analysis-results',
+        name: 'analysis-results',
+        builder: (context, state) => const AnalysisResultsPage(),
+      ),
+
+      // Storage Management Page
+      GoRoute(
+        path: '/storage-management',
+        name: 'storage-management',
+        builder: (context, state) => const StorageManagementPage(),
+      ),
     ],
-    
+
     // Error handling
     errorBuilder: (context, state) => Scaffold(
       appBar: AppBar(title: const Text('Error')),

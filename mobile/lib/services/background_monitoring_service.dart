@@ -16,8 +16,9 @@ class BackgroundMonitoringService {
   static const String _backgroundTaskName = 'background_noise_monitoring';
   static const String _backgroundTaskTag = 'noise_monitoring_task';
   static const String _isolatePortName = 'background_monitoring_port';
-  
-  static final BackgroundMonitoringService _instance = BackgroundMonitoringService._internal();
+
+  static final BackgroundMonitoringService _instance =
+      BackgroundMonitoringService._internal();
   factory BackgroundMonitoringService() => _instance;
   BackgroundMonitoringService._internal();
 
@@ -28,14 +29,14 @@ class BackgroundMonitoringService {
   StreamSubscription<dynamic>? _portSubscription;
 
   // Stream controllers for status updates
-  final StreamController<BackgroundMonitoringState> _stateController = 
+  final StreamController<BackgroundMonitoringState> _stateController =
       StreamController<BackgroundMonitoringState>.broadcast();
-  final StreamController<Map<String, dynamic>> _statusController = 
+  final StreamController<Map<String, dynamic>> _statusController =
       StreamController<Map<String, dynamic>>.broadcast();
 
   Stream<BackgroundMonitoringState> get stateStream => _stateController.stream;
   Stream<Map<String, dynamic>> get statusStream => _statusController.stream;
-  
+
   bool get isRunning => _isRunning;
 
   /// Initialize the background monitoring service
@@ -52,17 +53,19 @@ class BackgroundMonitoringService {
       // Set up communication with background isolate
       _receivePort = ReceivePort();
       _portSubscription = _receivePort!.listen(_handleBackgroundMessage);
-      
+
       // Register the port for communication
       IsolateNameServer.removePortNameMapping(_isolatePortName);
-      IsolateNameServer.registerPortWithName(_receivePort!.sendPort, _isolatePortName);
+      IsolateNameServer.registerPortWithName(
+          _receivePort!.sendPort, _isolatePortName);
 
       _isInitialized = true;
       _emitState(BackgroundMonitoringState.initialized);
-      
+
       AppLogger.background('BackgroundMonitoringService: Initialized');
     } catch (e) {
-      AppLogger.failure('BackgroundMonitoringService: Initialization failed', e);
+      AppLogger.failure(
+          'BackgroundMonitoringService: Initialization failed', e);
       _emitState(BackgroundMonitoringState.error);
       rethrow;
     }
@@ -92,7 +95,8 @@ class BackgroundMonitoringService {
         frequency: monitoringInterval,
         tag: _backgroundTaskTag,
         constraints: Constraints(
-          networkType: requiresWifi ? NetworkType.unmetered : NetworkType.connected,
+          networkType:
+              requiresWifi ? NetworkType.unmetered : NetworkType.connected,
           requiresCharging: requiresCharging,
           requiresBatteryNotLow: true,
           requiresDeviceIdle: false,
@@ -104,10 +108,10 @@ class BackgroundMonitoringService {
 
       _isRunning = true;
       _emitState(BackgroundMonitoringState.running);
-      
-      AppLogger.success('Background monitoring started with ${monitoringInterval.inMinutes}min intervals');
-      return true;
 
+      AppLogger.success(
+          'Background monitoring started with ${monitoringInterval.inMinutes}min intervals');
+      return true;
     } catch (e) {
       AppLogger.failure('Failed to start background monitoring', e);
       _emitState(BackgroundMonitoringState.error);
@@ -128,7 +132,7 @@ class BackgroundMonitoringService {
 
       _isRunning = false;
       _emitState(BackgroundMonitoringState.stopped);
-      
+
       AppLogger.background('Background monitoring stopped');
     } catch (e) {
       AppLogger.failure('Failed to stop background monitoring', e);
@@ -185,7 +189,7 @@ class BackgroundMonitoringService {
     await _portSubscription?.cancel();
     _receivePort?.close();
     IsolateNameServer.removePortNameMapping(_isolatePortName);
-    
+
     await _stateController.close();
     await _statusController.close();
   }
@@ -208,29 +212,29 @@ enum BackgroundMonitoringState {
 void callbackDispatcher() {
   Workmanager().executeTask((task, inputData) async {
     AppLogger.background('Background task started: $task');
-    
+
     try {
       // Initialize services in background isolate
       await _initializeBackgroundServices();
-      
+
       // Run monitoring cycle
       final result = await _runMonitoringCycle();
-      
+
       // Send completion status
       _sendToMainIsolate({
         'type': 'monitoring_complete',
         'data': result,
       });
-      
+
       return Future.value(true);
     } catch (e) {
       AppLogger.background('Background task failed: $e');
-      
+
       _sendToMainIsolate({
         'type': 'error',
         'data': {'error': e.toString()},
       });
-      
+
       return Future.value(false);
     }
   });
@@ -242,11 +246,11 @@ Future<void> _initializeBackgroundServices() async {
     // Initialize database
     final databaseHelper = DatabaseHelper.instance;
     await databaseHelper.database;
-    
+
     // Initialize preferences service
     final preferencesService = SQLitePreferencesService();
     await preferencesService.initialize();
-    
+
     AppLogger.success('Background services initialized');
   } catch (e) {
     AppLogger.background('Background service initialization failed: $e');
@@ -257,28 +261,27 @@ Future<void> _initializeBackgroundServices() async {
 /// Run a monitoring cycle in background
 Future<Map<String, dynamic>> _runMonitoringCycle() async {
   final startTime = DateTime.now();
-  
+
   try {
     // Load monitoring preferences
     final preferencesService = SQLitePreferencesService();
     final monitoringDuration = Duration(
-      seconds: await preferencesService.getRecordingDurationSeconds()
-    );
+        seconds: await preferencesService.getRecordingDurationSeconds());
     final noiseThreshold = await preferencesService.getNoiseThreshold();
-    
+
     // Initialize audio capture (this is tricky in background - may need foreground service)
     final audioService = AudioCaptureService();
     await audioService.loadCalibrationSettings();
-    
+
     // Initialize event detection
     final eventDetection = EventDetectionService();
     eventDetection.setThreshold(noiseThreshold);
     eventDetection.startMonitoring();
-    
+
     final samples = <double>[];
     const sampleDuration = Duration(seconds: 1);
     final totalSamples = monitoringDuration.inSeconds;
-    
+
     // Send status update
     _sendToMainIsolate({
       'type': 'status_update',
@@ -289,20 +292,21 @@ Future<Map<String, dynamic>> _runMonitoringCycle() async {
         'progress': 0.0,
       },
     });
-    
+
     // Simulate monitoring (in real implementation, this would capture audio)
     // Note: Actual audio capture in background may require foreground service
     for (int i = 0; i < totalSamples; i++) {
       await Future<void>.delayed(sampleDuration);
-      
+
       // In real implementation, get actual audio level
       // For now, simulate with baseline noise + some variation
       final simulatedLevel = 45.0 + (DateTime.now().millisecond % 20);
       samples.add(simulatedLevel);
       eventDetection.addSample(simulatedLevel);
-      
+
       // Send periodic progress updates
-      if (i % 30 == 0) { // Every 30 seconds
+      if (i % 30 == 0) {
+        // Every 30 seconds
         _sendToMainIsolate({
           'type': 'status_update',
           'data': {
@@ -313,16 +317,19 @@ Future<Map<String, dynamic>> _runMonitoringCycle() async {
         });
       }
     }
-    
+
     eventDetection.stopMonitoring();
-    
+
     final endTime = DateTime.now();
     final actualDuration = endTime.difference(startTime);
-    
+
     // Calculate statistics
-    final maxLevel = samples.isNotEmpty ? samples.reduce((a, b) => a > b ? a : b) : 0.0;
-    final avgLevel = samples.isNotEmpty ? samples.reduce((a, b) => a + b) / samples.length : 0.0;
-    
+    final maxLevel =
+        samples.isNotEmpty ? samples.reduce((a, b) => a > b ? a : b) : 0.0;
+    final avgLevel = samples.isNotEmpty
+        ? samples.reduce((a, b) => a + b) / samples.length
+        : 0.0;
+
     final result = {
       'start_time': startTime.toIso8601String(),
       'end_time': endTime.toIso8601String(),
@@ -332,11 +339,11 @@ Future<Map<String, dynamic>> _runMonitoringCycle() async {
       'avg_level_db': avgLevel,
       'threshold_exceeded': maxLevel > noiseThreshold,
     };
-    
-    AppLogger.background('Monitoring cycle completed: ${result['samples_count']} samples, ${avgLevel.toStringAsFixed(1)}dB avg');
-    
+
+    AppLogger.background(
+        'Monitoring cycle completed: ${result['samples_count']} samples, ${avgLevel.toStringAsFixed(1)}dB avg');
+
     return result;
-    
   } catch (e) {
     AppLogger.background('Monitoring cycle failed: $e');
     rethrow;
@@ -346,7 +353,8 @@ Future<Map<String, dynamic>> _runMonitoringCycle() async {
 /// Send message to main isolate
 void _sendToMainIsolate(Map<String, dynamic> message) {
   try {
-    final port = IsolateNameServer.lookupPortByName(BackgroundMonitoringService._isolatePortName);
+    final port = IsolateNameServer.lookupPortByName(
+        BackgroundMonitoringService._isolatePortName);
     port?.send(message);
   } catch (e) {
     AppLogger.background('Failed to send message to main isolate: $e');

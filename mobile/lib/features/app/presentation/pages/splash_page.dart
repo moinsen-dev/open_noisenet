@@ -47,16 +47,16 @@ class SplashPage extends StatelessWidget {
               Text(
                 'OpenNoiseNet',
                 style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                ),
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
               ),
               const SizedBox(height: 8),
               Text(
                 'Environmental Noise Monitoring',
                 style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                  color: Colors.white.withValues(alpha: 0.8),
-                ),
+                      color: Colors.white.withValues(alpha: 0.8),
+                    ),
               ),
               const SizedBox(height: 48),
               const CircularProgressIndicator(

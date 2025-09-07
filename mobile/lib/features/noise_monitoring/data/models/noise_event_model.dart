@@ -9,72 +9,72 @@ part 'noise_event_model.g.dart';
 class NoiseEventModel {
   /// Unique identifier for the event (UUID)
   final String? id;
-  
+
   /// Device ID that recorded the event
   final String deviceId;
-  
+
   /// Event timing
   @JsonKey(name: 'timestamp_start')
   final DateTime timestampStart;
-  
+
   @JsonKey(name: 'timestamp_end')
   final DateTime timestampEnd;
-  
+
   /// Noise measurements
   @JsonKey(name: 'leq_db')
   final double leqDb; // Equivalent continuous sound level
-  
+
   @JsonKey(name: 'lmax_db')
   final double? lmaxDb; // Maximum sound level
-  
+
   @JsonKey(name: 'lmin_db')
   final double? lminDb; // Minimum sound level
-  
+
   @JsonKey(name: 'laeq_db')
   final double? laeqDb; // A-weighted equivalent level
-  
+
   @JsonKey(name: 'exceedance_pct')
   final double? exceedancePct; // Percentage of time above threshold
-  
+
   /// Additional measurements
   @JsonKey(name: 'samples_count')
   final int? samplesCount;
-  
+
   /// Event trigger information
   @JsonKey(name: 'rule_triggered')
   final String? ruleTriggered;
-  
+
   /// Location information
   @JsonKey(name: 'location_lat')
   final double? locationLat;
-  
+
   @JsonKey(name: 'location_lng')
   final double? locationLng;
-  
+
   /// Location source information
   @JsonKey(name: 'location_source')
   final String? locationSource;
-  
+
   @JsonKey(name: 'location_accuracy')
   final double? locationAccuracy;
-  
+
   /// Additional metadata
   @JsonKey(name: 'event_metadata')
   final Map<String, dynamic>? eventMetadata;
-  
+
   /// Processing status
   final String status;
-  
+
   /// Local-only fields (not sent to server)
   @JsonKey(includeFromJson: false, includeToJson: false)
   final bool isSubmitted;
-  
+
   @JsonKey(includeFromJson: false, includeToJson: false)
   final DateTime? localTimestamp;
-  
+
   @JsonKey(includeFromJson: false, includeToJson: false)
   final int? retryCount;
-  
+
   const NoiseEventModel({
     this.id,
     required this.deviceId,
@@ -97,7 +97,7 @@ class NoiseEventModel {
     this.localTimestamp,
     this.retryCount = 0,
   });
-  
+
   /// Create from detection service event
   factory NoiseEventModel.fromDetectedEvent(
     NoiseEvent event, {
@@ -112,7 +112,8 @@ class NoiseEventModel {
       leqDb: event.averageLeqDb,
       lmaxDb: event.maxLevelDb,
       lminDb: event.minLevelDb,
-      laeqDb: event.averageLeqDb, // A-weighted equivalent (using same value for now)
+      laeqDb: event
+          .averageLeqDb, // A-weighted equivalent (using same value for now)
       samplesCount: event.samples.length,
       ruleTriggered: event.ruleTriggered,
       locationLat: location?.latitude,
@@ -128,7 +129,7 @@ class NoiseEventModel {
       localTimestamp: DateTime.now(),
     );
   }
-  
+
   /// Create copy with updated fields
   NoiseEventModel copyWith({
     String? id,
@@ -175,13 +176,13 @@ class NoiseEventModel {
       retryCount: retryCount ?? this.retryCount,
     );
   }
-  
+
   /// Duration of the event
   Duration get duration => timestampEnd.difference(timestampStart);
-  
+
   /// Check if event has location data
   bool get hasLocation => locationLat != null && locationLng != null;
-  
+
   /// Get location source as enum
   LocationSource? get locationSourceEnum {
     if (locationSource == null) return null;
@@ -190,14 +191,14 @@ class NoiseEventModel {
       orElse: () => LocationSource.fallback,
     );
   }
-  
+
   /// Convert to JSON for API submission
   Map<String, dynamic> toJson() => _$NoiseEventModelToJson(this);
-  
+
   /// Create from JSON
   factory NoiseEventModel.fromJson(Map<String, dynamic> json) =>
       _$NoiseEventModelFromJson(json);
-  
+
   /// Convert to local storage JSON (includes local fields)
   Map<String, dynamic> toLocalJson() {
     final json = toJson();
@@ -206,33 +207,33 @@ class NoiseEventModel {
     json['retryCount'] = retryCount;
     return json;
   }
-  
+
   /// Create from local storage JSON
   factory NoiseEventModel.fromLocalJson(Map<String, dynamic> json) {
     final event = NoiseEventModel.fromJson(json);
     return event.copyWith(
       isSubmitted: json['isSubmitted'] as bool? ?? false,
-      localTimestamp: json['localTimestamp'] != null 
+      localTimestamp: json['localTimestamp'] != null
           ? DateTime.parse(json['localTimestamp'] as String)
           : null,
       retryCount: json['retryCount'] as int? ?? 0,
     );
   }
-  
+
   @override
   String toString() {
     return 'NoiseEventModel(${timestampStart.toIso8601String()}, ${leqDb.toStringAsFixed(1)} dB, ${duration.inSeconds}s, submitted: $isSubmitted)';
   }
-  
+
   @override
   bool operator ==(Object other) {
     if (identical(this, other)) return true;
-    return other is NoiseEventModel && 
-           other.id == id &&
-           other.deviceId == deviceId &&
-           other.timestampStart == timestampStart;
+    return other is NoiseEventModel &&
+        other.id == id &&
+        other.deviceId == deviceId &&
+        other.timestampStart == timestampStart;
   }
-  
+
   @override
   int get hashCode => Object.hash(id, deviceId, timestampStart);
 }

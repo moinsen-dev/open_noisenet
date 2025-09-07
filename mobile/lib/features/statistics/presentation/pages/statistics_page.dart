@@ -43,6 +43,11 @@ class _StatisticsPageState extends State<StatisticsPage> with TickerProviderStat
       appBar: AppBar(
         title: const Text('Statistics'),
         automaticallyImplyLeading: false,
+        leading: IconButton(
+          icon: const Icon(Icons.close),
+          onPressed: () => Navigator.of(context).pop(),
+          tooltip: 'Close',
+        ),
         actions: [
           PopupMenuButton<String>(
             icon: const Icon(Icons.access_time),

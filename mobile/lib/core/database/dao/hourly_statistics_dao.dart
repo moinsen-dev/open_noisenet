@@ -18,10 +18,10 @@ class HourlyStatisticsDao {
   /// Insert multiple statistics in a batch
   Future<void> insertBatch(List<HourlyStatistics> statisticsList) async {
     if (statisticsList.isEmpty) return;
-    
+
     final db = await _databaseHelper.database;
     final batch = db.batch();
-    
+
     for (final statistics in statisticsList) {
       batch.insert(
         DatabaseHelper.tableHourlyStatistics,
@@ -29,7 +29,7 @@ class HourlyStatisticsDao {
         conflictAlgorithm: ConflictAlgorithm.replace,
       );
     }
-    
+
     await batch.commit(noResult: true);
   }
 
@@ -42,7 +42,7 @@ class HourlyStatisticsDao {
       whereArgs: [hourTimestamp],
       limit: 1,
     );
-    
+
     if (maps.isEmpty) return null;
     return HourlyStatistics.fromMap(maps.first);
   }
@@ -69,7 +69,7 @@ class HourlyStatisticsDao {
       orderBy: orderBy,
       limit: limit,
     );
-    
+
     return maps.map((map) => HourlyStatistics.fromMap(map)).toList();
   }
 
@@ -77,11 +77,12 @@ class HourlyStatisticsDao {
   Future<List<HourlyStatistics>> getLast24Hours() async {
     final now = DateTime.now();
     final yesterday = now.subtract(const Duration(hours: 24));
-    
+
     // Round to hour boundaries
     final endHour = DateTime(now.year, now.month, now.day, now.hour);
-    final startHour = DateTime(yesterday.year, yesterday.month, yesterday.day, yesterday.hour);
-    
+    final startHour = DateTime(
+        yesterday.year, yesterday.month, yesterday.day, yesterday.hour);
+
     return await getByTimeRange(
       startTimestamp: startHour.millisecondsSinceEpoch ~/ 1000,
       endTimestamp: endHour.millisecondsSinceEpoch ~/ 1000,
@@ -92,7 +93,7 @@ class HourlyStatisticsDao {
   Future<List<HourlyStatistics>> getByDay(DateTime day) async {
     final startOfDay = DateTime(day.year, day.month, day.day);
     final endOfDay = startOfDay.add(const Duration(days: 1));
-    
+
     return await getByTimeRange(
       startTimestamp: startOfDay.millisecondsSinceEpoch ~/ 1000,
       endTimestamp: endOfDay.millisecondsSinceEpoch ~/ 1000,
@@ -103,8 +104,9 @@ class HourlyStatisticsDao {
   Future<List<HourlyStatistics>> getCurrentWeek() async {
     final now = DateTime.now();
     final startOfWeek = now.subtract(Duration(days: now.weekday - 1));
-    final startOfWeekHour = DateTime(startOfWeek.year, startOfWeek.month, startOfWeek.day);
-    
+    final startOfWeekHour =
+        DateTime(startOfWeek.year, startOfWeek.month, startOfWeek.day);
+
     return await getByTimeRange(
       startTimestamp: startOfWeekHour.millisecondsSinceEpoch ~/ 1000,
       endTimestamp: now.millisecondsSinceEpoch ~/ 1000,
@@ -122,7 +124,7 @@ class HourlyStatisticsDao {
       orderBy: orderBy,
       limit: limit,
     );
-    
+
     return maps.map((map) => HourlyStatistics.fromMap(map)).toList();
   }
 
@@ -139,7 +141,7 @@ class HourlyStatisticsDao {
       orderBy: 'avg_leq DESC',
       limit: 1,
     );
-    
+
     if (maps.isEmpty) return null;
     return HourlyStatistics.fromMap(maps.first);
   }
@@ -157,7 +159,7 @@ class HourlyStatisticsDao {
       orderBy: 'avg_leq ASC',
       limit: 1,
     );
-    
+
     if (maps.isEmpty) return null;
     return HourlyStatistics.fromMap(maps.first);
   }
@@ -167,16 +169,16 @@ class HourlyStatisticsDao {
     int? daysPeriod,
   }) async {
     final db = await _databaseHelper.database;
-    
+
     String whereClause = '';
     List<dynamic> whereArgs = [];
-    
+
     if (daysPeriod != null) {
       final cutoff = DateTime.now().subtract(Duration(days: daysPeriod));
       whereClause = 'WHERE hour_timestamp >= ?';
       whereArgs = [cutoff.millisecondsSinceEpoch ~/ 1000];
     }
-    
+
     final result = await db.rawQuery('''
       SELECT 
         (hour_timestamp % 86400) / 3600 as hour_of_day,
@@ -189,7 +191,7 @@ class HourlyStatisticsDao {
       GROUP BY hour_of_day
       ORDER BY hour_of_day
     ''', whereArgs);
-    
+
     return result;
   }
 
@@ -271,7 +273,7 @@ class HourlyStatisticsDao {
       orderBy: 'hour_timestamp DESC',
       limit: limit,
     );
-    
+
     return maps.map((map) => HourlyStatistics.fromMap(map)).toList();
   }
 
@@ -292,7 +294,7 @@ class HourlyStatisticsDao {
       FROM ${DatabaseHelper.tableHourlyStatistics}
       WHERE hour_timestamp >= ? AND hour_timestamp <= ?
     ''', [startTimestamp, endTimestamp]);
-    
+
     if (result.isEmpty) {
       return {
         'avg_leq': null,
@@ -303,7 +305,7 @@ class HourlyStatisticsDao {
         'hours_count': 0,
       };
     }
-    
+
     final row = result.first;
     return {
       'avg_leq': row['avg_leq'] as double?,

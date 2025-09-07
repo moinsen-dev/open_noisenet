@@ -10,7 +10,7 @@ import '../core/database/dao/daily_statistics_dao.dart';
 import '../core/logging/app_logger.dart';
 
 class StatisticsAggregationService {
-  static final StatisticsAggregationService _instance = 
+  static final StatisticsAggregationService _instance =
       StatisticsAggregationService._internal();
   factory StatisticsAggregationService() => _instance;
   StatisticsAggregationService._internal();
@@ -138,13 +138,15 @@ class StatisticsAggregationService {
           'duration_hours': endDate.difference(startDate).inHours,
         },
         'measurements': _summarizeMeasurements(measurements),
-        'hourly_breakdown': hourlyStats.map((h) => {
-          'hour': h.dateTime.toIso8601String(),
-          'avg_leq': h.avgLeq,
-          'max_leq': h.maxLeq,
-          'min_leq': h.minLeq,
-          'exceedances': h.exceedanceCount,
-        }).toList(),
+        'hourly_breakdown': hourlyStats
+            .map((h) => {
+                  'hour': h.dateTime.toIso8601String(),
+                  'avg_leq': h.avgLeq,
+                  'max_leq': h.maxLeq,
+                  'min_leq': h.minLeq,
+                  'exceedances': h.exceedanceCount,
+                })
+            .toList(),
         'aggregates': aggregateStats,
       };
     } catch (e) {
@@ -165,7 +167,7 @@ class StatisticsAggregationService {
       // Peak and quiet periods
       final now = DateTime.now();
       final last30Days = now.subtract(const Duration(days: 30));
-      
+
       final loudestHour = await _hourlyDao.getLoudestHour(
         startTimestamp: last30Days.millisecondsSinceEpoch ~/ 1000,
         endTimestamp: now.millisecondsSinceEpoch ~/ 1000,
@@ -180,16 +182,20 @@ class StatisticsAggregationService {
         'daily_patterns': dailyPatterns,
         'weekly_patterns': weeklyPatterns,
         'peak_periods': {
-          'loudest_hour': loudestHour != null ? {
-            'time': loudestHour.dateTime.toIso8601String(),
-            'avg_leq': loudestHour.avgLeq,
-            'hour_of_day': loudestHour.hourOfDay,
-          } : null,
-          'quietest_hour': quietestHour != null ? {
-            'time': quietestHour.dateTime.toIso8601String(),
-            'avg_leq': quietestHour.avgLeq,
-            'hour_of_day': quietestHour.hourOfDay,
-          } : null,
+          'loudest_hour': loudestHour != null
+              ? {
+                  'time': loudestHour.dateTime.toIso8601String(),
+                  'avg_leq': loudestHour.avgLeq,
+                  'hour_of_day': loudestHour.hourOfDay,
+                }
+              : null,
+          'quietest_hour': quietestHour != null
+              ? {
+                  'time': quietestHour.dateTime.toIso8601String(),
+                  'avg_leq': quietestHour.avgLeq,
+                  'hour_of_day': quietestHour.hourOfDay,
+                }
+              : null,
         },
       };
     } catch (e) {
@@ -213,9 +219,10 @@ class StatisticsAggregationService {
       );
 
       // Filter by date range
-      final recentExceedances = exceedances.where((m) =>
-        m.dateTime.isAfter(startDate) && m.dateTime.isBefore(now)
-      ).toList();
+      final recentExceedances = exceedances
+          .where(
+              (m) => m.dateTime.isAfter(startDate) && m.dateTime.isBefore(now))
+          .toList();
 
       // Group by hour of day
       final exceedancesByHour = <int, List<NoiseMeasurement>>{};
@@ -226,13 +233,14 @@ class StatisticsAggregationService {
       }
 
       // Calculate statistics
-      final hourlyExceedances = exceedancesByHour.map((hour, measurements) =>
-        MapEntry(hour, {
-          'count': measurements.length,
-          'avg_leq': measurements.map((m) => m.leqDb).reduce((a, b) => a + b) / measurements.length,
-          'max_leq': measurements.map((m) => m.leqDb).reduce(max),
-        })
-      );
+      final hourlyExceedances =
+          exceedancesByHour.map((hour, measurements) => MapEntry(hour, {
+                'count': measurements.length,
+                'avg_leq':
+                    measurements.map((m) => m.leqDb).reduce((a, b) => a + b) /
+                        measurements.length,
+                'max_leq': measurements.map((m) => m.leqDb).reduce(max),
+              }));
 
       return {
         'threshold': threshold,
@@ -252,12 +260,13 @@ class StatisticsAggregationService {
   Future<void> _performHourlyAggregation() async {
     try {
       final now = DateTime.now();
-      
+
       // Process the previous hour to ensure all measurements are included
       final previousHour = DateTime(now.year, now.month, now.day, now.hour - 1);
-      
+
       // Check if we already have stats for this hour
-      if (await _hourlyDao.existsForHour(previousHour.millisecondsSinceEpoch ~/ 1000)) {
+      if (await _hourlyDao
+          .existsForHour(previousHour.millisecondsSinceEpoch ~/ 1000)) {
         return; // Already processed
       }
 
@@ -267,11 +276,12 @@ class StatisticsAggregationService {
 
       // Calculate statistics
       final statistics = _calculateHourlyStatistics(previousHour, measurements);
-      
+
       // Store in database
       await _hourlyDao.insertOrReplace(statistics);
 
-      AppLogger.stats('Created hourly statistics for ${previousHour.toIso8601String()}');
+      AppLogger.stats(
+          'Created hourly statistics for ${previousHour.toIso8601String()}');
     } catch (e) {
       AppLogger.stats('Failed to perform hourly aggregation: $e');
     }
@@ -281,13 +291,13 @@ class StatisticsAggregationService {
   Future<void> _performDailyAggregation() async {
     try {
       final now = DateTime.now();
-      
+
       // Process the previous day to ensure all hourly stats are included
       final yesterday = DateTime(now.year, now.month, now.day - 1);
       final dateString = '${yesterday.year.toString().padLeft(4, '0')}-'
-                        '${yesterday.month.toString().padLeft(2, '0')}-'
-                        '${yesterday.day.toString().padLeft(2, '0')}';
-      
+          '${yesterday.month.toString().padLeft(2, '0')}-'
+          '${yesterday.day.toString().padLeft(2, '0')}';
+
       // Check if we already have stats for this day
       if (await _dailyDao.existsForDate(dateString)) {
         return; // Already processed
@@ -299,7 +309,7 @@ class StatisticsAggregationService {
 
       // Calculate daily statistics
       final statistics = _calculateDailyStatistics(dateString, hourlyStats);
-      
+
       // Store in database
       await _dailyDao.insertOrReplace(statistics);
 
@@ -311,30 +321,45 @@ class StatisticsAggregationService {
 
   /// Calculate hourly statistics from measurements
   HourlyStatistics _calculateHourlyStatistics(
-    DateTime hour, 
-    List<NoiseMeasurement> measurements
-  ) {
+      DateTime hour, List<NoiseMeasurement> measurements) {
     final leqValues = measurements.map((m) => m.leqDb).toList();
-    final l10Values = measurements.map((m) => m.l10Db).where((v) => v != null).cast<double>().toList();
-    final l50Values = measurements.map((m) => m.l50Db).where((v) => v != null).cast<double>().toList();
-    final l90Values = measurements.map((m) => m.l90Db).where((v) => v != null).cast<double>().toList();
+    final l10Values = measurements
+        .map((m) => m.l10Db)
+        .where((v) => v != null)
+        .cast<double>()
+        .toList();
+    final l50Values = measurements
+        .map((m) => m.l50Db)
+        .where((v) => v != null)
+        .cast<double>()
+        .toList();
+    final l90Values = measurements
+        .map((m) => m.l90Db)
+        .where((v) => v != null)
+        .cast<double>()
+        .toList();
 
     final avgLeq = leqValues.reduce((a, b) => a + b) / leqValues.length;
     final maxLeq = leqValues.reduce(max);
     final minLeq = leqValues.reduce(min);
 
-    final exceedanceCount = measurements
-        .where((m) => m.leqDb >= exceedanceThreshold)
-        .length;
+    final exceedanceCount =
+        measurements.where((m) => m.leqDb >= exceedanceThreshold).length;
 
     return HourlyStatistics(
       hourTimestamp: hour.millisecondsSinceEpoch ~/ 1000,
       avgLeq: avgLeq,
       maxLeq: maxLeq,
       minLeq: minLeq,
-      l10: l10Values.isNotEmpty ? l10Values.reduce((a, b) => a + b) / l10Values.length : null,
-      l50: l50Values.isNotEmpty ? l50Values.reduce((a, b) => a + b) / l50Values.length : null,
-      l90: l90Values.isNotEmpty ? l90Values.reduce((a, b) => a + b) / l90Values.length : null,
+      l10: l10Values.isNotEmpty
+          ? l10Values.reduce((a, b) => a + b) / l10Values.length
+          : null,
+      l50: l50Values.isNotEmpty
+          ? l50Values.reduce((a, b) => a + b) / l50Values.length
+          : null,
+      l90: l90Values.isNotEmpty
+          ? l90Values.reduce((a, b) => a + b) / l90Values.length
+          : null,
       exceedanceCount: exceedanceCount,
       totalSamples: measurements.length,
     );
@@ -342,9 +367,7 @@ class StatisticsAggregationService {
 
   /// Calculate daily statistics from hourly statistics
   DailyStatistics _calculateDailyStatistics(
-    String date, 
-    List<HourlyStatistics> hourlyStats
-  ) {
+      String date, List<HourlyStatistics> hourlyStats) {
     final avgLeqValues = hourlyStats.map((h) => h.avgLeq).toList();
     final maxLeqValues = hourlyStats.map((h) => h.maxLeq).toList();
     final minLeqValues = hourlyStats.map((h) => h.minLeq).toList();
@@ -354,16 +377,16 @@ class StatisticsAggregationService {
     final minLeq = minLeqValues.reduce(min);
 
     // Find peak and quiet hours
-    final loudestHour = hourlyStats.reduce((a, b) => a.avgLeq > b.avgLeq ? a : b);
-    final quietestHour = hourlyStats.reduce((a, b) => a.avgLeq < b.avgLeq ? a : b);
+    final loudestHour =
+        hourlyStats.reduce((a, b) => a.avgLeq > b.avgLeq ? a : b);
+    final quietestHour =
+        hourlyStats.reduce((a, b) => a.avgLeq < b.avgLeq ? a : b);
 
-    final totalExceedances = hourlyStats
-        .map((h) => h.exceedanceCount)
-        .reduce((a, b) => a + b);
+    final totalExceedances =
+        hourlyStats.map((h) => h.exceedanceCount).reduce((a, b) => a + b);
 
-    final totalSamples = hourlyStats
-        .map((h) => h.totalSamples)
-        .reduce((a, b) => a + b);
+    final totalSamples =
+        hourlyStats.map((h) => h.totalSamples).reduce((a, b) => a + b);
 
     return DailyStatistics(
       date: date,
@@ -378,7 +401,8 @@ class StatisticsAggregationService {
   }
 
   /// Summarize a list of measurements
-  Map<String, dynamic> _summarizeMeasurements(List<NoiseMeasurement> measurements) {
+  Map<String, dynamic> _summarizeMeasurements(
+      List<NoiseMeasurement> measurements) {
     if (measurements.isEmpty) {
       return {
         'count': 0,
@@ -390,7 +414,8 @@ class StatisticsAggregationService {
     }
 
     final leqValues = measurements.map((m) => m.leqDb).toList();
-    final exceedances = measurements.where((m) => m.leqDb >= exceedanceThreshold).length;
+    final exceedances =
+        measurements.where((m) => m.leqDb >= exceedanceThreshold).length;
 
     return {
       'count': measurements.length,
@@ -415,7 +440,8 @@ class StatisticsAggregationService {
     }
 
     final avgLeqValues = dailyStats.map((d) => d.avgLeq).toList();
-    final totalExceedances = dailyStats.map((d) => d.totalExceedances).reduce((a, b) => a + b);
+    final totalExceedances =
+        dailyStats.map((d) => d.totalExceedances).reduce((a, b) => a + b);
 
     return {
       'count': dailyStats.length,
@@ -427,24 +453,30 @@ class StatisticsAggregationService {
   }
 
   /// Get worst hours from exceedance analysis
-  List<Map<String, dynamic>> _getWorstHours(Map<int, Map<String, dynamic>> hourlyExceedances) {
+  List<Map<String, dynamic>> _getWorstHours(
+      Map<int, Map<String, dynamic>> hourlyExceedances) {
     final sortedHours = hourlyExceedances.entries.toList()
-      ..sort((a, b) => (b.value['count'] as int).compareTo(a.value['count'] as int));
+      ..sort((a, b) =>
+          (b.value['count'] as int).compareTo(a.value['count'] as int));
 
-    return sortedHours.take(5).map((entry) => {
-      'hour': entry.key,
-      'hour_formatted': '${entry.key.toString().padLeft(2, '0')}:00',
-      'count': entry.value['count'],
-      'avg_leq': entry.value['avg_leq'],
-      'max_leq': entry.value['max_leq'],
-    }).toList();
+    return sortedHours
+        .take(5)
+        .map((entry) => {
+              'hour': entry.key,
+              'hour_formatted': '${entry.key.toString().padLeft(2, '0')}:00',
+              'count': entry.value['count'],
+              'avg_leq': entry.value['avg_leq'],
+              'max_leq': entry.value['max_leq'],
+            })
+        .toList();
   }
 
   /// Get service status
   Map<String, dynamic> getStatus() {
     return {
       'is_running': _isRunning,
-      'hourly_aggregation_interval_minutes': hourlyAggregationInterval.inMinutes,
+      'hourly_aggregation_interval_minutes':
+          hourlyAggregationInterval.inMinutes,
       'daily_aggregation_interval_hours': dailyAggregationInterval.inHours,
       'exceedance_threshold_db': exceedanceThreshold,
     };

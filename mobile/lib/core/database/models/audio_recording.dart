@@ -8,6 +8,7 @@ enum RecordingTriggerType {
   threshold, // Triggered by noise threshold
   sustained, // Triggered by sustained noise
   scheduled, // Triggered by schedule
+  continuous, // Continuous 1-hour recordings for event correlation
 }
 
 /// Priority levels for recordings
@@ -188,6 +189,8 @@ class AudioRecording {
         return RecordingTriggerType.sustained;
       case 'scheduled':
         return RecordingTriggerType.scheduled;
+      case 'continuous':
+        return RecordingTriggerType.continuous;
       default:
         return RecordingTriggerType.manual;
     }

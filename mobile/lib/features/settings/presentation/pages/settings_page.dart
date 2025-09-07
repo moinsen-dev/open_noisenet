@@ -600,11 +600,13 @@ class _SettingsPageState extends State<SettingsPage> {
     final controller = TextEditingController(text: backendUrl);
     bool isTestingConnection = false;
     String connectionStatus = '';
+    bool currentAutoSubmissionEnabled = autoSubmissionEnabled;
 
-    showDialog(
+    showDialog<void>(
       context: context,
       builder: (context) => StatefulBuilder(
-        builder: (context, setStateDialog) => AlertDialog(
+        builder: (context, setStateDialog) {          
+          return AlertDialog(
           title: const Text('Backend Integration'),
           content: SingleChildScrollView(
             child: Column(
@@ -721,20 +723,19 @@ class _SettingsPageState extends State<SettingsPage> {
                 
                 const SizedBox(height: 16),
                 
-                StatefulBuilder(
-                  builder: (context, setStateLocal) {
-                    return SwitchListTile(
-                      title: const Text('Auto-submit events'),
-                      subtitle: const Text('Automatically send noise events to backend'),
-                      value: autoSubmissionEnabled,
-                      onChanged: (value) async {
-                        await _preferencesService.setAutoSubmissionEnabled(value);
-                        setStateLocal(() {
-                          // Update local state within dialog
-                        });
-                        setState(() {});
-                      },
-                    );
+                // Auto-submit toggle
+                SwitchListTile(
+                  title: const Text('Auto-submit events'),
+                  subtitle: const Text('Automatically send noise events to backend'),
+                  value: currentAutoSubmissionEnabled,
+                  contentPadding: EdgeInsets.zero,
+                  onChanged: (value) async {
+                    await _preferencesService.setAutoSubmissionEnabled(value);
+                    // Refresh both dialog and main page
+                    setStateDialog(() {
+                      currentAutoSubmissionEnabled = value;
+                    });
+                    setState(() {});
                   },
                 ),
               ],
@@ -755,8 +756,8 @@ class _SettingsPageState extends State<SettingsPage> {
               child: const Text('Save'),
             ),
           ],
-        ),
-      ),
+        );
+      },),
     );
   }
 

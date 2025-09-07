@@ -62,6 +62,29 @@ class NoiseEventModel {
   @JsonKey(name: 'event_metadata')
   final Map<String, dynamic>? eventMetadata;
 
+  /// Continuous recording references (new fields for Phase 3)
+  @JsonKey(name: 'recording_file_id')
+  final String? recordingFileId; // Reference to continuous recording file
+
+  @JsonKey(name: 'recording_start_offset_ms')
+  final int? recordingStartOffsetMs; // Millisecond offset in recording when event started
+
+  @JsonKey(name: 'recording_end_offset_ms')
+  final int? recordingEndOffsetMs; // Millisecond offset in recording when event ended
+
+  /// Event classification fields (from Phase 2)
+  @JsonKey(name: 'event_type')
+  final String? eventType; // brief_disturbance, sustained_noise, etc.
+
+  @JsonKey(name: 'event_confidence')
+  final double? eventConfidence; // 0.0-1.0 confidence in classification
+
+  @JsonKey(name: 'duration_class')
+  final String? durationClass; // brief, short, medium, extended
+
+  @JsonKey(name: 'intensity_class')
+  final String? intensityClass; // moderate, loud, very_loud
+
   /// Processing status
   final String status;
 
@@ -96,6 +119,14 @@ class NoiseEventModel {
     this.isSubmitted = false,
     this.localTimestamp,
     this.retryCount = 0,
+    // New continuous recording fields
+    this.recordingFileId,
+    this.recordingStartOffsetMs,
+    this.recordingEndOffsetMs,
+    this.eventType,
+    this.eventConfidence,
+    this.durationClass,
+    this.intensityClass,
   });
 
   /// Create from detection service event
@@ -152,6 +183,14 @@ class NoiseEventModel {
     bool? isSubmitted,
     DateTime? localTimestamp,
     int? retryCount,
+    // New continuous recording fields
+    String? recordingFileId,
+    int? recordingStartOffsetMs,
+    int? recordingEndOffsetMs,
+    String? eventType,
+    double? eventConfidence,
+    String? durationClass,
+    String? intensityClass,
   }) {
     return NoiseEventModel(
       id: id ?? this.id,
@@ -174,6 +213,14 @@ class NoiseEventModel {
       isSubmitted: isSubmitted ?? this.isSubmitted,
       localTimestamp: localTimestamp ?? this.localTimestamp,
       retryCount: retryCount ?? this.retryCount,
+      // New continuous recording fields
+      recordingFileId: recordingFileId ?? this.recordingFileId,
+      recordingStartOffsetMs: recordingStartOffsetMs ?? this.recordingStartOffsetMs,
+      recordingEndOffsetMs: recordingEndOffsetMs ?? this.recordingEndOffsetMs,
+      eventType: eventType ?? this.eventType,
+      eventConfidence: eventConfidence ?? this.eventConfidence,
+      durationClass: durationClass ?? this.durationClass,
+      intensityClass: intensityClass ?? this.intensityClass,
     );
   }
 

@@ -76,9 +76,9 @@ class RecordingService {
   static const Duration retentionPeriod = Duration(days: 7);
 
   // Default settings (will be loaded from preferences)
-  Duration _bufferDuration = const Duration(minutes: 15);
-  final Duration _overlapDuration = const Duration(minutes: 5);
-  int _maxBuffers = 3;
+  Duration _bufferDuration = const Duration(hours: 1);
+  final Duration _overlapDuration = const Duration(minutes: 10);
+  int _maxBuffers = 4; // 4 hours of rolling continuous recordings
   double _autoRecordThreshold = 65.0;
   bool _enableRecording = false;
 
@@ -277,10 +277,11 @@ class RecordingService {
       // Create new buffer
       await _createNewBuffer();
 
-      // Clean up excess buffers
+      // Clean up excess buffers - keep as continuous recordings for rolling window
       while (_activeBuffers.length > _maxBuffers) {
         final oldestBuffer = _activeBuffers.removeFirst();
-        await _stopBuffer(oldestBuffer, savePermanently: false);
+        // Keep buffer files for continuous playback, just stop recording to it
+        await _stopBuffer(oldestBuffer, savePermanently: true, isContinuous: true);
       }
 
       AppLogger.recording(
@@ -292,7 +293,7 @@ class RecordingService {
 
   /// Stop a recording buffer
   Future<void> _stopBuffer(RecordingBuffer buffer,
-      {bool savePermanently = false}) async {
+      {bool savePermanently = false, bool isContinuous = false}) async {
     try {
       buffer.durationTimer?.cancel();
 
@@ -325,8 +326,15 @@ class RecordingService {
           AppLogger.recording(
               'Deleted temporary buffer file: ${buffer.filePath}');
         } else {
-          AppLogger.recording(
-              'Keeping permanent buffer file: ${buffer.filePath} ($fileSize bytes)');
+          if (isContinuous) {
+            // Save continuous recording to database for reference
+            await _saveContinuousRecording(buffer, fileSize);
+            AppLogger.recording(
+                'Keeping continuous recording file: ${buffer.filePath} ($fileSize bytes)');
+          } else {
+            AppLogger.recording(
+                'Keeping permanent buffer file: ${buffer.filePath} ($fileSize bytes)');
+          }
         }
       } else {
         AppLogger.recording(
@@ -459,6 +467,36 @@ class RecordingService {
           'Queued high-priority recording for AI analysis: ${recording.id}');
     } catch (e) {
       AppLogger.error('Failed to queue for analysis', e);
+    }
+  }
+
+  /// Save continuous recording to database for reference
+  Future<void> _saveContinuousRecording(RecordingBuffer buffer, int fileSize) async {
+    try {
+      final recordingId = _uuid.v4();
+      final endTime = DateTime.now();
+
+      final recording = AudioRecording(
+        id: recordingId,
+        timestampStart: buffer.startTime.millisecondsSinceEpoch ~/ 1000,
+        timestampEnd: endTime.millisecondsSinceEpoch ~/ 1000,
+        durationSeconds: endTime.difference(buffer.startTime).inSeconds,
+        filePath: buffer.filePath,
+        fileSize: fileSize,
+        format: audioFormat,
+        sampleRate: sampleRate,
+        createdAt: buffer.startTime.millisecondsSinceEpoch ~/ 1000,
+        expiresAt: endTime.add(const Duration(hours: 4)).millisecondsSinceEpoch ~/ 1000, // Keep for 4 hours
+        triggerType: 'continuous',
+        avgLevel: _eventDetector.getCurrentStats()['avg_5min'] as double? ?? 50.0,
+        priority: 1, // Low priority for continuous recordings
+      );
+
+      // Save to database
+      await _recordingDao.insert(recording);
+      AppLogger.recording('Saved continuous recording reference: ${recording.id}');
+    } catch (e) {
+      AppLogger.error('Failed to save continuous recording reference', e);
     }
   }
 

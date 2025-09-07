@@ -413,7 +413,8 @@ class _RecordingsPageState extends State<RecordingsPage> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Playing ${recording.id.substring(0, 8)}... (${recording.durationSeconds}s)'),
+            content: Text(
+                'Playing ${recording.id.substring(0, 8)}... (${recording.durationSeconds}s)'),
             duration: const Duration(seconds: 2),
           ),
         );

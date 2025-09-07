@@ -96,7 +96,8 @@ class NoiseMeasurement {
   }
 
   /// Get DateTime for the timestamp
-  DateTime get dateTime => DateTime.fromMillisecondsSinceEpoch(timestamp * 1000);
+  DateTime get dateTime =>
+      DateTime.fromMillisecondsSinceEpoch(timestamp * 1000);
 
   /// Get hour of the day (0-23)
   int get hourOfDay => dateTime.hour;
@@ -106,8 +107,8 @@ class NoiseMeasurement {
     final now = DateTime.now();
     final measurementDate = dateTime;
     return now.year == measurementDate.year &&
-           now.month == measurementDate.month &&
-           now.day == measurementDate.day;
+        now.month == measurementDate.month &&
+        now.day == measurementDate.day;
   }
 
   /// Get dynamic range (difference between max and min)
@@ -131,9 +132,9 @@ class NoiseMeasurement {
   @override
   bool operator ==(Object other) {
     if (identical(this, other)) return true;
-    return other is NoiseMeasurement && 
-           other.timestamp == timestamp &&
-           other.leqDb == leqDb;
+    return other is NoiseMeasurement &&
+        other.timestamp == timestamp &&
+        other.leqDb == leqDb;
   }
 
   @override

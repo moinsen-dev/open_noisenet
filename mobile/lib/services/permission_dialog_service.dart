@@ -2,27 +2,28 @@ import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 class PermissionDialogService {
-  static final PermissionDialogService _instance = PermissionDialogService._internal();
+  static final PermissionDialogService _instance =
+      PermissionDialogService._internal();
   factory PermissionDialogService() => _instance;
   PermissionDialogService._internal();
 
   /// Request location permission with explanatory dialog
   Future<bool> requestLocationPermission(BuildContext context) async {
     const permission = Permission.location;
-    
+
     // Check current status
     final status = await permission.status;
-    
+
     if (status.isGranted) {
       return true;
     }
-    
+
     // If permission was permanently denied, show settings dialog
     if (status.isPermanentlyDenied) {
       if (!context.mounted) return false;
       return _showLocationPermanentlyDeniedDialog(context);
     }
-    
+
     // If permission should show rationale, show explanation first
     if (status.isDenied) {
       if (!context.mounted) return false;
@@ -31,36 +32,36 @@ class PermissionDialogService {
         return false;
       }
     }
-    
+
     // Request the permission
     final newStatus = await permission.request();
-    
+
     // If still denied after request, check if permanently denied
     if (newStatus.isPermanentlyDenied) {
       if (!context.mounted) return false;
       return _showLocationPermanentlyDeniedDialog(context);
     }
-    
+
     return newStatus.isGranted;
   }
 
   /// Request microphone permission with explanatory dialog
   Future<bool> requestMicrophonePermission(BuildContext context) async {
     const permission = Permission.microphone;
-    
+
     // Check current status
     final status = await permission.status;
-    
+
     if (status.isGranted) {
       return true;
     }
-    
+
     // If permission was permanently denied, show settings dialog
     if (status.isPermanentlyDenied) {
       if (!context.mounted) return false;
       return _showPermanentlyDeniedDialog(context);
     }
-    
+
     // If permission should show rationale, show explanation first
     if (status.isDenied) {
       if (!context.mounted) return false;
@@ -69,16 +70,16 @@ class PermissionDialogService {
         return false;
       }
     }
-    
+
     // Request the permission
     final newStatus = await permission.request();
-    
+
     // If still denied after request, check if permanently denied
     if (newStatus.isPermanentlyDenied) {
       if (!context.mounted) return false;
       return _showPermanentlyDeniedDialog(context);
     }
-    
+
     return newStatus.isGranted;
   }
 
@@ -110,7 +111,8 @@ class PermissionDialogService {
                   Icon(Icons.map, size: 20, color: Colors.green),
                   SizedBox(width: 8),
                   Expanded(
-                    child: Text('Associate noise measurements with geographic coordinates'),
+                    child: Text(
+                        'Associate noise measurements with geographic coordinates'),
                   ),
                 ],
               ),
@@ -121,7 +123,8 @@ class PermissionDialogService {
                   Icon(Icons.public, size: 20, color: Colors.orange),
                   SizedBox(width: 8),
                   Expanded(
-                    child: Text('Contribute to community noise mapping efforts'),
+                    child:
+                        Text('Contribute to community noise mapping efforts'),
                   ),
                 ],
               ),
@@ -132,7 +135,8 @@ class PermissionDialogService {
                   Icon(Icons.analytics, size: 20, color: Colors.blue),
                   SizedBox(width: 8),
                   Expanded(
-                    child: Text('Enable location-based noise analysis and trends'),
+                    child:
+                        Text('Enable location-based noise analysis and trends'),
                   ),
                 ],
               ),
@@ -160,12 +164,13 @@ class PermissionDialogService {
         );
       },
     );
-    
+
     return result ?? false;
   }
 
   /// Show dialog when location permission is permanently denied
-  Future<bool> _showLocationPermanentlyDeniedDialog(BuildContext context) async {
+  Future<bool> _showLocationPermanentlyDeniedDialog(
+      BuildContext context) async {
     final result = await showDialog<bool>(
       context: context,
       barrierDismissible: false,
@@ -210,7 +215,7 @@ class PermissionDialogService {
         );
       },
     );
-    
+
     return result ?? false;
   }
 
@@ -242,7 +247,8 @@ class PermissionDialogService {
                   Icon(Icons.volume_up, size: 20, color: Colors.green),
                   SizedBox(width: 8),
                   Expanded(
-                    child: Text('Measure environmental noise levels in real-time'),
+                    child:
+                        Text('Measure environmental noise levels in real-time'),
                   ),
                 ],
               ),
@@ -253,7 +259,8 @@ class PermissionDialogService {
                   Icon(Icons.analytics, size: 20, color: Colors.orange),
                   SizedBox(width: 8),
                   Expanded(
-                    child: Text('Generate noise monitoring data and statistics'),
+                    child:
+                        Text('Generate noise monitoring data and statistics'),
                   ),
                 ],
               ),
@@ -264,7 +271,8 @@ class PermissionDialogService {
                   Icon(Icons.public, size: 20, color: Colors.blue),
                   SizedBox(width: 8),
                   Expanded(
-                    child: Text('Contribute to community noise monitoring efforts'),
+                    child: Text(
+                        'Contribute to community noise monitoring efforts'),
                   ),
                 ],
               ),
@@ -292,7 +300,7 @@ class PermissionDialogService {
         );
       },
     );
-    
+
     return result ?? false;
   }
 
@@ -342,35 +350,38 @@ class PermissionDialogService {
         );
       },
     );
-    
+
     return result ?? false;
   }
 
   /// Show permission status information
   Future<void> showPermissionStatus(BuildContext context) async {
     final status = await Permission.microphone.status;
-    
+
     String title;
     String message;
     IconData icon;
     Color color;
-    
+
     switch (status) {
       case PermissionStatus.granted:
         title = 'Permission Granted';
-        message = 'Microphone access is enabled. You can start noise monitoring.';
+        message =
+            'Microphone access is enabled. You can start noise monitoring.';
         icon = Icons.check_circle;
         color = Colors.green;
         break;
       case PermissionStatus.denied:
         title = 'Permission Denied';
-        message = 'Microphone access was denied. Tap "Request Permission" to try again.';
+        message =
+            'Microphone access was denied. Tap "Request Permission" to try again.';
         icon = Icons.cancel;
         color = Colors.orange;
         break;
       case PermissionStatus.permanentlyDenied:
         title = 'Permission Permanently Denied';
-        message = 'Please enable microphone access in device settings to use noise monitoring.';
+        message =
+            'Please enable microphone access in device settings to use noise monitoring.';
         icon = Icons.block;
         color = Colors.red;
         break;
@@ -393,9 +404,9 @@ class PermissionDialogService {
         color = Colors.blue;
         break;
     }
-    
+
     if (!context.mounted) return;
-    
+
     await showDialog<void>(
       context: context,
       builder: (BuildContext context) {

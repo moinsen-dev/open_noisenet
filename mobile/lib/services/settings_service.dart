@@ -9,7 +9,8 @@ class SettingsService {
 
   // Settings keys
   static const String _keyIsDarkMode = 'is_dark_mode';
-  static const String _keyLocationPermissionGranted = 'location_permission_granted';
+  static const String _keyLocationPermissionGranted =
+      'location_permission_granted';
   static const String _keyLocationAccuracy = 'location_accuracy';
   static const String _keyCalibrationOffset = 'calibration_offset';
   static const String _keyBackendUrl = 'backend_url';
@@ -24,7 +25,8 @@ class SettingsService {
 
   void _ensureInitialized() {
     if (_prefs == null) {
-      throw Exception('SettingsService not initialized. Call initialize() first.');
+      throw Exception(
+          'SettingsService not initialized. Call initialize() first.');
     }
   }
 
@@ -78,7 +80,7 @@ class SettingsService {
   // Sync Settings
   String get backendUrl {
     _ensureInitialized();
-    return _prefs!.getString(_keyBackendUrl) ?? 'http://localhost:8000/api/v1';
+    return _prefs!.getString(_keyBackendUrl) ?? 'http://localhost:8100/api/v1';
   }
 
   Future<bool> setBackendUrl(String url) async {

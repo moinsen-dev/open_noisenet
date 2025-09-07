@@ -67,7 +67,8 @@ class HourlyStatistics {
   }
 
   /// Get DateTime for the hour
-  DateTime get dateTime => DateTime.fromMillisecondsSinceEpoch(hourTimestamp * 1000);
+  DateTime get dateTime =>
+      DateTime.fromMillisecondsSinceEpoch(hourTimestamp * 1000);
 
   /// Get hour of day (0-23)
   int get hourOfDay => dateTime.hour;
@@ -77,8 +78,8 @@ class HourlyStatistics {
     final now = DateTime.now();
     final hourDate = dateTime;
     return now.year == hourDate.year &&
-           now.month == hourDate.month &&
-           now.day == hourDate.day;
+        now.month == hourDate.month &&
+        now.day == hourDate.day;
   }
 
   /// Get dynamic range
@@ -126,8 +127,7 @@ class HourlyStatistics {
   @override
   bool operator ==(Object other) {
     if (identical(this, other)) return true;
-    return other is HourlyStatistics && 
-           other.hourTimestamp == hourTimestamp;
+    return other is HourlyStatistics && other.hourTimestamp == hourTimestamp;
   }
 
   @override

@@ -19,14 +19,13 @@ class RecordingCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isExpired = recording.expiresDateTime.isBefore(DateTime.now());
-    
+
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
       child: ListTile(
         leading: CircleAvatar(
-          backgroundColor: isExpired 
-            ? Colors.grey 
-            : Theme.of(context).colorScheme.primary,
+          backgroundColor:
+              isExpired ? Colors.grey : Theme.of(context).colorScheme.primary,
           child: Icon(
             _getRecordingIcon(),
             color: Colors.white,
@@ -61,22 +60,22 @@ class RecordingCard extends StatelessWidget {
                   child: Text(
                     _formatDateTime(recording.createdDateTime),
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Colors.grey[600],
-                    ),
+                          color: Colors.grey[600],
+                        ),
                   ),
                 ),
               ],
             ),
             if (isExpired) ...[
               const SizedBox(height: 4),
-              Row(
+              const Row(
                 children: [
                   Icon(
                     Icons.warning,
                     size: 12,
                     color: Colors.orange,
                   ),
-                  const SizedBox(width: 4),
+                  SizedBox(width: 4),
                   Text(
                     'Expired',
                     style: TextStyle(
@@ -143,7 +142,7 @@ class RecordingCard extends StatelessWidget {
   String _formatDateTime(DateTime dateTime) {
     final now = DateTime.now();
     final difference = now.difference(dateTime);
-    
+
     if (difference.inDays > 0) {
       return '${difference.inDays}d ago';
     } else if (difference.inHours > 0) {

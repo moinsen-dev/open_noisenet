@@ -35,17 +35,9 @@ class DeviceSetupPage extends StatelessWidget {
             const SizedBox(height: 32),
             ElevatedButton(
               onPressed: () {
-                // TODO: Start setup process
-                context.go('/home');
+                context.go('/onboarding');
               },
               child: const Text('Start Setup'),
-            ),
-            const SizedBox(height: 16),
-            TextButton(
-              onPressed: () {
-                context.go('/login');
-              },
-              child: const Text('Already have an account? Sign in'),
             ),
           ],
         ),

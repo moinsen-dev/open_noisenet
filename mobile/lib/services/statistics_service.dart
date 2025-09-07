@@ -1,9 +1,9 @@
 import 'dart:async';
 import 'dart:math';
 
-import '../core/database/dao/noise_measurement_dao.dart';
 import '../core/database/dao/daily_statistics_dao.dart';
-import '../core/database/models/daily_statistics.dart';
+import '../core/database/dao/noise_measurement_dao.dart';
+import '../core/logging/app_logger.dart';
 import 'audio_recording_service.dart';
 
 class StatisticsService {
@@ -16,19 +16,19 @@ class StatisticsService {
   final AudioRecordingService _recordingService = AudioRecordingService();
 
   // Stream controllers for real-time updates
-  final StreamController<int> _measurementCountController = 
+  final StreamController<int> _measurementCountController =
       StreamController<int>.broadcast();
-  final StreamController<int> _activeRecordingsController = 
+  final StreamController<int> _activeRecordingsController =
       StreamController<int>.broadcast();
-  final StreamController<double?> _todaysAverageController = 
+  final StreamController<double?> _todaysAverageController =
       StreamController<double?>.broadcast();
-  final StreamController<double?> _realTimeAverageController = 
+  final StreamController<double?> _realTimeAverageController =
       StreamController<double?>.broadcast();
-  final StreamController<double?> _dayAverageController = 
+  final StreamController<double?> _dayAverageController =
       StreamController<double?>.broadcast();
-  final StreamController<double?> _hourAverageController = 
+  final StreamController<double?> _hourAverageController =
       StreamController<double?>.broadcast();
-  final StreamController<double?> _fifteenMinPeakController = 
+  final StreamController<double?> _fifteenMinPeakController =
       StreamController<double?>.broadcast();
 
   // Timers for periodic updates
@@ -43,7 +43,8 @@ class StatisticsService {
   Stream<int> get measurementCountStream => _measurementCountController.stream;
   Stream<int> get activeRecordingsStream => _activeRecordingsController.stream;
   Stream<double?> get todaysAverageStream => _todaysAverageController.stream;
-  Stream<double?> get realTimeAverageStream => _realTimeAverageController.stream;
+  Stream<double?> get realTimeAverageStream =>
+      _realTimeAverageController.stream;
   Stream<double?> get dayAverageStream => _dayAverageController.stream;
   Stream<double?> get hourAverageStream => _hourAverageController.stream;
   Stream<double?> get fifteenMinPeakStream => _fifteenMinPeakController.stream;
@@ -51,7 +52,7 @@ class StatisticsService {
   /// Start the statistics service with real-time updates
   void start() {
     if (_isActive) return;
-    
+
     _isActive = true;
     _allSamples.clear();
     _cachedRealTimeAverage = null;
@@ -63,34 +64,34 @@ class StatisticsService {
 
     // Initial update
     _updateStatistics();
-    
-    print('📊 StatisticsService: Started real-time statistics updates');
+
+    AppLogger.stats('Started real-time statistics updates');
   }
 
   /// Stop the statistics service
   void stop() {
     if (!_isActive) return;
-    
+
     _isActive = false;
     _updateTimer?.cancel();
     _updateTimer = null;
     _allSamples.clear();
     _cachedRealTimeAverage = null;
-    
-    print('🛑 StatisticsService: Stopped statistics updates');
+
+    AppLogger.stats('Stopped statistics updates');
   }
 
   /// Add a new SPL sample for real-time average calculation
   void addSample(double splDb) {
     if (!_isActive) return;
-    
+
     _allSamples.add(splDb);
-    
+
     // Limit to last 1000 samples to prevent memory issues
     if (_allSamples.length > 1000) {
       _allSamples.removeAt(0);
     }
-    
+
     // Calculate real-time average
     if (_allSamples.isNotEmpty) {
       // Calculate Leq (equivalent continuous sound level)
@@ -99,7 +100,7 @@ class StatisticsService {
           .fold(0.0, (sum, energy) => sum + energy);
       final averageEnergy = energySum / _allSamples.length;
       final realTimeLeq = 10 * log(averageEnergy) / ln10;
-      
+
       _cachedRealTimeAverage = realTimeLeq;
       _realTimeAverageController.add(realTimeLeq);
     }
@@ -123,17 +124,18 @@ class StatisticsService {
       _todaysAverageController.add(todaysStats);
 
       // Update time-windowed averages
-      final dayAverage = await _getTimeWindowedAverage(const Duration(hours: 24));
+      final dayAverage =
+          await _getTimeWindowedAverage(const Duration(hours: 24));
       _dayAverageController.add(dayAverage);
 
-      final hourAverage = await _getTimeWindowedAverage(const Duration(hours: 1));
+      final hourAverage =
+          await _getTimeWindowedAverage(const Duration(hours: 1));
       _hourAverageController.add(hourAverage);
 
       final fifteenMinPeak = await _getFifteenMinutePeak();
       _fifteenMinPeakController.add(fifteenMinPeak);
-
     } catch (e) {
-      print('❌ StatisticsService: Error updating statistics: $e');
+      AppLogger.stats('Error updating statistics: $e');
     }
   }
 
@@ -143,9 +145,9 @@ class StatisticsService {
       // First try to get from daily statistics
       final today = DateTime.now();
       final dateString = '${today.year.toString().padLeft(4, '0')}-'
-                        '${today.month.toString().padLeft(2, '0')}-'
-                        '${today.day.toString().padLeft(2, '0')}';
-      
+          '${today.month.toString().padLeft(2, '0')}-'
+          '${today.day.toString().padLeft(2, '0')}';
+
       final dailyStats = await _dailyStatsDao.getByDate(dateString);
       if (dailyStats != null) {
         return dailyStats.avgLeq;
@@ -154,7 +156,7 @@ class StatisticsService {
       // If no daily stats, calculate from individual measurements
       final startOfDay = DateTime(today.year, today.month, today.day);
       final endOfDay = startOfDay.add(const Duration(days: 1));
-      
+
       final measurements = await _measurementDao.getByTimeRange(
         startTimestamp: startOfDay.millisecondsSinceEpoch ~/ 1000,
         endTimestamp: endOfDay.millisecondsSinceEpoch ~/ 1000,
@@ -165,14 +167,12 @@ class StatisticsService {
       }
 
       // Calculate average Leq from measurements
-      final totalLeq = measurements
-          .map((m) => m.leqDb)
-          .fold(0.0, (sum, leq) => sum + leq);
-      
-      return totalLeq / measurements.length;
+      final totalLeq =
+          measurements.map((m) => m.leqDb).fold(0.0, (sum, leq) => sum + leq);
 
+      return totalLeq / measurements.length;
     } catch (e) {
-      print('❌ StatisticsService: Error calculating today\'s average: $e');
+      AppLogger.stats('Error calculating today\'s average: $e');
       return null;
     }
   }
@@ -193,7 +193,7 @@ class StatisticsService {
     try {
       final endTime = DateTime.now();
       final startTime = endTime.subtract(windowDuration);
-      
+
       final measurements = await _measurementDao.getByTimeRange(
         startTimestamp: startTime.millisecondsSinceEpoch ~/ 1000,
         endTimestamp: endTime.millisecondsSinceEpoch ~/ 1000,
@@ -204,14 +204,13 @@ class StatisticsService {
       }
 
       // Calculate average Leq from measurements
-      final totalLeq = measurements
-          .map((m) => m.leqDb)
-          .fold(0.0, (sum, leq) => sum + leq);
-      
-      return totalLeq / measurements.length;
+      final totalLeq =
+          measurements.map((m) => m.leqDb).fold(0.0, (sum, leq) => sum + leq);
 
+      return totalLeq / measurements.length;
     } catch (e) {
-      print('❌ StatisticsService: Error calculating ${windowDuration.inHours}h average: $e');
+      AppLogger.stats(
+          'Error calculating ${windowDuration.inHours}h average: $e');
       return null;
     }
   }
@@ -220,8 +219,9 @@ class StatisticsService {
   Future<double?> _getFifteenMinutePeak() async {
     try {
       final endTime = DateTime.now();
-      final startTime = endTime.subtract(const Duration(hours: 1)); // Look at last hour
-      
+      final startTime =
+          endTime.subtract(const Duration(hours: 1)); // Look at last hour
+
       final measurements = await _measurementDao.getByTimeRange(
         startTimestamp: startTime.millisecondsSinceEpoch ~/ 1000,
         endTimestamp: endTime.millisecondsSinceEpoch ~/ 1000,
@@ -233,22 +233,26 @@ class StatisticsService {
 
       // Group measurements into 15-minute windows and find peak
       double maxLeq = 0.0;
-      final windowSize = const Duration(minutes: 15);
-      
-      for (int i = 0; i < 4; i++) { // 4 windows of 15 minutes in an hour
+      const windowSize = Duration(minutes: 15);
+
+      for (int i = 0; i < 4; i++) {
+        // 4 windows of 15 minutes in an hour
         final windowStart = startTime.add(Duration(minutes: i * 15));
         final windowEnd = windowStart.add(windowSize);
-        
+
         final windowMeasurements = measurements.where((m) {
-          final measurementTime = DateTime.fromMillisecondsSinceEpoch(m.timestamp * 1000);
-          return measurementTime.isAfter(windowStart) && measurementTime.isBefore(windowEnd);
+          final measurementTime =
+              DateTime.fromMillisecondsSinceEpoch(m.timestamp * 1000);
+          return measurementTime.isAfter(windowStart) &&
+              measurementTime.isBefore(windowEnd);
         }).toList();
-        
+
         if (windowMeasurements.isNotEmpty) {
           final windowAvg = windowMeasurements
-              .map((m) => m.leqDb)
-              .fold(0.0, (sum, leq) => sum + leq) / windowMeasurements.length;
-          
+                  .map((m) => m.leqDb)
+                  .fold(0.0, (sum, leq) => sum + leq) /
+              windowMeasurements.length;
+
           if (windowAvg > maxLeq) {
             maxLeq = windowAvg;
           }
@@ -256,9 +260,8 @@ class StatisticsService {
       }
 
       return maxLeq > 0 ? maxLeq : null;
-
     } catch (e) {
-      print('❌ StatisticsService: Error calculating 15-min peak: $e');
+      AppLogger.stats('Error calculating 15-min peak: $e');
       return null;
     }
   }

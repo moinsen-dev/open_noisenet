@@ -6,7 +6,8 @@ import '../core/database/models/preference.dart';
 /// SQLite-based preferences service for centralized app settings management
 /// This replaces the SharedPreferences-based SettingsService
 class SQLitePreferencesService {
-  static final SQLitePreferencesService _instance = SQLitePreferencesService._internal();
+  static final SQLitePreferencesService _instance =
+      SQLitePreferencesService._internal();
   factory SQLitePreferencesService() => _instance;
   SQLitePreferencesService._internal();
 
@@ -16,9 +17,9 @@ class SQLitePreferencesService {
   /// Initialize the service and set up default preferences
   Future<void> initialize() async {
     if (_isInitialized) return;
-    
+
     debugPrint('🔧 SQLitePreferencesService: Initializing...');
-    
+
     try {
       await _dao.initializeDefaults();
       _isInitialized = true;
@@ -32,12 +33,13 @@ class SQLitePreferencesService {
   /// Ensure service is initialized before operations
   void _ensureInitialized() {
     if (!_isInitialized) {
-      throw Exception('SQLitePreferencesService not initialized. Call initialize() first.');
+      throw Exception(
+          'SQLitePreferencesService not initialized. Call initialize() first.');
     }
   }
 
   // THEME SETTINGS
-  
+
   /// Get dark mode preference
   Future<bool> getIsDarkMode() async {
     _ensureInitialized();
@@ -95,21 +97,24 @@ class SQLitePreferencesService {
   Future<void> setCalibrationOffset(double offset) async {
     _ensureInitialized();
     await _dao.setCalibrationOffset(offset);
-    debugPrint('🎤 Audio: Calibration offset set to ${offset.toStringAsFixed(1)} dB');
+    debugPrint(
+        '🎤 Audio: Calibration offset set to ${offset.toStringAsFixed(1)} dB');
   }
 
   /// Get noise threshold for event detection
   Future<double> getNoiseThreshold() async {
     _ensureInitialized();
-    return await _dao.getDouble(PreferenceKeys.noiseThreshold, defaultValue: 55.0);
+    return await _dao.getDouble(PreferenceKeys.noiseThreshold,
+        defaultValue: 55.0);
   }
 
   /// Set noise threshold for event detection
   Future<void> setNoiseThreshold(double threshold) async {
     _ensureInitialized();
-    await _dao.setDouble(PreferenceKeys.noiseThreshold, threshold, 
+    await _dao.setDouble(PreferenceKeys.noiseThreshold, threshold,
         description: 'Noise level threshold for event detection (dB)');
-    debugPrint('🎤 Audio: Noise threshold set to ${threshold.toStringAsFixed(1)} dB');
+    debugPrint(
+        '🎤 Audio: Noise threshold set to ${threshold.toStringAsFixed(1)} dB');
   }
 
   // SYNC SETTINGS
@@ -168,12 +173,26 @@ class SQLitePreferencesService {
     debugPrint('🔒 Privacy: Privacy mode set to $enabled');
   }
 
+  /// Get force offline mode status
+  Future<bool> getForceOfflineMode() async {
+    _ensureInitialized();
+    return await _dao.getForceOfflineMode();
+  }
+
+  /// Set force offline mode status
+  Future<void> setForceOfflineMode(bool enabled) async {
+    _ensureInitialized();
+    await _dao.setForceOfflineMode(enabled);
+    debugPrint('📴 Network: Force offline mode set to $enabled');
+  }
+
   // RECORDING SETTINGS
 
   /// Get recording duration in seconds
   Future<int> getRecordingDurationSeconds() async {
     _ensureInitialized();
-    return await _dao.getInt(PreferenceKeys.recordingDuration, defaultValue: 900); // 15 minutes
+    return await _dao.getInt(PreferenceKeys.recordingDuration,
+        defaultValue: 900); // 15 minutes
   }
 
   /// Set recording duration in seconds
@@ -203,7 +222,8 @@ class SQLitePreferencesService {
   /// Get show advanced stats preference
   Future<bool> getShowAdvancedStats() async {
     _ensureInitialized();
-    return await _dao.getBool(PreferenceKeys.showAdvancedStats, defaultValue: false);
+    return await _dao.getBool(PreferenceKeys.showAdvancedStats,
+        defaultValue: false);
   }
 
   /// Set show advanced stats preference
@@ -231,7 +251,8 @@ class SQLitePreferencesService {
   /// Get notifications enabled status
   Future<bool> getNotificationsEnabled() async {
     _ensureInitialized();
-    return await _dao.getBool(PreferenceKeys.enableNotifications, defaultValue: true);
+    return await _dao.getBool(PreferenceKeys.enableNotifications,
+        defaultValue: true);
   }
 
   /// Set notifications enabled status
@@ -245,7 +266,8 @@ class SQLitePreferencesService {
   /// Get app language code
   Future<String> getLanguageCode() async {
     _ensureInitialized();
-    return await _dao.getString(PreferenceKeys.languageCode, defaultValue: 'en');
+    return await _dao.getString(PreferenceKeys.languageCode,
+        defaultValue: 'en');
   }
 
   /// Set app language code
@@ -286,7 +308,8 @@ class SQLitePreferencesService {
   }
 
   /// Set raw preference value (for custom preferences)
-  Future<void> setRawPreference(String key, String value, String dataType, {String? description}) async {
+  Future<void> setRawPreference(String key, String value, String dataType,
+      {String? description}) async {
     _ensureInitialized();
     final pref = Preference(
       key: key,
@@ -328,7 +351,7 @@ class SQLitePreferencesService {
   Future<void> importFromBackup(Map<String, dynamic> backup) async {
     _ensureInitialized();
     debugPrint('📥 SQLitePreferencesService: Importing from backup...');
-    
+
     final preferencesData = backup['preferences'] as List<dynamic>?;
     if (preferencesData == null) {
       throw ArgumentError('Invalid backup format: missing preferences');
@@ -340,14 +363,32 @@ class SQLitePreferencesService {
 
     await _dao.deleteAll();
     await _dao.insertAll(preferences);
-    
-    debugPrint('✅ SQLitePreferencesService: Imported ${preferences.length} preferences');
+
+    debugPrint(
+        '✅ SQLitePreferencesService: Imported ${preferences.length} preferences');
+  }
+
+  // ONBOARDING SETTINGS
+
+  /// Get onboarding completion status
+  Future<bool> getOnboardingComplete() async {
+    _ensureInitialized();
+    return await _dao.getBool(PreferenceKeys.onboardingComplete,
+        defaultValue: false);
+  }
+
+  /// Set onboarding completion status
+  Future<void> setOnboardingComplete(bool completed) async {
+    _ensureInitialized();
+    await _dao.setBool(PreferenceKeys.onboardingComplete, completed,
+        description: 'Whether user has completed onboarding flow');
+    debugPrint('👋 Onboarding: Complete status set to $completed');
   }
 }
 
 /// Location accuracy options (moved from old settings service)
 enum LocationAccuracy {
-  low,      // Network-based, battery efficient
-  high,     // GPS-based, most accurate  
+  low, // Network-based, battery efficient
+  high, // GPS-based, most accurate
   balanced, // Balanced accuracy and battery
 }

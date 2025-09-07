@@ -17,17 +17,17 @@ class AiAnalysisQueueDao {
   /// Insert multiple queue items in a batch
   Future<void> insertBatch(List<AiAnalysisQueue> queueItems) async {
     if (queueItems.isEmpty) return;
-    
+
     final db = await _databaseHelper.database;
     final batch = db.batch();
-    
+
     for (final queueItem in queueItems) {
       batch.insert(
         DatabaseHelper.tableAiAnalysisQueue,
         queueItem.toMap(),
       );
     }
-    
+
     await batch.commit(noResult: true);
   }
 
@@ -40,7 +40,7 @@ class AiAnalysisQueueDao {
       whereArgs: [id],
       limit: 1,
     );
-    
+
     if (maps.isEmpty) return null;
     return AiAnalysisQueue.fromMap(maps.first);
   }
@@ -54,12 +54,13 @@ class AiAnalysisQueueDao {
       whereArgs: [recordingId],
       orderBy: 'id ASC',
     );
-    
+
     return maps.map((map) => AiAnalysisQueue.fromMap(map)).toList();
   }
 
   /// Get queue items by status
-  Future<List<AiAnalysisQueue>> getByStatus(AnalysisStatus status, {int? limit}) async {
+  Future<List<AiAnalysisQueue>> getByStatus(AnalysisStatus status,
+      {int? limit}) async {
     final db = await _databaseHelper.database;
     final maps = await db.query(
       DatabaseHelper.tableAiAnalysisQueue,
@@ -68,7 +69,7 @@ class AiAnalysisQueueDao {
       orderBy: 'id ASC', // Process oldest first
       limit: limit,
     );
-    
+
     return maps.map((map) => AiAnalysisQueue.fromMap(map)).toList();
   }
 
@@ -93,7 +94,8 @@ class AiAnalysisQueueDao {
   }
 
   /// Get queue items by analysis type
-  Future<List<AiAnalysisQueue>> getByAnalysisType(AnalysisType analysisType, {int? limit}) async {
+  Future<List<AiAnalysisQueue>> getByAnalysisType(AnalysisType analysisType,
+      {int? limit}) async {
     final db = await _databaseHelper.database;
     final maps = await db.query(
       DatabaseHelper.tableAiAnalysisQueue,
@@ -102,7 +104,7 @@ class AiAnalysisQueueDao {
       orderBy: 'id ASC',
       limit: limit,
     );
-    
+
     return maps.map((map) => AiAnalysisQueue.fromMap(map)).toList();
   }
 
@@ -116,7 +118,7 @@ class AiAnalysisQueueDao {
       orderBy: 'id ASC',
       limit: 1,
     );
-    
+
     if (maps.isEmpty) return null;
     return AiAnalysisQueue.fromMap(maps.first);
   }
@@ -132,7 +134,7 @@ class AiAnalysisQueueDao {
       orderBy: orderBy,
       limit: limit,
     );
-    
+
     return maps.map((map) => AiAnalysisQueue.fromMap(map)).toList();
   }
 
@@ -148,20 +150,22 @@ class AiAnalysisQueueDao {
   }
 
   /// Update status
-  Future<int> updateStatus(int id, AnalysisStatus status, {String? errorMessage}) async {
+  Future<int> updateStatus(int id, AnalysisStatus status,
+      {String? errorMessage}) async {
     final db = await _databaseHelper.database;
     final updateData = <String, dynamic>{
       'status': status.name,
     };
-    
+
     if (status == AnalysisStatus.completed || status == AnalysisStatus.failed) {
-      updateData['processed_at'] = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+      updateData['processed_at'] =
+          DateTime.now().millisecondsSinceEpoch ~/ 1000;
     }
-    
+
     if (errorMessage != null) {
       updateData['error_message'] = errorMessage;
     }
-    
+
     return await db.update(
       DatabaseHelper.tableAiAnalysisQueue,
       updateData,
@@ -176,18 +180,19 @@ class AiAnalysisQueueDao {
   }
 
   /// Mark as completed
-  Future<int> markAsCompleted(int id, String result, {double? confidenceScore}) async {
+  Future<int> markAsCompleted(int id, String result,
+      {double? confidenceScore}) async {
     final db = await _databaseHelper.database;
     final updateData = <String, dynamic>{
       'status': AnalysisStatus.completed.name,
       'result': result,
       'processed_at': DateTime.now().millisecondsSinceEpoch ~/ 1000,
     };
-    
+
     if (confidenceScore != null) {
       updateData['confidence_score'] = confidenceScore;
     }
-    
+
     return await db.update(
       DatabaseHelper.tableAiAnalysisQueue,
       updateData,
@@ -198,7 +203,8 @@ class AiAnalysisQueueDao {
 
   /// Mark as failed
   Future<int> markAsFailed(int id, String errorMessage) async {
-    return await updateStatus(id, AnalysisStatus.failed, errorMessage: errorMessage);
+    return await updateStatus(id, AnalysisStatus.failed,
+        errorMessage: errorMessage);
   }
 
   /// Delete queue item by ID
@@ -225,7 +231,7 @@ class AiAnalysisQueueDao {
   Future<int> deleteCompletedOlderThanDays(int days) async {
     final cutoff = DateTime.now().subtract(Duration(days: days));
     final cutoffTimestamp = cutoff.millisecondsSinceEpoch ~/ 1000;
-    
+
     final db = await _databaseHelper.database;
     return await db.delete(
       DatabaseHelper.tableAiAnalysisQueue,
@@ -238,7 +244,7 @@ class AiAnalysisQueueDao {
   Future<int> deleteFailedOlderThanDays(int days) async {
     final cutoff = DateTime.now().subtract(Duration(days: days));
     final cutoffTimestamp = cutoff.millisecondsSinceEpoch ~/ 1000;
-    
+
     final db = await _databaseHelper.database;
     return await db.delete(
       DatabaseHelper.tableAiAnalysisQueue,
@@ -306,7 +312,8 @@ class AiAnalysisQueueDao {
   }
 
   /// Check if recording has pending analysis
-  Future<bool> hasPendingAnalysis(String recordingId, AnalysisType analysisType) async {
+  Future<bool> hasPendingAnalysis(
+      String recordingId, AnalysisType analysisType) async {
     final db = await _databaseHelper.database;
     final result = await db.query(
       DatabaseHelper.tableAiAnalysisQueue,
@@ -331,7 +338,7 @@ class AiAnalysisQueueDao {
         AVG(confidence_score) as avg_confidence
       FROM ${DatabaseHelper.tableAiAnalysisQueue}
     ''');
-    
+
     if (result.isEmpty) {
       return {
         'total_items': 0,
@@ -342,7 +349,7 @@ class AiAnalysisQueueDao {
         'avg_confidence': null,
       };
     }
-    
+
     return result.first;
   }
 

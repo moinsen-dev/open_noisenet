@@ -17,17 +17,17 @@ class AudioRecordingDao {
   /// Insert multiple recordings in a batch
   Future<void> insertBatch(List<AudioRecording> recordings) async {
     if (recordings.isEmpty) return;
-    
+
     final db = await _databaseHelper.database;
     final batch = db.batch();
-    
+
     for (final recording in recordings) {
       batch.insert(
         DatabaseHelper.tableAudioRecordings,
         recording.toMap(),
       );
     }
-    
+
     await batch.commit(noResult: true);
   }
 
@@ -40,7 +40,7 @@ class AudioRecordingDao {
       whereArgs: [id],
       limit: 1,
     );
-    
+
     if (maps.isEmpty) return null;
     return AudioRecording.fromMap(maps.first);
   }
@@ -54,7 +54,7 @@ class AudioRecordingDao {
       whereArgs: [eventId],
       orderBy: 'timestamp_start ASC',
     );
-    
+
     return maps.map((map) => AudioRecording.fromMap(map)).toList();
   }
 
@@ -73,7 +73,7 @@ class AudioRecordingDao {
       orderBy: orderBy,
       limit: limit,
     );
-    
+
     return maps.map((map) => AudioRecording.fromMap(map)).toList();
   }
 
@@ -88,7 +88,7 @@ class AudioRecordingDao {
       orderBy: orderBy,
       limit: limit,
     );
-    
+
     return maps.map((map) => AudioRecording.fromMap(map)).toList();
   }
 
@@ -103,7 +103,7 @@ class AudioRecordingDao {
       orderBy: 'created_at ASC', // Process older recordings first
       limit: limit,
     );
-    
+
     return maps.map((map) => AudioRecording.fromMap(map)).toList();
   }
 
@@ -118,7 +118,7 @@ class AudioRecordingDao {
       orderBy: 'timestamp_start DESC',
       limit: limit,
     );
-    
+
     return maps.map((map) => AudioRecording.fromMap(map)).toList();
   }
 
@@ -132,7 +132,7 @@ class AudioRecordingDao {
       whereArgs: [now],
       orderBy: 'expires_at ASC',
     );
-    
+
     return maps.map((map) => AudioRecording.fromMap(map)).toList();
   }
 
@@ -145,7 +145,7 @@ class AudioRecordingDao {
       whereArgs: [format],
       orderBy: 'timestamp_start DESC',
     );
-    
+
     return maps.map((map) => AudioRecording.fromMap(map)).toList();
   }
 
@@ -301,7 +301,7 @@ class AudioRecordingDao {
         MAX(timestamp_start) as newest_timestamp
       FROM ${DatabaseHelper.tableAudioRecordings}
     ''');
-    
+
     if (result.isEmpty) {
       return {
         'total_recordings': 0,
@@ -313,7 +313,7 @@ class AudioRecordingDao {
         'newest_timestamp': null,
       };
     }
-    
+
     return result.first;
   }
 
@@ -325,15 +325,15 @@ class AudioRecordingDao {
     int? limit,
   }) async {
     final db = await _databaseHelper.database;
-    
+
     String whereClause = 'is_analyzed = ?';
     List<dynamic> whereArgs = [isAnalyzed ? 1 : 0];
-    
+
     if (startTimestamp != null && endTimestamp != null) {
       whereClause += ' AND timestamp_start >= ? AND timestamp_start <= ?';
       whereArgs.addAll([startTimestamp, endTimestamp]);
     }
-    
+
     final maps = await db.query(
       DatabaseHelper.tableAudioRecordings,
       where: whereClause,
@@ -341,7 +341,7 @@ class AudioRecordingDao {
       orderBy: 'timestamp_start DESC',
       limit: limit,
     );
-    
+
     return maps.map((map) => AudioRecording.fromMap(map)).toList();
   }
 }

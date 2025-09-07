@@ -143,7 +143,8 @@ class Preference {
       dataType: dataType ?? this.dataType,
       description: description ?? this.description,
       createdAt: createdAt ?? this.createdAt,
-      updatedAt: updatedAt ?? DateTime.now(), // Always update timestamp when copied
+      updatedAt:
+          updatedAt ?? DateTime.now(), // Always update timestamp when copied
     );
   }
 
@@ -171,32 +172,38 @@ class Preference {
 class PreferenceKeys {
   // Theme Settings
   static const String isDarkMode = 'is_dark_mode';
-  
-  // Location Settings  
+
+  // Location Settings
   static const String locationPermissionGranted = 'location_permission_granted';
   static const String locationAccuracy = 'location_accuracy';
-  
+
   // Audio Settings
   static const String calibrationOffset = 'calibration_offset';
-  
+
   // Sync Settings
   static const String backendUrl = 'backend_url';
   static const String autoSubmissionEnabled = 'auto_submission_enabled';
   static const String submissionIntervalMinutes = 'submission_interval_minutes';
-  
+
   // Privacy Settings
   static const String privacyMode = 'privacy_mode';
-  
+
+  // Network Settings
+  static const String forceOfflineMode = 'force_offline_mode';
+
   // Monitoring Settings
   static const String noiseThreshold = 'noise_threshold';
   static const String recordingDuration = 'recording_duration_seconds';
   static const String maxRecordings = 'max_recordings_count';
-  
+
   // UI Settings
   static const String showAdvancedStats = 'show_advanced_stats';
   static const String chartTimeSpan = 'chart_time_span_hours';
   static const String enableNotifications = 'enable_notifications';
   static const String languageCode = 'language_code';
+
+  // Onboarding Settings
+  static const String onboardingComplete = 'onboarding_complete';
 
   /// Get all default preferences with their default values
   static List<Preference> getDefaults() {
@@ -207,7 +214,7 @@ class PreferenceKeys {
         value: true,
         description: 'Enable dark mode theme',
       ),
-      
+
       // Location
       Preference.createBool(
         key: locationPermissionGranted,
@@ -219,18 +226,18 @@ class PreferenceKeys {
         value: 'high',
         description: 'GPS accuracy level (low, high, balanced)',
       ),
-      
+
       // Audio
       Preference.createDouble(
         key: calibrationOffset,
         value: 0.0,
         description: 'Audio calibration offset in dB',
       ),
-      
+
       // Sync
       Preference.createString(
         key: backendUrl,
-        value: 'http://localhost:8000/api/v1',
+        value: 'http://localhost:8100/api/v1',
         description: 'Backend server URL for data sync',
       ),
       Preference.createBool(
@@ -243,14 +250,21 @@ class PreferenceKeys {
         value: 5,
         description: 'Interval between auto-submissions in minutes',
       ),
-      
+
       // Privacy
       Preference.createBool(
         key: privacyMode,
         value: false,
         description: 'Enable privacy mode (limits data collection)',
       ),
-      
+
+      // Network
+      Preference.createBool(
+        key: forceOfflineMode,
+        value: false,
+        description: 'Force offline mode (disable backend connectivity)',
+      ),
+
       // Monitoring
       Preference.createDouble(
         key: noiseThreshold,
@@ -267,7 +281,7 @@ class PreferenceKeys {
         value: 3,
         description: 'Maximum number of concurrent recordings',
       ),
-      
+
       // UI
       Preference.createBool(
         key: showAdvancedStats,
@@ -288,6 +302,13 @@ class PreferenceKeys {
         key: languageCode,
         value: 'en',
         description: 'App language code',
+      ),
+
+      // Onboarding
+      Preference.createBool(
+        key: onboardingComplete,
+        value: false,
+        description: 'Whether user has completed onboarding flow',
       ),
     ];
   }

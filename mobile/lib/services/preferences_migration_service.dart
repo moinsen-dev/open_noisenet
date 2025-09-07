@@ -7,30 +7,34 @@ import 'sqlite_preferences_service.dart' as sqlite_prefs;
 
 /// Service to migrate preferences from SharedPreferences to SQLite
 class PreferencesMigrationService {
-  static final PreferencesMigrationService _instance = PreferencesMigrationService._internal();
+  static final PreferencesMigrationService _instance =
+      PreferencesMigrationService._internal();
   factory PreferencesMigrationService() => _instance;
   PreferencesMigrationService._internal();
 
   final SettingsService _oldSettings = SettingsService();
-  final sqlite_prefs.SQLitePreferencesService _newPrefs = sqlite_prefs.SQLitePreferencesService();
+  final sqlite_prefs.SQLitePreferencesService _newPrefs =
+      sqlite_prefs.SQLitePreferencesService();
 
   /// Check if migration is needed (old SharedPreferences exist but SQLite is empty/new)
   Future<bool> needsMigration() async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final hasOldData = prefs.getKeys().isNotEmpty;
-      
+
       if (!hasOldData) {
         debugPrint('🔄 Migration: No old SharedPreferences data found');
         return false;
       }
-      
+
       // Check if new SQLite preferences are empty (only defaults)
       final sqliteCount = await _newPrefs.getPreferencesCount();
-      final hasOnlyDefaults = sqliteCount == PreferenceKeys.getDefaults().length;
-      
-      debugPrint('🔄 Migration: SharedPreferences keys: ${prefs.getKeys().length}, SQLite preferences: $sqliteCount');
-      
+      final hasOnlyDefaults =
+          sqliteCount == PreferenceKeys.getDefaults().length;
+
+      debugPrint(
+          '🔄 Migration: SharedPreferences keys: ${prefs.getKeys().length}, SQLite preferences: $sqliteCount');
+
       return hasOldData && hasOnlyDefaults;
     } catch (e) {
       debugPrint('❌ Migration: Error checking migration needs - $e');
@@ -40,8 +44,9 @@ class PreferencesMigrationService {
 
   /// Migrate all preferences from SharedPreferences to SQLite
   Future<void> migratePreferences() async {
-    debugPrint('🔄 Starting preference migration from SharedPreferences to SQLite...');
-    
+    debugPrint(
+        '🔄 Starting preference migration from SharedPreferences to SQLite...');
+
     try {
       // Ensure both services are initialized
       await _oldSettings.initialize();
@@ -53,7 +58,7 @@ class PreferencesMigrationService {
       for (final entry in migrationMap.entries) {
         final key = entry.key;
         final migrator = entry.value;
-        
+
         try {
           final migrated = await migrator();
           if (migrated) {
@@ -65,11 +70,11 @@ class PreferencesMigrationService {
         }
       }
 
-      debugPrint('✅ Migration completed: $migratedCount/${migrationMap.length} preferences migrated');
+      debugPrint(
+          '✅ Migration completed: $migratedCount/${migrationMap.length} preferences migrated');
 
       // Optionally clean up old SharedPreferences
       await _cleanupOldPreferences();
-
     } catch (e) {
       debugPrint('❌ Migration failed: $e');
       rethrow;
@@ -80,41 +85,34 @@ class PreferencesMigrationService {
   Future<Map<String, Future<bool> Function()>> _buildMigrationMap() async {
     return {
       'is_dark_mode': () => _migrateBool(
-        oldGetter: () => _oldSettings.isDarkMode,
-        newSetter: (value) => _newPrefs.setIsDarkMode(value),
-      ),
-      
+            oldGetter: () => _oldSettings.isDarkMode,
+            newSetter: (value) => _newPrefs.setIsDarkMode(value),
+          ),
       'location_permission_granted': () => _migrateBool(
-        oldGetter: () => _oldSettings.isLocationPermissionGranted,
-        newSetter: (value) => _newPrefs.setLocationPermissionGranted(value),
-      ),
-      
+            oldGetter: () => _oldSettings.isLocationPermissionGranted,
+            newSetter: (value) => _newPrefs.setLocationPermissionGranted(value),
+          ),
       'location_accuracy': () => _migrateLocationAccuracy(),
-      
       'calibration_offset': () => _migrateDouble(
-        oldGetter: () => _oldSettings.calibrationOffset,
-        newSetter: (value) => _newPrefs.setCalibrationOffset(value),
-      ),
-      
+            oldGetter: () => _oldSettings.calibrationOffset,
+            newSetter: (value) => _newPrefs.setCalibrationOffset(value),
+          ),
       'backend_url': () => _migrateString(
-        oldGetter: () => _oldSettings.backendUrl,
-        newSetter: (value) => _newPrefs.setBackendUrl(value),
-      ),
-      
+            oldGetter: () => _oldSettings.backendUrl,
+            newSetter: (value) => _newPrefs.setBackendUrl(value),
+          ),
       'auto_submission_enabled': () => _migrateBool(
-        oldGetter: () => _oldSettings.isAutoSubmissionEnabled,
-        newSetter: (value) => _newPrefs.setAutoSubmissionEnabled(value),
-      ),
-      
+            oldGetter: () => _oldSettings.isAutoSubmissionEnabled,
+            newSetter: (value) => _newPrefs.setAutoSubmissionEnabled(value),
+          ),
       'submission_interval_minutes': () => _migrateInt(
-        oldGetter: () => _oldSettings.submissionIntervalMinutes,
-        newSetter: (value) => _newPrefs.setSubmissionIntervalMinutes(value),
-      ),
-      
+            oldGetter: () => _oldSettings.submissionIntervalMinutes,
+            newSetter: (value) => _newPrefs.setSubmissionIntervalMinutes(value),
+          ),
       'privacy_mode': () => _migrateBool(
-        oldGetter: () => _oldSettings.isPrivacyMode,
-        newSetter: (value) => _newPrefs.setPrivacyMode(value),
-      ),
+            oldGetter: () => _oldSettings.isPrivacyMode,
+            newSetter: (value) => _newPrefs.setPrivacyMode(value),
+          ),
     };
   }
 
@@ -193,7 +191,8 @@ class PreferencesMigrationService {
   }
 
   /// Convert from old LocationAccuracy enum to new one
-  sqlite_prefs.LocationAccuracy _convertLocationAccuracy(LocationAccuracy oldAccuracy) {
+  sqlite_prefs.LocationAccuracy _convertLocationAccuracy(
+      LocationAccuracy oldAccuracy) {
     switch (oldAccuracy) {
       case LocationAccuracy.low:
         return sqlite_prefs.LocationAccuracy.low;
@@ -207,14 +206,14 @@ class PreferencesMigrationService {
   /// Clean up old SharedPreferences after successful migration
   Future<void> _cleanupOldPreferences() async {
     debugPrint('🧹 Cleaning up old SharedPreferences...');
-    
+
     try {
       final prefs = await SharedPreferences.getInstance();
-      
+
       // List of keys to remove (only our app's keys)
       const keysToRemove = [
         'is_dark_mode',
-        'location_permission_granted', 
+        'location_permission_granted',
         'location_accuracy',
         'calibration_offset',
         'backend_url',
@@ -241,10 +240,10 @@ class PreferencesMigrationService {
   /// Create backup of old preferences before migration
   Future<Map<String, dynamic>> createBackup() async {
     debugPrint('💾 Creating backup of old SharedPreferences...');
-    
+
     try {
       await _oldSettings.initialize();
-      
+
       return {
         'version': 1,
         'created_at': DateTime.now().toIso8601String(),
@@ -259,15 +258,15 @@ class PreferencesMigrationService {
   /// Restore from backup if migration fails
   Future<void> restoreFromBackup(Map<String, dynamic> backup) async {
     debugPrint('🔄 Restoring from backup...');
-    
+
     try {
       final prefs = await SharedPreferences.getInstance();
       final backupPrefs = backup['preferences'] as Map<String, dynamic>;
-      
+
       for (final entry in backupPrefs.entries) {
         final key = entry.key;
         final value = entry.value;
-        
+
         if (value is bool) {
           await prefs.setBool(key, value);
         } else if (value is int) {
@@ -278,7 +277,7 @@ class PreferencesMigrationService {
           await prefs.setString(key, value);
         }
       }
-      
+
       debugPrint('✅ Restored ${backupPrefs.length} preferences from backup');
     } catch (e) {
       debugPrint('❌ Restore error: $e');
@@ -289,7 +288,7 @@ class PreferencesMigrationService {
   /// Complete migration process with backup and error handling
   Future<void> performSafeMigration() async {
     debugPrint('🔄 Starting safe preference migration...');
-    
+
     // Check if migration is needed
     if (!await needsMigration()) {
       debugPrint('ℹ️ Migration not needed, skipping...');
@@ -297,19 +296,19 @@ class PreferencesMigrationService {
     }
 
     Map<String, dynamic>? backup;
-    
+
     try {
       // Create backup first
       backup = await createBackup();
       debugPrint('💾 Backup created successfully');
-      
+
       // Perform migration
       await migratePreferences();
-      
+
       debugPrint('✅ Safe migration completed successfully');
     } catch (e) {
       debugPrint('❌ Migration failed: $e');
-      
+
       // Attempt to restore from backup
       if (backup != null) {
         try {
@@ -321,7 +320,7 @@ class PreferencesMigrationService {
           // App should fall back to default preferences
         }
       }
-      
+
       rethrow;
     }
   }

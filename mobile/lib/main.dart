@@ -3,23 +3,32 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'core/di/injection.dart';
+import 'core/logging/app_logger.dart';
 import 'core/router/app_router.dart';
 import 'core/theme/app_theme.dart';
 import 'features/app/presentation/bloc/app_bloc.dart';
 import 'features/noise_monitoring/presentation/bloc/monitoring_bloc.dart';
+import 'services/background_monitoring_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
+
+  // Initialize logging framework
+  AppLogger.initialize(enableInRelease: false);
+
   // Initialize dependency injection
   await configureDependencies();
-  
+
+  // Initialize background monitoring service
+  final backgroundService = BackgroundMonitoringService();
+  await backgroundService.initialize();
+
   // Set preferred orientations
   await SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,
   ]);
-  
+
   runApp(const NoiseNetApp());
 }
 
@@ -42,19 +51,19 @@ class NoiseNetApp extends StatelessWidget {
           return MaterialApp.router(
             title: 'OpenNoiseNet',
             debugShowCheckedModeBanner: false,
-            
+
             // Theme configuration
             theme: AppTheme.lightTheme,
             darkTheme: AppTheme.darkTheme,
             themeMode: _getThemeMode(state),
-            
+
             // Router configuration
             routerConfig: AppRouter.router,
-            
+
             // Localization (to be implemented)
             // localizationsDelegates: AppLocalizations.localizationsDelegates,
             // supportedLocales: AppLocalizations.supportedLocales,
-            
+
             builder: (context, child) {
               // Global error handling and loading states
               return BlocListener<AppBloc, AppState>(
@@ -62,6 +71,8 @@ class NoiseNetApp extends StatelessWidget {
                   // Handle global app state changes
                   if (state is AppError) {
                     _showErrorSnackBar(context, state.message);
+                  } else if (state is AppConnectionStatus && state.shouldShowNotification) {
+                    _showConnectionStatusSnackBar(context, state);
                   }
                 },
                 child: child ?? const SizedBox.shrink(),
@@ -87,6 +98,50 @@ class NoiseNetApp extends StatelessWidget {
         backgroundColor: Theme.of(context).colorScheme.error,
         action: SnackBarAction(
           label: 'Dismiss',
+          onPressed: () {
+            ScaffoldMessenger.of(context).hideCurrentSnackBar();
+          },
+        ),
+      ),
+    );
+  }
+
+  void _showConnectionStatusSnackBar(BuildContext context, AppConnectionStatus status) {
+    Color backgroundColor;
+    IconData icon;
+    
+    switch (status.mode) {
+      case 'offline':
+        backgroundColor = Colors.orange;
+        icon = Icons.cloud_off;
+        break;
+      case 'anonymous':
+        backgroundColor = Colors.blue;
+        icon = Icons.cloud_queue;
+        break;
+      case 'authenticated':
+        backgroundColor = Colors.green;
+        icon = Icons.cloud_done;
+        break;
+      default:
+        backgroundColor = Colors.grey;
+        icon = Icons.error;
+    }
+    
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            Icon(icon, color: Colors.white, size: 20),
+            const SizedBox(width: 8),
+            Expanded(child: Text(status.message)),
+          ],
+        ),
+        backgroundColor: backgroundColor,
+        duration: const Duration(seconds: 4),
+        action: SnackBarAction(
+          label: 'Dismiss',
+          textColor: Colors.white,
           onPressed: () {
             ScaffoldMessenger.of(context).hideCurrentSnackBar();
           },

@@ -24,7 +24,7 @@ class PreferencesDao {
   Future<void> insertAll(List<Preference> preferences) async {
     final db = await DatabaseHelper.instance.database;
     final batch = db.batch();
-    
+
     for (final preference in preferences) {
       batch.insert(
         DatabaseHelper.tablePreferences,
@@ -32,7 +32,7 @@ class PreferencesDao {
         conflictAlgorithm: ConflictAlgorithm.ignore, // Don't overwrite existing
       );
     }
-    
+
     await batch.commit(noResult: true);
   }
 
@@ -90,7 +90,7 @@ class PreferencesDao {
   /// Upsert (insert or update) a preference
   Future<void> upsert(Preference preference) async {
     final existing = await getByKey(preference.key);
-    
+
     if (existing != null) {
       // Update existing preference with new values but preserve creation time
       final updated = preference.copyWith(
@@ -124,11 +124,11 @@ class PreferencesDao {
   Future<Map<String, Preference>> getAllAsMap() async {
     final preferences = await getAll();
     final Map<String, Preference> prefMap = {};
-    
+
     for (final pref in preferences) {
       prefMap[pref.key] = pref;
     }
-    
+
     return prefMap;
   }
 
@@ -161,7 +161,8 @@ class PreferencesDao {
   // Typed setter methods for common preferences
 
   /// Set string preference
-  Future<void> setString(String key, String value, {String? description}) async {
+  Future<void> setString(String key, String value,
+      {String? description}) async {
     await upsert(Preference.createString(
       key: key,
       value: value,
@@ -179,7 +180,8 @@ class PreferencesDao {
   }
 
   /// Set double preference
-  Future<void> setDouble(String key, double value, {String? description}) async {
+  Future<void> setDouble(String key, double value,
+      {String? description}) async {
     await upsert(Preference.createDouble(
       key: key,
       value: value,
@@ -205,7 +207,8 @@ class PreferencesDao {
   /// Get count of all preferences
   Future<int> count() async {
     final db = await DatabaseHelper.instance.database;
-    final result = await db.rawQuery('SELECT COUNT(*) FROM ${DatabaseHelper.tablePreferences}');
+    final result = await db
+        .rawQuery('SELECT COUNT(*) FROM ${DatabaseHelper.tablePreferences}');
     return Sqflite.firstIntValue(result) ?? 0;
   }
 
@@ -225,16 +228,18 @@ class PreferencesDao {
   /// Initialize default preferences if they don't exist
   Future<void> initializeDefaults() async {
     debugPrint('🔧 PreferencesDao: Initializing default preferences...');
-    
+
     try {
       final existingCount = await count();
       if (existingCount == 0) {
-        debugPrint('🔧 PreferencesDao: No preferences found, inserting defaults...');
+        debugPrint(
+            '🔧 PreferencesDao: No preferences found, inserting defaults...');
         await insertAll(PreferenceKeys.getDefaults());
         final newCount = await count();
         debugPrint('🔧 PreferencesDao: Inserted $newCount default preferences');
       } else {
-        debugPrint('🔧 PreferencesDao: Found $existingCount existing preferences');
+        debugPrint(
+            '🔧 PreferencesDao: Found $existingCount existing preferences');
       }
     } catch (e) {
       debugPrint('❌ PreferencesDao: Error initializing defaults - $e');
@@ -245,7 +250,7 @@ class PreferencesDao {
   /// Reset preferences to defaults (for settings reset)
   Future<void> resetToDefaults() async {
     debugPrint('🔄 PreferencesDao: Resetting preferences to defaults...');
-    
+
     try {
       await deleteAll();
       await insertAll(PreferenceKeys.getDefaults());
@@ -260,7 +265,7 @@ class PreferencesDao {
   Future<Map<String, dynamic>> exportToMap() async {
     final preferences = await getAll();
     final Map<String, dynamic> exportData = {};
-    
+
     for (final pref in preferences) {
       switch (pref.dataType) {
         case 'string':
@@ -279,7 +284,7 @@ class PreferencesDao {
           exportData[pref.key] = pref.value;
       }
     }
-    
+
     return exportData;
   }
 }
@@ -287,31 +292,56 @@ class PreferencesDao {
 /// Convenience extension for easier typed access
 extension PreferencesDaoExtensions on PreferencesDao {
   // Theme preferences
-  Future<bool> getIsDarkMode() => getBool(PreferenceKeys.isDarkMode, defaultValue: true);
-  Future<void> setIsDarkMode(bool value) => setBool(PreferenceKeys.isDarkMode, value, description: 'Enable dark mode theme');
+  Future<bool> getIsDarkMode() =>
+      getBool(PreferenceKeys.isDarkMode, defaultValue: true);
+  Future<void> setIsDarkMode(bool value) =>
+      setBool(PreferenceKeys.isDarkMode, value,
+          description: 'Enable dark mode theme');
 
-  // Location preferences  
-  Future<bool> getLocationPermissionGranted() => getBool(PreferenceKeys.locationPermissionGranted, defaultValue: false);
-  Future<void> setLocationPermissionGranted(bool value) => setBool(PreferenceKeys.locationPermissionGranted, value);
+  // Location preferences
+  Future<bool> getLocationPermissionGranted() =>
+      getBool(PreferenceKeys.locationPermissionGranted, defaultValue: false);
+  Future<void> setLocationPermissionGranted(bool value) =>
+      setBool(PreferenceKeys.locationPermissionGranted, value);
 
-  Future<String> getLocationAccuracy() => getString(PreferenceKeys.locationAccuracy, defaultValue: 'high');
-  Future<void> setLocationAccuracy(String value) => setString(PreferenceKeys.locationAccuracy, value);
+  Future<String> getLocationAccuracy() =>
+      getString(PreferenceKeys.locationAccuracy, defaultValue: 'high');
+  Future<void> setLocationAccuracy(String value) =>
+      setString(PreferenceKeys.locationAccuracy, value);
 
   // Audio preferences
-  Future<double> getCalibrationOffset() => getDouble(PreferenceKeys.calibrationOffset, defaultValue: 0.0);
-  Future<void> setCalibrationOffset(double value) => setDouble(PreferenceKeys.calibrationOffset, value, description: 'Audio calibration offset in dB');
+  Future<double> getCalibrationOffset() =>
+      getDouble(PreferenceKeys.calibrationOffset, defaultValue: 0.0);
+  Future<void> setCalibrationOffset(double value) =>
+      setDouble(PreferenceKeys.calibrationOffset, value,
+          description: 'Audio calibration offset in dB');
 
   // Sync preferences
-  Future<String> getBackendUrl() => getString(PreferenceKeys.backendUrl, defaultValue: 'http://localhost:8000/api/v1');
-  Future<void> setBackendUrl(String value) => setString(PreferenceKeys.backendUrl, value, description: 'Backend server URL for data sync');
+  Future<String> getBackendUrl() => getString(PreferenceKeys.backendUrl,
+      defaultValue: 'http://localhost:8100/api/v1');
+  Future<void> setBackendUrl(String value) =>
+      setString(PreferenceKeys.backendUrl, value,
+          description: 'Backend server URL for data sync');
 
-  Future<bool> getAutoSubmissionEnabled() => getBool(PreferenceKeys.autoSubmissionEnabled, defaultValue: true);
-  Future<void> setAutoSubmissionEnabled(bool value) => setBool(PreferenceKeys.autoSubmissionEnabled, value);
+  Future<bool> getAutoSubmissionEnabled() =>
+      getBool(PreferenceKeys.autoSubmissionEnabled, defaultValue: true);
+  Future<void> setAutoSubmissionEnabled(bool value) =>
+      setBool(PreferenceKeys.autoSubmissionEnabled, value);
 
-  Future<int> getSubmissionIntervalMinutes() => getInt(PreferenceKeys.submissionIntervalMinutes, defaultValue: 5);
-  Future<void> setSubmissionIntervalMinutes(int value) => setInt(PreferenceKeys.submissionIntervalMinutes, value);
+  Future<int> getSubmissionIntervalMinutes() =>
+      getInt(PreferenceKeys.submissionIntervalMinutes, defaultValue: 5);
+  Future<void> setSubmissionIntervalMinutes(int value) =>
+      setInt(PreferenceKeys.submissionIntervalMinutes, value);
 
   // Privacy preferences
-  Future<bool> getPrivacyMode() => getBool(PreferenceKeys.privacyMode, defaultValue: false);
-  Future<void> setPrivacyMode(bool value) => setBool(PreferenceKeys.privacyMode, value);
+  Future<bool> getPrivacyMode() =>
+      getBool(PreferenceKeys.privacyMode, defaultValue: false);
+  Future<void> setPrivacyMode(bool value) =>
+      setBool(PreferenceKeys.privacyMode, value);
+
+  // Network preferences
+  Future<bool> getForceOfflineMode() =>
+      getBool(PreferenceKeys.forceOfflineMode, defaultValue: false);
+  Future<void> setForceOfflineMode(bool value) =>
+      setBool(PreferenceKeys.forceOfflineMode, value);
 }

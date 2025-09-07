@@ -17,17 +17,35 @@ class AudioFilesPage extends StatefulWidget {
 class _AudioFilesPageState extends State<AudioFilesPage> {
   final AudioRecordingDao _recordingDao = AudioRecordingDao();
   final AudioRecordingService _audioService = AudioRecordingService();
+  final TextEditingController _searchController = TextEditingController();
 
   bool _isAudioServiceInitialized = false;
   List<AudioRecording> _recordings = [];
+  List<AudioRecording> _filteredRecordings = [];
   bool _isLoading = true;
   String _sortBy = 'newest';
+  String _searchQuery = '';
 
   @override
   void initState() {
     super.initState();
     _initializeAudioService();
     _loadRecordings();
+    _searchController.addListener(_onSearchChanged);
+  }
+
+  @override
+  void dispose() {
+    _searchController.removeListener(_onSearchChanged);
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  void _onSearchChanged() {
+    setState(() {
+      _searchQuery = _searchController.text;
+      _applyFilters();
+    });
   }
 
   Future<void> _initializeAudioService() async {
@@ -48,30 +66,49 @@ class _AudioFilesPageState extends State<AudioFilesPage> {
     try {
       final recordings = await _recordingDao.getRecent(limit: 1000);
       
-      // Sort recordings based on selected criteria
-      recordings.sort((AudioRecording a, AudioRecording b) {
-        switch (_sortBy) {
-          case 'newest':
-            return b.createdDateTime.compareTo(a.createdDateTime);
-          case 'oldest':
-            return a.createdDateTime.compareTo(b.createdDateTime);
-          case 'duration':
-            return b.durationSeconds.compareTo(a.durationSeconds);
-          case 'size':
-            return (b.fileSize ?? 0).compareTo(a.fileSize ?? 0);
-          default:
-            return b.createdAt.compareTo(a.createdAt);
-        }
-      });
-
       setState(() {
         _recordings = recordings;
         _isLoading = false;
       });
+      
+      _applyFilters();
     } catch (e) {
       AppLogger.ui('Failed to load recordings: $e');
       setState(() => _isLoading = false);
     }
+  }
+
+  void _applyFilters() {
+    List<AudioRecording> filtered = List.from(_recordings);
+    
+    // Apply search filter
+    if (_searchQuery.isNotEmpty) {
+      filtered = filtered.where((recording) {
+        final date = _formatDate(recording.createdDateTime).toLowerCase();
+        final query = _searchQuery.toLowerCase();
+        return date.contains(query);
+      }).toList();
+    }
+    
+    // Sort recordings based on selected criteria
+    filtered.sort((AudioRecording a, AudioRecording b) {
+      switch (_sortBy) {
+        case 'newest':
+          return b.createdDateTime.compareTo(a.createdDateTime);
+        case 'oldest':
+          return a.createdDateTime.compareTo(b.createdDateTime);
+        case 'duration':
+          return b.durationSeconds.compareTo(a.durationSeconds);
+        case 'size':
+          return (b.fileSize ?? 0).compareTo(a.fileSize ?? 0);
+        default:
+          return b.createdAt.compareTo(a.createdAt);
+      }
+    });
+
+    setState(() {
+      _filteredRecordings = filtered;
+    });
   }
 
   Future<void> _deleteRecording(AudioRecording recording) async {
@@ -205,64 +242,11 @@ class _AudioFilesPageState extends State<AudioFilesPage> {
       appBar: SharedAppBar(
         pageTitle: 'Audio Files',
         actions: [
-          PopupMenuButton<String>(
-            icon: const Icon(Icons.sort),
-            tooltip: 'Sort recordings',
-            onSelected: (value) {
-              setState(() {
-                _sortBy = value;
-              });
-              _loadRecordings();
-            },
-            itemBuilder: (context) => [
-              const PopupMenuItem(
-                value: 'newest',
-                child: Row(
-                  children: [
-                    Icon(Icons.access_time, size: 18),
-                    SizedBox(width: 8),
-                    Text('Newest first'),
-                  ],
-                ),
-              ),
-              const PopupMenuItem(
-                value: 'oldest',
-                child: Row(
-                  children: [
-                    Icon(Icons.history, size: 18),
-                    SizedBox(width: 8),
-                    Text('Oldest first'),
-                  ],
-                ),
-              ),
-              const PopupMenuItem(
-                value: 'duration',
-                child: Row(
-                  children: [
-                    Icon(Icons.timer, size: 18),
-                    SizedBox(width: 8),
-                    Text('By duration'),
-                  ],
-                ),
-              ),
-              const PopupMenuItem(
-                value: 'size',
-                child: Row(
-                  children: [
-                    Icon(Icons.storage, size: 18),
-                    SizedBox(width: 8),
-                    Text('By file size'),
-                  ],
-                ),
-              ),
-            ],
+          IconButton(
+            onPressed: () => Navigator.of(context).pop(),
+            icon: const Icon(Icons.arrow_back),
+            tooltip: 'Back',
           ),
-          if (_recordings.isNotEmpty)
-            IconButton(
-              onPressed: _deleteAllRecordings,
-              icon: const Icon(Icons.delete_sweep),
-              tooltip: 'Delete all recordings',
-            ),
         ],
       ),
       body: _isLoading
@@ -271,6 +255,129 @@ class _AudioFilesPageState extends State<AudioFilesPage> {
               ? _buildEmptyState()
               : Column(
                   children: [
+                    // Search and Filter Row
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      color: Theme.of(context).colorScheme.surface,
+                      child: Row(
+                        children: [
+                          // Search Field
+                          Expanded(
+                            child: TextField(
+                              controller: _searchController,
+                              decoration: InputDecoration(
+                                hintText: 'Search recordings...',
+                                prefixIcon: const Icon(Icons.search, size: 20),
+                                suffixIcon: _searchQuery.isNotEmpty
+                                    ? IconButton(
+                                        icon: const Icon(Icons.clear, size: 20),
+                                        onPressed: () {
+                                          _searchController.clear();
+                                        },
+                                      )
+                                    : null,
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide: BorderSide.none,
+                                ),
+                                filled: true,
+                                fillColor: Theme.of(context).colorScheme.surface,
+                                contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 12,
+                                ),
+                                isDense: true,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          
+                          // Sort Menu
+                          PopupMenuButton<String>(
+                            icon: Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Icon(
+                                Icons.sort,
+                                color: Theme.of(context).colorScheme.primary,
+                              ),
+                            ),
+                            tooltip: 'Sort recordings',
+                            onSelected: (value) {
+                              setState(() {
+                                _sortBy = value;
+                              });
+                              _applyFilters();
+                            },
+                            itemBuilder: (context) => [
+                              const PopupMenuItem(
+                                value: 'newest',
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.access_time, size: 18),
+                                    SizedBox(width: 8),
+                                    Text('Newest first'),
+                                  ],
+                                ),
+                              ),
+                              const PopupMenuItem(
+                                value: 'oldest',
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.history, size: 18),
+                                    SizedBox(width: 8),
+                                    Text('Oldest first'),
+                                  ],
+                                ),
+                              ),
+                              const PopupMenuItem(
+                                value: 'duration',
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.timer, size: 18),
+                                    SizedBox(width: 8),
+                                    Text('By duration'),
+                                  ],
+                                ),
+                              ),
+                              const PopupMenuItem(
+                                value: 'size',
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.storage, size: 18),
+                                    SizedBox(width: 8),
+                                    Text('By file size'),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(width: 8),
+                          
+                          // Delete All Button
+                          if (_recordings.isNotEmpty)
+                            IconButton(
+                              onPressed: _deleteAllRecordings,
+                              icon: Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: Colors.red.withValues(alpha: 0.1),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: const Icon(
+                                  Icons.delete_sweep,
+                                  color: Colors.red,
+                                ),
+                              ),
+                              tooltip: 'Delete all recordings',
+                            ),
+                        ],
+                      ),
+                    ),
+                    
                     // Summary header
                     Container(
                       width: double.infinity,
@@ -280,12 +387,12 @@ class _AudioFilesPageState extends State<AudioFilesPage> {
                         children: [
                           Expanded(
                             child: Text(
-                              '${_recordings.length} recording${_recordings.length != 1 ? 's' : ''}',
+                              '${_filteredRecordings.length} recording${_filteredRecordings.length != 1 ? 's' : ''}',
                               style: Theme.of(context).textTheme.titleMedium,
                             ),
                           ),
                           Text(
-                            'Total: ${_formatFileSize(_recordings.fold<int>(0, (sum, r) => sum + (r.fileSize ?? 0)))}',
+                            'Total: ${_formatFileSize(_filteredRecordings.fold<int>(0, (sum, r) => sum + (r.fileSize ?? 0)))}',
                             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                                   color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
                                 ),
@@ -300,9 +407,9 @@ class _AudioFilesPageState extends State<AudioFilesPage> {
                         onRefresh: _loadRecordings,
                         child: ListView.builder(
                           padding: const EdgeInsets.all(8),
-                          itemCount: _recordings.length,
+                          itemCount: _filteredRecordings.length,
                           itemBuilder: (context, index) {
-                            final recording = _recordings[index];
+                            final recording = _filteredRecordings[index];
                             return _buildRecordingCard(recording);
                           },
                         ),

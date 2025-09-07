@@ -30,10 +30,10 @@ abstract class AppConfig {
 
 class DevelopmentConfig extends AppConfig {
   @override
-  String get apiBaseUrl => 'http://localhost:8000/api/v1';
+  String get apiBaseUrl => 'http://localhost:8100/api/v1';
 
   @override
-  String get websocketUrl => 'ws://localhost:8000/ws';
+  String get websocketUrl => 'ws://localhost:8100/ws';
 
   @override
   bool get enableOnDeviceAI => true;

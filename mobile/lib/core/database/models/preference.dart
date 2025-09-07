@@ -188,6 +188,9 @@ class PreferenceKeys {
   // Privacy Settings
   static const String privacyMode = 'privacy_mode';
 
+  // Network Settings
+  static const String forceOfflineMode = 'force_offline_mode';
+
   // Monitoring Settings
   static const String noiseThreshold = 'noise_threshold';
   static const String recordingDuration = 'recording_duration_seconds';
@@ -234,7 +237,7 @@ class PreferenceKeys {
       // Sync
       Preference.createString(
         key: backendUrl,
-        value: 'http://localhost:8000/api/v1',
+        value: 'http://localhost:8100/api/v1',
         description: 'Backend server URL for data sync',
       ),
       Preference.createBool(
@@ -253,6 +256,13 @@ class PreferenceKeys {
         key: privacyMode,
         value: false,
         description: 'Enable privacy mode (limits data collection)',
+      ),
+
+      // Network
+      Preference.createBool(
+        key: forceOfflineMode,
+        value: false,
+        description: 'Force offline mode (disable backend connectivity)',
       ),
 
       // Monitoring

@@ -71,6 +71,8 @@ class NoiseNetApp extends StatelessWidget {
                   // Handle global app state changes
                   if (state is AppError) {
                     _showErrorSnackBar(context, state.message);
+                  } else if (state is AppConnectionStatus && state.shouldShowNotification) {
+                    _showConnectionStatusSnackBar(context, state);
                   }
                 },
                 child: child ?? const SizedBox.shrink(),
@@ -96,6 +98,50 @@ class NoiseNetApp extends StatelessWidget {
         backgroundColor: Theme.of(context).colorScheme.error,
         action: SnackBarAction(
           label: 'Dismiss',
+          onPressed: () {
+            ScaffoldMessenger.of(context).hideCurrentSnackBar();
+          },
+        ),
+      ),
+    );
+  }
+
+  void _showConnectionStatusSnackBar(BuildContext context, AppConnectionStatus status) {
+    Color backgroundColor;
+    IconData icon;
+    
+    switch (status.mode) {
+      case 'offline':
+        backgroundColor = Colors.orange;
+        icon = Icons.cloud_off;
+        break;
+      case 'anonymous':
+        backgroundColor = Colors.blue;
+        icon = Icons.cloud_queue;
+        break;
+      case 'authenticated':
+        backgroundColor = Colors.green;
+        icon = Icons.cloud_done;
+        break;
+      default:
+        backgroundColor = Colors.grey;
+        icon = Icons.error;
+    }
+    
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            Icon(icon, color: Colors.white, size: 20),
+            const SizedBox(width: 8),
+            Expanded(child: Text(status.message)),
+          ],
+        ),
+        backgroundColor: backgroundColor,
+        duration: const Duration(seconds: 4),
+        action: SnackBarAction(
+          label: 'Dismiss',
+          textColor: Colors.white,
           onPressed: () {
             ScaffoldMessenger.of(context).hideCurrentSnackBar();
           },

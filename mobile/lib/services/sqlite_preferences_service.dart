@@ -173,6 +173,19 @@ class SQLitePreferencesService {
     debugPrint('🔒 Privacy: Privacy mode set to $enabled');
   }
 
+  /// Get force offline mode status
+  Future<bool> getForceOfflineMode() async {
+    _ensureInitialized();
+    return await _dao.getForceOfflineMode();
+  }
+
+  /// Set force offline mode status
+  Future<void> setForceOfflineMode(bool enabled) async {
+    _ensureInitialized();
+    await _dao.setForceOfflineMode(enabled);
+    debugPrint('📴 Network: Force offline mode set to $enabled');
+  }
+
   // RECORDING SETTINGS
 
   /// Get recording duration in seconds

@@ -2,12 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:dio/dio.dart';
+import 'package:talker_flutter/talker_flutter.dart';
 
 import '../../features/app/presentation/bloc/app_bloc.dart';
 import '../../features/noise_monitoring/presentation/bloc/monitoring_bloc.dart';
 import '../../services/sqlite_preferences_service.dart';
 import '../../services/preferences_migration_service.dart';
 import '../../services/audio_capture_service.dart';
+import '../../services/api_client_service.dart';
+import '../../services/backend_sync_service.dart';
+import '../logging/app_logger.dart';
 
 final GetIt getIt = GetIt.instance;
 
@@ -20,7 +24,7 @@ Future<void> configureDependencies() async {
   final dio = Dio();
   dio.options = BaseOptions(
     baseUrl: const String.fromEnvironment('API_BASE_URL',
-        defaultValue: 'http://localhost:8000'),
+        defaultValue: 'http://localhost:8100'),
     connectTimeout: const Duration(seconds: 5),
     receiveTimeout: const Duration(seconds: 3),
     headers: {
@@ -42,6 +46,9 @@ Future<void> configureDependencies() async {
 
   getIt.registerSingleton<Dio>(dio);
 
+  // Register already initialized logger
+  getIt.registerSingleton<Talker>(AppLogger.instance);
+
   // Initialize SQLite preferences system
   final sqlitePreferencesService = SQLitePreferencesService();
   await sqlitePreferencesService.initialize();
@@ -51,6 +58,14 @@ Future<void> configureDependencies() async {
   final audioCaptureService = AudioCaptureService();
   await audioCaptureService.loadCalibrationSettings();
   getIt.registerSingleton<AudioCaptureService>(audioCaptureService);
+
+  // Initialize API client service
+  final logger = AppLogger.instance;
+  final apiClientService = ApiClientService(
+    prefs: sharedPreferences,
+    logger: logger,
+  );
+  getIt.registerSingleton<ApiClientService>(apiClientService);
 
   // Perform preferences migration if needed
   final migrationService = PreferencesMigrationService();
@@ -63,4 +78,9 @@ Future<void> configureDependencies() async {
   // Register BLoCs
   getIt.registerFactory(() => AppBloc());
   getIt.registerFactory(() => MonitoringBloc());
+
+  // Initialize backend sync service after all dependencies are registered
+  final backendSyncService = BackendSyncService();
+  await backendSyncService.initialize();
+  getIt.registerSingleton<BackendSyncService>(backendSyncService);
 }

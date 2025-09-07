@@ -318,7 +318,7 @@ extension PreferencesDaoExtensions on PreferencesDao {
 
   // Sync preferences
   Future<String> getBackendUrl() => getString(PreferenceKeys.backendUrl,
-      defaultValue: 'http://localhost:8000/api/v1');
+      defaultValue: 'http://localhost:8100/api/v1');
   Future<void> setBackendUrl(String value) =>
       setString(PreferenceKeys.backendUrl, value,
           description: 'Backend server URL for data sync');
@@ -338,4 +338,10 @@ extension PreferencesDaoExtensions on PreferencesDao {
       getBool(PreferenceKeys.privacyMode, defaultValue: false);
   Future<void> setPrivacyMode(bool value) =>
       setBool(PreferenceKeys.privacyMode, value);
+
+  // Network preferences
+  Future<bool> getForceOfflineMode() =>
+      getBool(PreferenceKeys.forceOfflineMode, defaultValue: false);
+  Future<void> setForceOfflineMode(bool value) =>
+      setBool(PreferenceKeys.forceOfflineMode, value);
 }

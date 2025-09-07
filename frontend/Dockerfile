@@ -2,7 +2,7 @@
 FROM node:18-alpine as builder
 
 # Build arguments for environment variables
-ARG REACT_APP_API_URL=http://localhost:8000
+ARG REACT_APP_API_URL=http://localhost:8100
 ARG REACT_APP_MAPBOX_TOKEN=""
 
 # Set environment variables for build

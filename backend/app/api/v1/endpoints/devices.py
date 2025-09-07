@@ -1,35 +1,133 @@
 """Device management endpoints."""
 
-from fastapi import APIRouter
+from typing import List
+from uuid import UUID
+
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
+from sqlalchemy.orm import selectinload
+
+from app.db.session import get_session
+from app.db.models.device import Device
+from app.schemas.device import DeviceRegister, DeviceUpdate, DeviceResponse, HeartbeatRequest
 
 router = APIRouter()
 
 
-@router.post("/register")
-async def register_device():
-    """Register a new device."""
-    return {"message": "Device registration - TODO"}
+@router.post("/register", response_model=DeviceResponse)
+async def register_device(
+    device_data: DeviceRegister,
+    db: AsyncSession = Depends(get_session)
+):
+    """Register a new device or update existing one."""
+    
+    # Check if device already exists
+    stmt = select(Device).where(Device.device_id == device_data.device_id)
+    result = await db.execute(stmt)
+    existing_device = result.scalar_one_or_none()
+    
+    if existing_device:
+        # Update existing device
+        for field, value in device_data.model_dump(exclude_unset=True).items():
+            setattr(existing_device, field, value)
+        
+        await db.flush()
+        await db.refresh(existing_device)
+        return DeviceResponse.model_validate(existing_device)
+    else:
+        # Create new device
+        new_device = Device(**device_data.model_dump())
+        db.add(new_device)
+        await db.flush()
+        await db.refresh(new_device)
+        return DeviceResponse.model_validate(new_device)
 
 
-@router.get("/{device_id}")
-async def get_device(device_id: str):
-    """Get device information."""
-    return {"message": f"Get device {device_id} - TODO"}
+@router.get("/{device_id}", response_model=DeviceResponse)
+async def get_device(
+    device_id: str,
+    db: AsyncSession = Depends(get_session)
+):
+    """Get device information by device_id."""
+    
+    stmt = select(Device).where(Device.device_id == device_id)
+    result = await db.execute(stmt)
+    device = result.scalar_one_or_none()
+    
+    if not device:
+        raise HTTPException(status_code=404, detail=f"Device {device_id} not found")
+    
+    return DeviceResponse.model_validate(device)
 
 
-@router.put("/{device_id}")
-async def update_device(device_id: str):
+@router.put("/{device_id}", response_model=DeviceResponse)
+async def update_device(
+    device_id: str,
+    device_data: DeviceUpdate,
+    db: AsyncSession = Depends(get_session)
+):
     """Update device information."""
-    return {"message": f"Update device {device_id} - TODO"}
+    
+    stmt = select(Device).where(Device.device_id == device_id)
+    result = await db.execute(stmt)
+    device = result.scalar_one_or_none()
+    
+    if not device:
+        raise HTTPException(status_code=404, detail=f"Device {device_id} not found")
+    
+    # Update device with provided data
+    for field, value in device_data.model_dump(exclude_unset=True).items():
+        setattr(device, field, value)
+    
+    await db.flush()
+    await db.refresh(device)
+    return DeviceResponse.model_validate(device)
 
 
-@router.post("{device_id}/heartbeat")
-async def device_heartbeat(device_id: str):
-    """Device heartbeat endpoint."""
-    return {"message": f"Heartbeat for device {device_id} - TODO"}
+@router.post("/{device_id}/heartbeat")
+async def device_heartbeat(
+    device_id: str,
+    heartbeat_data: HeartbeatRequest,
+    db: AsyncSession = Depends(get_session)
+):
+    """Device heartbeat endpoint to update last seen timestamp."""
+    
+    stmt = select(Device).where(Device.device_id == device_id)
+    result = await db.execute(stmt)
+    device = result.scalar_one_or_none()
+    
+    if not device:
+        raise HTTPException(status_code=404, detail=f"Device {device_id} not found")
+    
+    # Update device last seen timestamp
+    device.last_heartbeat = heartbeat_data.timestamp
+    if heartbeat_data.battery_level is not None:
+        # Store battery level in hardware_info if not already there
+        if device.hardware_info is None:
+            device.hardware_info = {}
+        device.hardware_info['battery_level'] = heartbeat_data.battery_level
+    
+    await db.flush()
+    
+    return {"message": f"Heartbeat received for device {device_id}", "timestamp": heartbeat_data.timestamp}
 
 
-@router.get("/")
-async def list_devices():
-    """List all devices."""
-    return {"message": "List devices - TODO"}
+@router.get("/", response_model=List[DeviceResponse])
+async def list_devices(
+    limit: int = 100,
+    offset: int = 0,
+    active_only: bool = False,
+    db: AsyncSession = Depends(get_session)
+):
+    """List all devices with optional filtering."""
+    
+    stmt = select(Device).offset(offset).limit(limit)
+    
+    if active_only:
+        stmt = stmt.where(Device.is_active == True)
+    
+    result = await db.execute(stmt)
+    devices = result.scalars().all()
+    
+    return [DeviceResponse.model_validate(device) for device in devices]

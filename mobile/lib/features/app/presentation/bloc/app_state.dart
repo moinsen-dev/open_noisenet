@@ -55,3 +55,20 @@ class AppError extends AppState {
   @override
   List<Object?> get props => [message];
 }
+
+class AppConnectionStatus extends AppState {
+  const AppConnectionStatus({
+    required this.isConnected,
+    required this.mode,
+    required this.message,
+    this.shouldShowNotification = true,
+  });
+
+  final bool isConnected;
+  final String mode; // 'offline', 'anonymous', 'authenticated'
+  final String message;
+  final bool shouldShowNotification;
+
+  @override
+  List<Object?> get props => [isConnected, mode, message, shouldShowNotification];
+}

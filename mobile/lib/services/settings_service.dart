@@ -80,7 +80,7 @@ class SettingsService {
   // Sync Settings
   String get backendUrl {
     _ensureInitialized();
-    return _prefs!.getString(_keyBackendUrl) ?? 'http://localhost:8000/api/v1';
+    return _prefs!.getString(_keyBackendUrl) ?? 'http://localhost:8100/api/v1';
   }
 
   Future<bool> setBackendUrl(String url) async {

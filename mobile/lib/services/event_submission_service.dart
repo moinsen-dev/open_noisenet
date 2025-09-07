@@ -21,7 +21,7 @@ class EventSubmissionService {
   bool _isSubmitting = false;
 
   // Configuration (will be moved to settings later)
-  String _baseUrl = 'http://localhost:8000/api/v1'; // Default backend URL
+  String _baseUrl = 'http://localhost:8100/api/v1'; // Default backend URL
   Duration _submissionInterval = const Duration(minutes: 5);
   int _maxRetries = 3;
 

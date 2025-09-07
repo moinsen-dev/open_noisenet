@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
-import 'package:talker_flutter/talker_flutter.dart';
 
-import '../core/logging/app_logger.dart';
 import '../features/noise_monitoring/presentation/bloc/monitoring_bloc.dart';
+import 'debug_icon_widget.dart';
 
 class SharedAppBar extends StatefulWidget implements PreferredSizeWidget {
   const SharedAppBar({
@@ -75,11 +74,14 @@ class _SharedAppBarState extends State<SharedAppBar>
               Expanded(
                 child: Row(
                   children: [
-                    Text(
-                      widget.pageTitle ?? 'Open NoiseNet',
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                            fontWeight: FontWeight.w600,
-                          ),
+                    Flexible(
+                      child: Text(
+                        widget.pageTitle ?? 'Open NoiseNet',
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                              fontWeight: FontWeight.w600,
+                            ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
                     const SizedBox(width: 8),
                     // Real-time monitoring status indicator
@@ -135,22 +137,8 @@ class _SharedAppBarState extends State<SharedAppBar>
               tooltip: 'View detailed statistics',
             ),
 
-            // Talker Logs Viewer Button
-            IconButton(
-              onPressed: () {
-                AppLogger.ui('Opening Talker logs viewer');
-                Navigator.of(context).push(
-                  MaterialPageRoute<void>(
-                    builder: (context) => TalkerScreen(
-                      talker: AppLogger.instance,
-                      appBarTitle: 'OpenNoiseNet Logs',
-                    ),
-                  ),
-                );
-              },
-              icon: const Icon(Icons.bug_report),
-              tooltip: 'View Debug Logs',
-            ),
+            // Enhanced Debug Icon with Error Counter and Flash Animation
+            const DebugIconWidget(),
 
             // Additional page-specific actions
             ...widget.actions,

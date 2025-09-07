@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:get_it/get_it.dart';
+import 'package:go_router/go_router.dart';
 import 'package:path_provider/path_provider.dart';
 
 import '../../../../features/app/presentation/bloc/app_bloc.dart';
@@ -9,7 +10,8 @@ import '../../../../services/audio_capture_service.dart';
 import '../../../../services/location_service.dart';
 import '../../../../services/recording_service.dart';
 import '../../../../services/sqlite_preferences_service.dart';
-import '../../../../services/audio_recording_service.dart';
+import '../../../../services/api_client_service.dart';
+import '../../../../services/backend_sync_service.dart';
 import '../../../../core/database/dao/noise_measurement_dao.dart';
 import '../../../../core/database/dao/daily_statistics_dao.dart';
 import '../../../../core/database/dao/audio_recording_dao.dart';
@@ -31,7 +33,8 @@ class _SettingsPageState extends State<SettingsPage> {
   final AudioCaptureService _audioService =
       GetIt.instance<AudioCaptureService>();
   final RecordingService _recordingService = RecordingService();
-  final AudioRecordingService _audioRecordingService = AudioRecordingService();
+  final ApiClientService _apiClientService = GetIt.instance<ApiClientService>();
+  final BackendSyncService _syncService = GetIt.instance<BackendSyncService>();
 
   // Database DAOs for data management
   final NoiseMeasurementDao _measurementDao = NoiseMeasurementDao();
@@ -65,8 +68,12 @@ class _SettingsPageState extends State<SettingsPage> {
               _buildContinuousRecordingSection(context),
               const Divider(),
 
-              // Sync Settings
+              // Backend Integration 
               _buildSyncSection(context),
+              const Divider(),
+
+              // Authentication
+              _buildAuthSection(context),
               const Divider(),
 
               // Data Management
@@ -216,17 +223,124 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   Widget _buildSyncSection(BuildContext context) {
-    return FutureBuilder<String>(
-      future: _preferencesService.getBackendUrl(),
-      builder: (context, snapshot) {
-        final backendUrl = snapshot.data ?? 'Loading...';
-        return ListTile(
-          leading: const Icon(Icons.cloud_sync),
-          title: const Text('Sync Settings'),
-          subtitle: Text('Backend: $backendUrl'),
-          onTap: () => _showSyncDialog(context),
-        );
-      },
+    return Column(
+      children: [
+        FutureBuilder<String>(
+          future: _preferencesService.getBackendUrl(),
+          builder: (context, snapshot) {
+            final backendUrl = snapshot.data ?? 'Loading...';
+            return ListTile(
+              leading: const Icon(Icons.cloud_sync),
+              title: const Text('Backend Integration'),
+              subtitle: Text('Backend: $backendUrl'),
+              onTap: () => _showSyncDialog(context),
+            );
+          },
+        ),
+        FutureBuilder<bool>(
+          future: _preferencesService.getForceOfflineMode(),
+          builder: (context, snapshot) {
+            final isOfflineMode = snapshot.data ?? false;
+            return ListTile(
+              leading: const Icon(Icons.cloud_off),
+              title: const Text('Offline Mode'),
+              subtitle: Text(isOfflineMode 
+                  ? 'Offline only - Backend disabled' 
+                  : 'Auto-detect backend connectivity'),
+              trailing: Switch(
+                value: isOfflineMode,
+                onChanged: (value) async {
+                  await _preferencesService.setForceOfflineMode(value);
+                  setState(() {});
+                },
+              ),
+            );
+          },
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: FutureBuilder<Map<String, dynamic>>(
+            future: _syncService.getBackendStatus(),
+            builder: (context, snapshot) {
+              final status = snapshot.data;
+              if (status == null) {
+                return Row(
+                  children: [
+                    const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Checking backend status...',
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                  ],
+                );
+              }
+              
+              final mode = status['mode'] as String;
+              final queuedEvents = status['queued_events'] as int;
+              
+              Color statusColor;
+              IconData statusIcon;
+              String statusText;
+              
+              switch (mode) {
+                case 'offline':
+                  statusColor = Colors.grey;
+                  statusIcon = Icons.cloud_off;
+                  statusText = queuedEvents > 0 
+                      ? 'Offline - $queuedEvents events queued' 
+                      : 'Offline mode';
+                  break;
+                case 'anonymous':
+                  statusColor = Colors.orange;
+                  statusIcon = Icons.cloud_queue;
+                  statusText = 'Anonymous mode - Ready to sync';
+                  break;
+                case 'authenticated':
+                  statusColor = Colors.green;
+                  statusIcon = Icons.cloud_done;
+                  statusText = 'Authenticated - Syncing enabled';
+                  break;
+                default:
+                  statusColor = Colors.red;
+                  statusIcon = Icons.error;
+                  statusText = 'Unknown status';
+              }
+              
+              return Row(
+                children: [
+                  Icon(statusIcon, color: statusColor, size: 16),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      statusText,
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                  ),
+                ],
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildAuthSection(BuildContext context) {
+    return ListTile(
+      leading: Icon(
+        _apiClientService.isAuthenticated ? Icons.verified_user : Icons.login,
+        color: _apiClientService.isAuthenticated ? Colors.green : null,
+      ),
+      title: const Text('Account Authentication'),
+      subtitle: Text(_apiClientService.isAuthenticated 
+          ? 'Authenticated and connected' 
+          : 'Login to sync data with backend'),
+      onTap: () => context.go('/auth'),
     );
   }
 
@@ -484,53 +598,164 @@ class _SettingsPageState extends State<SettingsPage> {
         await _preferencesService.getAutoSubmissionEnabled();
 
     final controller = TextEditingController(text: backendUrl);
+    bool isTestingConnection = false;
+    String connectionStatus = '';
 
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Sync Settings'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: controller,
-              decoration: const InputDecoration(
-                labelText: 'Backend URL',
-                hintText: 'http://localhost:8000/api/v1',
-              ),
-            ),
-            const SizedBox(height: 16),
-            StatefulBuilder(
-              builder: (context, setStateLocal) {
-                return SwitchListTile(
-                  title: const Text('Auto-submit events'),
-                  value: autoSubmissionEnabled,
-                  onChanged: (value) async {
-                    await _preferencesService.setAutoSubmissionEnabled(value);
-                    setStateLocal(() {
-                      // Update local state within dialog
-                    });
-                    setState(() {});
+      builder: (context) => StatefulBuilder(
+        builder: (context, setStateDialog) => AlertDialog(
+          title: const Text('Backend Integration'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                TextField(
+                  controller: controller,
+                  decoration: const InputDecoration(
+                    labelText: 'Backend URL',
+                    hintText: 'http://localhost:8000/api/v1',
+                  ),
+                ),
+                const SizedBox(height: 16),
+                
+                // Connection test section
+                Row(
+                  children: [
+                    ElevatedButton.icon(
+                      onPressed: isTestingConnection ? null : () async {
+                        setStateDialog(() {
+                          isTestingConnection = true;
+                          connectionStatus = 'Testing connection...';
+                        });
+
+                        try {
+                          await _apiClientService.setBaseUrl(controller.text);
+                          final isConnected = await _apiClientService.testConnection();
+                          
+                          setStateDialog(() {
+                            isTestingConnection = false;
+                            connectionStatus = isConnected 
+                                ? '✓ Connection successful'
+                                : '✗ Connection failed';
+                          });
+                        } catch (e) {
+                          setStateDialog(() {
+                            isTestingConnection = false;
+                            connectionStatus = '✗ Error: ${e.toString()}';
+                          });
+                        }
+                      },
+                      icon: isTestingConnection
+                          ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Icon(Icons.wifi_find),
+                      label: const Text('Test Connection'),
+                    ),
+                  ],
+                ),
+                if (connectionStatus.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    connectionStatus,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: connectionStatus.startsWith('✓')
+                          ? Colors.green
+                          : Colors.red,
+                    ),
+                  ),
+                ],
+                
+                const SizedBox(height: 16),
+                
+                // Authentication status
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Theme.of(context).dividerColor),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Authentication Status:',
+                        style: Theme.of(context).textTheme.titleSmall,
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Icon(
+                            _apiClientService.isAuthenticated
+                                ? Icons.check_circle
+                                : Icons.error_outline,
+                            color: _apiClientService.isAuthenticated
+                                ? Colors.green
+                                : Colors.orange,
+                            size: 16,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            _apiClientService.isAuthenticated
+                                ? 'Authenticated'
+                                : 'Not authenticated',
+                            style: TextStyle(fontSize: 12),
+                          ),
+                        ],
+                      ),
+                      if (_apiClientService.deviceId != null) ...[
+                        const SizedBox(height: 4),
+                        Text(
+                          'Device ID: ${_apiClientService.deviceId}',
+                          style: const TextStyle(fontSize: 10, color: Colors.grey),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                
+                const SizedBox(height: 16),
+                
+                StatefulBuilder(
+                  builder: (context, setStateLocal) {
+                    return SwitchListTile(
+                      title: const Text('Auto-submit events'),
+                      subtitle: const Text('Automatically send noise events to backend'),
+                      value: autoSubmissionEnabled,
+                      onChanged: (value) async {
+                        await _preferencesService.setAutoSubmissionEnabled(value);
+                        setStateLocal(() {
+                          // Update local state within dialog
+                        });
+                        setState(() {});
+                      },
+                    );
                   },
-                );
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                await _preferencesService.setBackendUrl(controller.text);
+                await _apiClientService.setBaseUrl(controller.text);
+                Navigator.pop(context);
+                setState(() {});
               },
+              child: const Text('Save'),
             ),
           ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              await _preferencesService.setBackendUrl(controller.text);
-              Navigator.pop(context);
-              setState(() {});
-            },
-            child: const Text('Save'),
-          ),
-        ],
       ),
     );
   }

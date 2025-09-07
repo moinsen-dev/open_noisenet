@@ -3,7 +3,9 @@ import 'dart:collection';
 import 'dart:math';
 import 'dart:io';
 
+import 'package:get_it/get_it.dart';
 import 'location_service.dart';
+import 'backend_sync_service.dart';
 import '../features/noise_monitoring/data/models/noise_event_model.dart';
 import '../features/noise_monitoring/data/repositories/event_repository.dart';
 import '../core/database/models/noise_measurement.dart';
@@ -53,6 +55,7 @@ class EventDetectionService {
 
   // Services
   final LocationService _locationService = LocationService();
+  BackendSyncService get _backendSync => GetIt.instance<BackendSyncService>();
   final Uuid _uuid = const Uuid();
   final NoiseMeasurementDao _measurementDao = NoiseMeasurementDao();
 
@@ -281,14 +284,46 @@ class EventDetectionService {
     );
   }
 
-  /// Store the event in the local database
+  /// Store the event in the local database and submit to backend
   Future<void> _storeEvent(NoiseEventModel event) async {
     try {
+      // Store locally first
       final repository = await EventRepository.getInstance();
       await repository.saveEvent(event);
       AppLogger.event('Event stored locally: ${event.id}');
+
+      // Try to submit to backend
+      await _submitEventToBackend(event);
     } catch (e) {
       AppLogger.event('Failed to store event: $e');
+    }
+  }
+
+  /// Submit event to backend via BackendSyncService
+  Future<void> _submitEventToBackend(NoiseEventModel event) async {
+    try {
+      final success = await _backendSync.submitNoiseEvent(
+        timestampStart: event.timestampStart,
+        timestampEnd: event.timestampEnd,
+        leqDb: event.leqDb,
+        lmaxDb: event.lmaxDb,
+        lminDb: event.lminDb,
+        laeqDb: event.laeqDb,
+        exceedancePct: event.exceedancePct,
+        samplesCount: event.samplesCount,
+        ruleTriggered: event.ruleTriggered,
+        locationLat: event.locationLat,
+        locationLng: event.locationLng,
+        eventMetadata: event.eventMetadata,
+      );
+
+      if (success) {
+        AppLogger.event('Event successfully submitted to backend');
+      } else {
+        AppLogger.event('Event queued for later submission');
+      }
+    } catch (e) {
+      AppLogger.event('Failed to submit event to backend: $e');
     }
   }
 

@@ -43,12 +43,12 @@ services:
       REDIS_URL: redis://:${REDIS_PASSWORD:-changeme}@redis:6379
       SECRET_KEY: ${SECRET_KEY:-changeme-secret-key}
       ENVIRONMENT: ${ENVIRONMENT:-development}
-      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000,http://localhost:8080}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3100,http://localhost:8080}
     volumes:
       - ./backend:/app
       - audio_uploads:/app/uploads
     ports:
-      - "${BACKEND_PORT:-8000}:8000"
+      - "${BACKEND_PORT:-8100}:8000"
     depends_on:
       postgres:
         condition: service_healthy
@@ -110,10 +110,10 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
       args:
-        - REACT_APP_API_URL=${REACT_APP_API_URL:-http://localhost:8000}
+        - REACT_APP_API_URL=${REACT_APP_API_URL:-http://localhost:8100}
         - REACT_APP_MAPBOX_TOKEN=${REACT_APP_MAPBOX_TOKEN:-}
     ports:
-      - "${FRONTEND_PORT:-3001}:3000"
+      - "${FRONTEND_PORT:-3100}:3000"
     depends_on:
       backend:
         condition: service_healthy
@@ -163,7 +163,7 @@ services:
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-admin}
       GF_USERS_ALLOW_SIGN_UP: false
     ports:
-      - "${GRAFANA_PORT:-3002}:3000"
+      - "${GRAFANA_PORT:-3101}:3000"
     volumes:
       - grafana_data:/var/lib/grafana
       - ./infrastructure/monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards:ro

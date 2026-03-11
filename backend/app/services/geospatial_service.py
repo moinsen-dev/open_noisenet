@@ -13,11 +13,9 @@ from enum import Enum
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, and_, func, text
-from geoalchemy2 import Geometry
-from geoalchemy2.functions import ST_DWithin, ST_Distance, ST_MakePoint, ST_Transform
 
 from app.core.logging import get_logger
-from app.db.models.noise_event import NoiseEvent
+from app.db.models.event import Event
 from app.db.models.device import Device
 
 logger = get_logger(__name__)
@@ -127,49 +125,64 @@ class GeospatialService:
     ) -> List[Dict[str, Any]]:
         """Get noise events within specified radius of a point."""
         try:
-            # Build query
-            query = select(NoiseEvent).where(
-                ST_DWithin(
-                    NoiseEvent.location,
-                    ST_Transform(
-                        ST_MakePoint(center_lng, center_lat, self.srid_wgs84),
-                        self.srid_web_mercator,
+            # Approximate bounding box for initial filtering
+            # 1 degree latitude ~ 111320 meters
+            lat_delta = radius_meters / 111320
+            lng_delta = radius_meters / (111320 * math.cos(math.radians(center_lat)))
+
+            # Build query with bounding box pre-filter
+            query = select(Event).where(
+                and_(
+                    Event.location_lat.between(
+                        center_lat - lat_delta, center_lat + lat_delta
                     ),
-                    radius_meters,
+                    Event.location_lng.between(
+                        center_lng - lng_delta, center_lng + lng_delta
+                    ),
                 )
             )
 
             # Add time filter
             if time_range_hours:
                 cutoff_time = datetime.utcnow() - timedelta(hours=time_range_hours)
-                query = query.where(NoiseEvent.start_time >= cutoff_time)
+                query = query.where(Event.timestamp_start >= cutoff_time)
 
             # Add SPL filter
             if min_spl_db:
-                query = query.where(NoiseEvent.average_leq_db >= min_spl_db)
+                query = query.where(Event.leq_db >= min_spl_db)
 
             # Execute query
             result = await db.execute(query)
             events = result.scalars().all()
 
-            # Convert to dict format with distance
+            # Convert to dict format with distance, filtering by exact radius
             event_list = []
             for event in events:
-                # Calculate actual distance
+                # Calculate actual distance using Haversine
                 distance = self.calculate_distance_meters(
-                    center_lat, center_lng, event.latitude, event.longitude
+                    center_lat, center_lng, event.location_lat, event.location_lng
+                )
+
+                # Skip events outside the exact radius
+                if distance > radius_meters:
+                    continue
+
+                duration_seconds = (
+                    (event.timestamp_end - event.timestamp_start).total_seconds()
+                    if event.timestamp_end and event.timestamp_start
+                    else 0
                 )
 
                 event_dict = {
                     "id": event.id,
                     "device_id": event.device_id,
-                    "start_time": event.start_time.isoformat(),
-                    "end_time": event.end_time.isoformat() if event.end_time else None,
-                    "latitude": event.latitude,
-                    "longitude": event.longitude,
-                    "average_leq_db": event.average_leq_db,
-                    "max_level_db": event.max_level_db,
-                    "duration_seconds": event.duration_seconds,
+                    "start_time": event.timestamp_start.isoformat() if event.timestamp_start else None,
+                    "end_time": event.timestamp_end.isoformat() if event.timestamp_end else None,
+                    "latitude": event.location_lat,
+                    "longitude": event.location_lng,
+                    "average_leq_db": event.leq_db,
+                    "max_level_db": event.lmax_db,
+                    "duration_seconds": duration_seconds,
                     "distance_meters": distance,
                     "rule_triggered": event.rule_triggered,
                 }
@@ -277,16 +290,16 @@ class GeospatialService:
 
         try:
             # Get all events in bounding box
-            query = select(NoiseEvent).where(
+            query = select(Event).where(
                 and_(
-                    NoiseEvent.latitude.between(bbox.min_lat, bbox.max_lat),
-                    NoiseEvent.longitude.between(bbox.min_lng, bbox.max_lng),
+                    Event.location_lat.between(bbox.min_lat, bbox.max_lat),
+                    Event.location_lng.between(bbox.min_lng, bbox.max_lng),
                 )
             )
 
             if time_range_hours:
                 cutoff_time = datetime.utcnow() - timedelta(hours=time_range_hours)
-                query = query.where(NoiseEvent.start_time >= cutoff_time)
+                query = query.where(Event.timestamp_start >= cutoff_time)
 
             result = await db.execute(query)
             events = result.scalars().all()
@@ -298,9 +311,9 @@ class GeospatialService:
             points = [
                 {
                     "id": event.id,
-                    "lat": event.latitude,
-                    "lng": event.longitude,
-                    "spl_db": event.average_leq_db,
+                    "lat": event.location_lat,
+                    "lng": event.location_lng,
+                    "spl_db": event.leq_db,
                     "event": event,
                 }
                 for event in events

@@ -39,3 +39,7 @@ async def get_session() -> AsyncSession:
             raise
         finally:
             await session.close()
+
+
+# Alias for worker tasks
+async_session = AsyncSessionLocal

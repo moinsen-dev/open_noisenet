@@ -67,3 +67,8 @@ def setup_logging() -> None:
         logger_factory=structlog.WriteLoggerFactory(),
         cache_logger_on_first_use=True,
     )
+
+
+def get_logger(name: str):
+    """Get a structured logger instance."""
+    return structlog.get_logger(name)

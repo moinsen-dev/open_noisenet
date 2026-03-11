@@ -66,11 +66,11 @@ class EventDetectionService {
   // Configuration (will be moved to settings later)
   double _thresholdDb = 60.0;
   Duration _windowDuration = const Duration(minutes: 10);
-  
+
   // Event merging configuration
   Duration _gracePeriod = const Duration(seconds: 30); // Grace period before ending event
   Duration _mergeWindow = const Duration(seconds: 30); // Window for merging nearby events
-  
+
   // Event state tracking
   DateTime? _lastThresholdExceedance;
   Timer? _graceTimer;
@@ -102,7 +102,7 @@ class EventDetectionService {
   bool get isMonitoring => _isMonitoring;
 
   /// Start monitoring for events
-  void startMonitoring() {
+  Future<void> startMonitoring(Stream<double> splStream) async {
     if (_isMonitoring) return;
 
     _isMonitoring = true;
@@ -110,6 +110,11 @@ class EventDetectionService {
     _minuteBuffer.clear();
     _currentEvent = null;
     _lastMinuteProcessed = null;
+
+    // Subscribe to SPL stream
+    splStream.listen((splValue) {
+      addSample(splValue);
+    });
 
     // Start cleanup timer to remove old samples
     _cleanupTimer = Timer.periodic(
@@ -226,7 +231,7 @@ class EventDetectionService {
 
     if (exceedsThreshold) {
       _lastThresholdExceedance = timestamp;
-      
+
       // Cancel any existing grace timer since we have new exceedance
       _graceTimer?.cancel();
       _graceTimer = null;
@@ -252,7 +257,7 @@ class EventDetectionService {
           startTime: _currentEvent!.startTime,
           endTime: timestamp,
           averageLeqDb: _calculateWeightedAverage(
-            _currentEvent!.averageLeqDb, 
+            _currentEvent!.averageLeqDb,
             stats.averageLeq,
             _currentEvent!.duration.inSeconds,
             stats.sampleCount
@@ -273,7 +278,7 @@ class EventDetectionService {
           _finalizeCurrentEvent();
           _graceTimer = null;
         });
-        
+
         AppLogger.event(
             'Grace period started for event: ${_currentEvent!.averageLeqDb.toStringAsFixed(1)} dB');
       }
@@ -286,7 +291,7 @@ class EventDetectionService {
 
     // Classify event based on duration and characteristics
     final eventType = _classifyEvent(_currentEvent!);
-    
+
     // Only emit events that meet minimum criteria
     if (_shouldEmitEvent(_currentEvent!, eventType)) {
       // Get current location for the event
@@ -521,7 +526,7 @@ class EventDetectionService {
     final totalTime = duration1 + samples2;
     return 10 * log(totalEnergy / totalTime) / ln10;
   }
-  
+
   /// Merge recent samples for ongoing events (keep last N samples)
   List<double> _mergeRecentSamples(List<double> existing, List<double> newSamples) {
     final merged = List<double>.from(existing);
@@ -532,19 +537,19 @@ class EventDetectionService {
     }
     return merged;
   }
-  
+
   /// Classify event based on duration and characteristics
   EventClassification _classifyEvent(NoiseEvent event) {
     final duration = event.duration;
     final averageDb = event.averageLeqDb;
     final maxDb = event.maxLevelDb;
     final variability = maxDb - event.minLevelDb;
-    
+
     String type;
     String durationClass;
     String intensityClass;
     double confidence = 0.8; // Base confidence
-    
+
     // Classify by duration
     if (duration.inSeconds < 60) {
       durationClass = 'brief';
@@ -561,7 +566,7 @@ class EventDetectionService {
       type = 'long_term_activity';
       confidence = 0.95; // Very high confidence for very long events
     }
-    
+
     // Classify by intensity
     if (averageDb < 65) {
       intensityClass = 'moderate';
@@ -572,7 +577,7 @@ class EventDetectionService {
       intensityClass = 'very_loud';
       confidence += 0.1; // Much more confident about very loud events
     }
-    
+
     return EventClassification(
       type: type,
       confidence: confidence.clamp(0.0, 1.0),
@@ -580,17 +585,17 @@ class EventDetectionService {
       intensityClass: intensityClass,
     );
   }
-  
+
   /// Determine if event should be emitted based on classification
   bool _shouldEmitEvent(NoiseEvent event, EventClassification classification) {
     // Minimum duration: 30 seconds for brief events, 10 seconds for very loud events
-    final minDuration = classification.intensityClass == 'very_loud' 
+    final minDuration = classification.intensityClass == 'very_loud'
         ? const Duration(seconds: 10)
         : const Duration(seconds: 30);
-    
+
     return event.duration >= minDuration;
   }
-  
+
   /// Update grace period configuration
   void setGracePeriod(Duration period) {
     if (period != _gracePeriod) {
@@ -599,7 +604,7 @@ class EventDetectionService {
           'EventDetectionService: Grace period updated to ${period.inSeconds} seconds');
     }
   }
-  
+
   /// Update merge window configuration
   void setMergeWindow(Duration window) {
     if (window != _mergeWindow) {
@@ -608,7 +613,7 @@ class EventDetectionService {
           'EventDetectionService: Merge window updated to ${window.inSeconds} seconds');
     }
   }
-  
+
   /// Find the continuous recording file that contains this event
   Future<Map<String, dynamic>?> _findContinuousRecordingForEvent(NoiseEvent event) async {
     try {
@@ -617,27 +622,27 @@ class EventDetectionService {
         startTimestamp: event.startTime.millisecondsSinceEpoch ~/ 1000 - 3600, // 1 hour buffer before
         endTimestamp: event.endTime.millisecondsSinceEpoch ~/ 1000 + 3600, // 1 hour buffer after
       );
-      
+
       // Filter for continuous recordings only
       final continuousRecordings = recordings.where((r) => r.triggerType == 'continuous').toList();
-      
+
       // Find the recording that contains the event
       for (final recording in continuousRecordings) {
         final recordingStart = DateTime.fromMillisecondsSinceEpoch(recording.timestampStart * 1000);
         final recordingEnd = DateTime.fromMillisecondsSinceEpoch(recording.timestampEnd * 1000);
-        
+
         // Check if the event overlaps with this recording
         if (event.startTime.isAfter(recordingStart.subtract(const Duration(minutes: 1))) &&
             event.startTime.isBefore(recordingEnd.add(const Duration(minutes: 1)))) {
-          
+
           // Calculate offsets in milliseconds from the start of the recording
           final startOffsetMs = event.startTime.difference(recordingStart).inMilliseconds;
           final endOffsetMs = event.endTime.difference(recordingStart).inMilliseconds;
-          
+
           // Ensure offsets are within valid range
           final clampedStartOffsetMs = startOffsetMs.clamp(0, recording.durationSeconds * 1000);
           final clampedEndOffsetMs = endOffsetMs.clamp(0, recording.durationSeconds * 1000);
-          
+
           return {
             'fileId': recording.id,
             'startOffsetMs': clampedStartOffsetMs,
@@ -647,7 +652,7 @@ class EventDetectionService {
           };
         }
       }
-      
+
       AppLogger.event('No continuous recording found for event: $event');
       return null;
     } catch (e) {
@@ -655,7 +660,14 @@ class EventDetectionService {
       return null;
     }
   }
-  
+
+  /// Get count of recent events for notification/status purposes
+  int getRecentEventCount() {
+    // Return a simple count based on current state
+    // This could be enhanced to track actual recent events
+    return _currentEvent != null ? 1 : 0;
+  }
+
   /// Dispose of resources
   void dispose() {
     stopMonitoring();

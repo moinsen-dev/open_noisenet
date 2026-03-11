@@ -11,6 +11,10 @@ import '../../services/preferences_migration_service.dart';
 import '../../services/audio_capture_service.dart';
 import '../../services/api_client_service.dart';
 import '../../services/backend_sync_service.dart';
+import '../../services/cactus_ai_service.dart';
+import '../../services/noise_pattern_analyzer.dart';
+import '../../services/ai_analysis_service.dart';
+import '../../services/intelligent_recommendation_engine.dart';
 import '../logging/app_logger.dart';
 
 final GetIt getIt = GetIt.instance;
@@ -83,4 +87,15 @@ Future<void> configureDependencies() async {
   final backendSyncService = BackendSyncService();
   await backendSyncService.initialize();
   getIt.registerSingleton<BackendSyncService>(backendSyncService);
+
+  // Register AI services
+  getIt.registerLazySingleton<CactusAIService>(() => CactusAIService());
+  getIt.registerLazySingleton<NoisePatternAnalyzer>(() => NoisePatternAnalyzer());
+  getIt.registerLazySingleton<AIAnalysisService>(() => AIAnalysisService(
+    cactusService: getIt<CactusAIService>(),
+    patternAnalyzer: getIt<NoisePatternAnalyzer>(),
+  ));
+  getIt.registerLazySingleton<IntelligentRecommendationEngine>(() => IntelligentRecommendationEngine(
+    aiAnalysisService: getIt<AIAnalysisService>(),
+  ));
 }

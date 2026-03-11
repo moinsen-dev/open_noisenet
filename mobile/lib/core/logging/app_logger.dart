@@ -167,4 +167,9 @@ class AppLogger {
   static void onboarding(String message) {
     _talker.info('👋 $message');
   }
+
+  /// AI/Machine Learning logging
+  static void ai(String message) {
+    _talker.info('🤖 $message');
+  }
 }

@@ -59,7 +59,7 @@ class MonitoringBloc extends Bloc<MonitoringEvent, MonitoringState> {
       await _recordingService.startRecording();
 
       // Start event detection service for database storage
-      _eventDetectionService.startMonitoring();
+      await _eventDetectionService.startMonitoring(_audioCaptureService.splStream);
 
       // Start statistics service for real-time updates
       _statisticsService.start();

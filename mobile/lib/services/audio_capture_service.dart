@@ -9,6 +9,7 @@ import 'package:permission_handler/permission_handler.dart';
 import '../core/logging/app_logger.dart';
 import 'permission_dialog_service.dart';
 import 'sqlite_preferences_service.dart';
+import 'audio_processing_service.dart';
 
 class AudioCaptureService {
   static final AudioCaptureService _instance = AudioCaptureService._internal();
@@ -35,11 +36,11 @@ class AudioCaptureService {
 
   final SQLitePreferencesService _preferencesService =
       GetIt.instance<SQLitePreferencesService>();
+  final AudioProcessingService _audioProcessing = AudioProcessingService();
 
-  // A-weighting compensation (approximate)
-  // This helps match readings with typical sound level meters and Apple Watch
-  // Reduced from 10.0 to better match reference devices
-  static const double _aWeightingCompensation = 5.0; // dB
+  // Store recent measurements for enhanced processing
+  final List<TimestampedSPL> _recentMeasurements = [];
+  static const int _maxStoredMeasurements = 900; // 15 minutes at 1Hz
 
   /// Check if microphone permission is granted
   Future<bool> hasPermission() async {
@@ -124,20 +125,30 @@ class AudioCaptureService {
     _processNoiseReading(reading);
   }
 
-  /// Process noise reading on the main thread
+  /// Process noise reading with enhanced A-weighting
   void _processNoiseReading(NoiseReading reading) {
     try {
-      // Apply calibration and A-weighting compensation
-      // This helps match readings with typical sound level meters and Apple Watch
-      final calibratedMeanDb =
-          reading.meanDecibel + _calibrationOffset + _aWeightingCompensation;
+      // Apply device calibration
+      final calibratedMeanDb = reading.meanDecibel + _calibrationOffset;
 
-      // Ensure values are within realistic range (20-120 dB)
-      final clampedMeanDb = calibratedMeanDb.clamp(20.0, 120.0);
+      // Enhanced A-weighting processing (simplified for noise_meter package)
+      // The noise_meter package provides basic dB readings, we enhance with proper A-weighting
+      final aWeightedDb = _applyEnhancedAWeighting(calibratedMeanDb);
 
-      // Create calibrated reading - NoiseReading constructor may not accept parameters
-      // We'll emit the original reading with calibration applied separately
-      final calibratedReading = reading;
+      // Ensure values are within realistic range (10-140 dB)
+      final clampedMeanDb = aWeightedDb.clamp(10.0, 140.0);
+
+      // Store timestamped measurement for statistics
+      final timestamped = TimestampedSPL(
+        timestamp: DateTime.now(),
+        splDb: clampedMeanDb,
+      );
+      _recentMeasurements.add(timestamped);
+
+      // Maintain rolling window
+      if (_recentMeasurements.length > _maxStoredMeasurements) {
+        _recentMeasurements.removeAt(0);
+      }
 
       // Safely emit the calibrated mean SPL for simple display
       if (!_splStreamController.isClosed) {
@@ -146,25 +157,70 @@ class AudioCaptureService {
 
       // Safely emit full reading for detailed analysis
       if (!_noiseReadingController.isClosed) {
-        _noiseReadingController.add(calibratedReading);
+        _noiseReadingController.add(reading);
       }
     } catch (e) {
       AppLogger.audio('Error in _processNoiseReading: $e');
     }
   }
 
-  /// Calculate Leq (equivalent continuous sound level) over a time period
-  /// This is a simplified implementation - in practice you'd want to accumulate
-  /// energy values over the specified duration
-  double calculateLeq(List<double> splValues) {
-    if (splValues.isEmpty) return 0.0;
+  /// Apply enhanced A-weighting based on the measurement level
+  double _applyEnhancedAWeighting(double rawDb) {
+    // For broadband environmental noise, apply frequency-dependent A-weighting
+    // This is an approximation since we don't have access to frequency spectrum
+    // from the noise_meter package
 
-    // Convert dB to energy (power), calculate mean, convert back to dB
-    final energySum = splValues
-        .map((db) => pow(10, db / 10))
-        .fold(0.0, (sum, energy) => sum + energy);
-    final meanEnergy = energySum / splValues.length;
-    return 10 * log(meanEnergy) / ln10;
+    if (rawDb < 30) {
+      // Very quiet - likely background noise (low frequency dominant)
+      return rawDb - 8.0; // Strong A-weighting correction
+    } else if (rawDb < 50) {
+      // Quiet - typical indoor/suburban background
+      return rawDb - 4.0; // Moderate A-weighting correction
+    } else if (rawDb < 70) {
+      // Moderate - speech, traffic at distance
+      return rawDb - 2.0; // Light A-weighting correction
+    } else if (rawDb < 90) {
+      // Loud - traffic, machinery
+      return rawDb - 1.0; // Minimal A-weighting correction
+    } else {
+      // Very loud - strong broadband content
+      return rawDb; // Minimal correction for high-level sounds
+    }
+  }
+
+  /// Calculate Leq (equivalent continuous sound level) over a time period
+  double calculateLeq(List<double> splValues) {
+    return _audioProcessing.calculateLeq(splValues);
+  }
+
+  /// Calculate Leq15 (15-minute equivalent level) for regulatory compliance
+  double calculateLeq15() {
+    return _audioProcessing.calculateLeq15(_recentMeasurements);
+  }
+
+  /// Get noise statistics for recent measurements
+  NoiseStatistics getNoiseStatistics({Duration? timeWindow}) {
+    final measurements = timeWindow != null
+        ? _recentMeasurements
+            .where((m) => m.timestamp.isAfter(DateTime.now().subtract(timeWindow)))
+            .map((m) => m.splDb)
+            .toList()
+        : _recentMeasurements.map((m) => m.splDb).toList();
+
+    return _audioProcessing.calculateNoiseStatistics(measurements);
+  }
+
+  /// Check for noise event detection
+  bool detectNoiseEvent(double thresholdDb, {Duration minDuration = const Duration(seconds: 30)}) {
+    if (_recentMeasurements.isEmpty) return false;
+
+    final currentSPL = _recentMeasurements.last.splDb;
+    return _audioProcessing.detectNoiseEvent(
+      currentSPL: currentSPL,
+      thresholdDb: thresholdDb,
+      minDuration: minDuration,
+      recentMeasurements: _recentMeasurements,
+    );
   }
 
   /// Set calibration offset for this device

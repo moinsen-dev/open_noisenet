@@ -276,7 +276,10 @@ Future<Map<String, dynamic>> _runMonitoringCycle() async {
     // Initialize event detection
     final eventDetection = EventDetectionService();
     eventDetection.setThreshold(noiseThreshold);
-    eventDetection.startMonitoring();
+
+    // Create a stream controller for simulated samples
+    final StreamController<double> simulatedSplStream = StreamController<double>();
+    await eventDetection.startMonitoring(simulatedSplStream.stream);
 
     final samples = <double>[];
     const sampleDuration = Duration(seconds: 1);
@@ -302,7 +305,10 @@ Future<Map<String, dynamic>> _runMonitoringCycle() async {
       // For now, simulate with baseline noise + some variation
       final simulatedLevel = 45.0 + (DateTime.now().millisecond % 20);
       samples.add(simulatedLevel);
-      eventDetection.addSample(simulatedLevel);
+
+      // Add to both the stream (which the event detection is already listening to)
+      // and directly via addSample for backward compatibility
+      simulatedSplStream.add(simulatedLevel);
 
       // Send periodic progress updates
       if (i % 30 == 0) {

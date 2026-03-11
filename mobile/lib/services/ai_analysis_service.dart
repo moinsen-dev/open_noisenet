@@ -4,6 +4,9 @@ import 'dart:io';
 
 import 'audio_extraction_service.dart';
 import 'event_detection_service.dart';
+import 'cactus_ai_service.dart';
+import 'noise_pattern_analyzer.dart';
+import 'audio_processing_service.dart';
 import '../features/noise_monitoring/data/models/noise_event_model.dart';
 import '../features/noise_monitoring/data/repositories/event_repository.dart';
 import '../core/database/dao/audio_recording_dao.dart';
@@ -11,13 +14,17 @@ import '../core/logging/app_logger.dart';
 
 /// Service that integrates continuous recording system with AI analysis capabilities
 class AIAnalysisService {
-  static final AIAnalysisService _instance = AIAnalysisService._internal();
-  factory AIAnalysisService() => _instance;
-  AIAnalysisService._internal();
-
+  final CactusAIService _cactusAI;
+  final NoisePatternAnalyzer _patternAnalyzer;
   final AudioExtractionService _extractionService = AudioExtractionService();
   final EventDetectionService _eventDetectionService = EventDetectionService();
   final AudioRecordingDao _audioRecordingDao = AudioRecordingDao();
+
+  AIAnalysisService({
+    required CactusAIService cactusService,
+    required NoisePatternAnalyzer patternAnalyzer,
+  }) : _cactusAI = cactusService,
+       _patternAnalyzer = patternAnalyzer;
 
   // Analysis status tracking
   final Map<String, AnalysisStatus> _analysisQueue = {};
@@ -25,7 +32,24 @@ class AIAnalysisService {
       StreamController<AIAnalysisResult>.broadcast();
 
   Stream<AIAnalysisResult> get analysisResults => _resultController.stream;
-  bool get hasAnalysisCapability => true; // Will be enhanced with actual AI integration
+  bool get hasAnalysisCapability => _cactusAI.isReady;
+
+  /// Initialize the AI analysis service
+  Future<bool> initialize() async {
+    try {
+      AppLogger.event('Initializing AI Analysis Service...');
+      final initialized = await _cactusAI.initialize();
+      if (initialized) {
+        AppLogger.success('AI Analysis Service initialized successfully');
+      } else {
+        AppLogger.event('AI Analysis Service will use fallback mode');
+      }
+      return initialized;
+    } catch (e) {
+      AppLogger.event('Error initializing AI Analysis Service: $e');
+      return false;
+    }
+  }
 
   /// Queue an event for AI analysis
   Future<bool> queueEventForAnalysis({
@@ -35,7 +59,7 @@ class AIAnalysisService {
   }) async {
     try {
       final eventId = event.id ?? 'unknown_event';
-      
+
       // Check if already in queue or analyzed
       if (_analysisQueue.containsKey(eventId)) {
         AppLogger.event('Event $eventId already in analysis queue');
@@ -63,10 +87,10 @@ class AIAnalysisService {
       );
 
       AppLogger.event('Event $eventId queued for AI analysis');
-      
+
       // Start processing immediately if possible
       _processAnalysisQueue();
-      
+
       return true;
     } catch (e) {
       AppLogger.event('Error queuing event for analysis: $e');
@@ -113,9 +137,9 @@ class AIAnalysisService {
       // 2. Perform sound classification
       // 3. Extract acoustic features
       // 4. Generate insights and recommendations
-      
+
       final result = await _performAIAnalysis(analysisStatus.analysisData);
-      
+
       // Update status to completed
       _analysisQueue[eventId] = analysisStatus.copyWith(
         status: AnalysisState.completed,
@@ -134,7 +158,7 @@ class AIAnalysisService {
 
     } catch (e) {
       AppLogger.event('Error processing AI analysis: $e');
-      
+
       // Mark as failed
       _analysisQueue[analysisStatus.eventId] = analysisStatus.copyWith(
         status: AnalysisState.failed,
@@ -143,83 +167,113 @@ class AIAnalysisService {
     }
   }
 
-  /// Perform the actual AI analysis (placeholder implementation)
+  /// Perform the actual AI analysis using Cactus AI
   Future<AIAnalysisResult> _performAIAnalysis(Map<String, dynamic> analysisData) async {
-    // Simulate processing time
-    await Future.delayed(const Duration(seconds: 2));
-
     final eventId = analysisData['eventId'] as String;
-    final classification = analysisData['eventClassification'] as Map<String, dynamic>?;
-    final metrics = analysisData['eventMetrics'] as Map<String, dynamic>?;
+    final extractedAudioPath = analysisData['extractedAudioPath'] as String?;
 
-    // Mock AI classification based on existing event data
-    final String aiClassification;
-    final double confidence;
-    final Map<String, dynamic> insights;
-
-    if (classification != null) {
-      final eventType = classification['type'] as String?;
-      final intensityClass = classification['intensityClass'] as String?;
-      final leqDb = metrics?['leqDb'] as double? ?? 50.0;
-
-      // Mock classification logic
-      if (eventType?.contains('brief') == true && intensityClass == 'very_loud') {
-        aiClassification = 'impulsive_noise';
-        confidence = 0.85;
-        insights = {
-          'likely_source': 'Construction activity, door slam, or vehicle backfire',
-          'impact_level': 'high',
-          'recommendation': 'Consider noise complaint if recurring',
-          'acoustic_features': ['high_peak', 'short_duration', 'broadband_spectrum']
-        };
-      } else if (eventType?.contains('sustained') == true || eventType?.contains('continuous') == true) {
-        aiClassification = 'environmental_noise';
-        confidence = 0.78;
-        insights = {
-          'likely_source': leqDb > 70 ? 'Traffic or machinery' : 'HVAC or ambient urban noise',
-          'impact_level': leqDb > 65 ? 'moderate' : 'low',
-          'recommendation': 'Monitor for compliance with local noise ordinances',
-          'acoustic_features': ['steady_state', 'low_frequency_dominant']
-        };
-      } else if (eventType?.contains('complex') == true) {
-        aiClassification = 'mixed_activity';
-        confidence = 0.72;
-        insights = {
-          'likely_source': 'Multiple overlapping noise sources',
-          'impact_level': 'variable',
-          'recommendation': 'Further analysis needed to identify individual sources',
-          'acoustic_features': ['variable_spectrum', 'multiple_peaks', 'complex_pattern']
-        };
-      } else {
-        aiClassification = 'general_disturbance';
-        confidence = 0.65;
-        insights = {
-          'likely_source': 'Unspecified noise event',
-          'impact_level': intensityClass == 'very_loud' ? 'high' : 'moderate',
-          'recommendation': 'Monitor for patterns or recurrence',
-          'acoustic_features': ['standard_pattern']
-        };
+    try {
+      // Ensure Cactus AI is initialized
+      if (!_cactusAI.isReady) {
+        AppLogger.event('Initializing Cactus AI for event $eventId...');
+        final initialized = await _cactusAI.initialize();
+        if (!initialized) {
+          throw Exception('Failed to initialize Cactus AI service');
+        }
       }
-    } else {
-      aiClassification = 'unclassified';
-      confidence = 0.5;
-      insights = {
-        'likely_source': 'Unknown',
-        'impact_level': 'unknown',
-        'recommendation': 'Manual review recommended',
-        'acoustic_features': []
-      };
+
+      // Extract measurement data and analyze patterns
+      final eventMetrics = analysisData['eventMetrics'] as Map<String, dynamic>? ?? {};
+      final classification = analysisData['eventClassification'] as Map<String, dynamic>? ?? {};
+      final measurements = analysisData['measurements'] as List<TimestampedSPL>? ?? [];
+
+      // Analyze noise patterns using the pattern analyzer
+      final patternData = _patternAnalyzer.analyzePattern(
+        measurements: measurements,
+        eventStart: DateTime.now().subtract(Duration(seconds: (eventMetrics['durationSeconds'] as int?) ?? 0)),
+        eventEnd: DateTime.now(),
+      );
+
+      // Determine location and time context
+      final timeContext = '${patternData['time_of_day']} on ${patternData['day_of_week']}';
+      final locationContext = _patternAnalyzer.extractLocationContext(
+        analysisData['location'] as Map<String, dynamic>?
+      );
+
+      // Use Cactus AI for intelligent pattern analysis
+      final aiResult = await _cactusAI.analyzeNoisePattern(
+        measurementData: patternData,
+        timeContext: timeContext,
+        locationContext: locationContext,
+      );
+
+      if (aiResult == null) {
+        throw Exception('Cactus AI analysis returned null result');
+      }
+
+      // Convert AI result to our format
+      return AIAnalysisResult(
+        eventId: eventId,
+        classification: aiResult['classification'] as String,
+        confidence: (aiResult['confidence'] as num).toDouble(),
+        insights: {
+          'likely_source': aiResult['likely_source'],
+          'health_impact': aiResult['health_impact'],
+          'regulatory_status': aiResult['regulatory_status'],
+          'characteristics': aiResult['characteristics'],
+          'recommendations': aiResult['recommendations'],
+          'pattern_analysis': patternData['pattern_summary'],
+          'llm_method': 'cactus_intelligent_analysis',
+        },
+        processedAt: DateTime.now(),
+        analysisVersion: '3.0-cactus-qwen',
+        extractedAudioPath: extractedAudioPath,
+      );
+
+    } catch (e) {
+      AppLogger.event('AI analysis failed for event $eventId, using fallback: $e');
+
+      // Fallback to basic classification
+      return _createFallbackAnalysis(eventId, analysisData, extractedAudioPath);
     }
+  }
+
+  /// Create fallback analysis when AI processing fails
+  AIAnalysisResult _createFallbackAnalysis(
+    String eventId,
+    Map<String, dynamic> analysisData,
+    String? extractedAudioPath
+  ) {
+    final metrics = analysisData['eventMetrics'] as Map<String, dynamic>? ?? {};
+    final leqDb = metrics['leqDb'] as double? ?? 50.0;
+    final classification = analysisData['eventClassification'] as Map<String, dynamic>? ?? {};
+    final intensityClass = classification['intensityClass'] as String? ?? 'moderate';
 
     return AIAnalysisResult(
       eventId: eventId,
-      classification: aiClassification,
-      confidence: confidence,
-      insights: insights,
+      classification: 'general_noise_fallback',
+      confidence: 0.3,
+      insights: {
+        'likely_source': 'Unable to determine - AI analysis unavailable',
+        'impact_level': intensityClass,
+        'recommendation': 'Manual review recommended',
+        'acoustic_features': ['fallback_analysis'],
+        'regulatory_context': 'Standard noise ordinance applies',
+        'leq_db': leqDb,
+      },
       processedAt: DateTime.now(),
-      analysisVersion: '1.0',
-      extractedAudioPath: analysisData['extractedAudioPath'] as String?,
+      analysisVersion: '2.0-fallback',
+      extractedAudioPath: extractedAudioPath,
     );
+  }
+
+  /// Get time of day category for context
+  String _getTimeOfDay(DateTime time) {
+    final hour = time.hour;
+    if (hour >= 6 && hour < 12) return 'morning';
+    if (hour >= 12 && hour < 18) return 'afternoon';
+    if (hour >= 18 && hour < 22) return 'evening';
+    return 'night';
   }
 
   /// Get analysis status for an event
@@ -249,11 +303,11 @@ class AIAnalysisService {
   /// Clean up old analysis results
   Future<void> cleanupOldResults({int maxAgeHours = 48}) async {
     final cutoffTime = DateTime.now().subtract(Duration(hours: maxAgeHours));
-    
+
     final keysToRemove = _analysisQueue.keys.where((key) {
       final analysis = _analysisQueue[key]!;
       return analysis.completedAt?.isBefore(cutoffTime) == true ||
-             (analysis.status == AnalysisState.failed && 
+             (analysis.status == AnalysisState.failed &&
               analysis.queuedAt.isBefore(cutoffTime));
     }).toList();
 
@@ -270,14 +324,14 @@ class AIAnalysisService {
   /// Get analysis statistics
   Map<String, dynamic> getAnalysisStats() {
     final statuses = _analysisQueue.values.toList();
-    
+
     return {
       'total_analyses': statuses.length,
       'queued': statuses.where((s) => s.status == AnalysisState.queued).length,
       'processing': statuses.where((s) => s.status == AnalysisState.processing).length,
       'completed': statuses.where((s) => s.status == AnalysisState.completed).length,
       'failed': statuses.where((s) => s.status == AnalysisState.failed).length,
-      'success_rate': statuses.isEmpty ? 0.0 : 
+      'success_rate': statuses.isEmpty ? 0.0 :
         statuses.where((s) => s.status == AnalysisState.completed).length / statuses.length,
       'average_processing_time': _calculateAverageProcessingTime(statuses),
     };
@@ -285,7 +339,7 @@ class AIAnalysisService {
 
   double _calculateAverageProcessingTime(List<AnalysisStatus> statuses) {
     final completedAnalyses = statuses
-        .where((s) => s.status == AnalysisState.completed && 
+        .where((s) => s.status == AnalysisState.completed &&
                       s.processedAt != null && s.completedAt != null)
         .toList();
 

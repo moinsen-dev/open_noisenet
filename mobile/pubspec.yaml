@@ -1,11 +1,11 @@
 name: noisenet_mobile
 description: OpenNoiseNet mobile application for environmental noise monitoring with on-device AI processing.
-publish_to: 'none'
+publish_to: "none"
 
 version: 0.1.0+1
 
 environment:
-  sdk: '>=3.1.0 <4.0.0'
+  sdk: ">=3.1.0 <4.0.0"
   flutter: ">=3.13.0"
 
 dependencies:
@@ -45,10 +45,13 @@ dependencies:
   # Utilities
   path: ^1.9.1
   uuid: ^4.5.1
-  
+
   # Background Tasks & AI/ML
   workmanager: ^0.9.0+3
   tflite_flutter: ^0.11.0
+
+  # AI Processing with Cactus framework
+  cactus: ^0.2.4
 
   # Logging
   talker_flutter: ^5.0.0
@@ -56,14 +59,14 @@ dependencies:
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  
+
   # Code Generation
   json_serializable: ^6.11.1
   build_runner: ^2.8.0
 
   # Code Quality
   flutter_lints: ^6.0.0
-  
+
   # App Icon Generation
   flutter_launcher_icons: ^0.14.4
 
@@ -72,6 +75,7 @@ flutter:
 
   assets:
     - assets/noisenet-icon.png
+    - assets/models/
 
 # Flutter Launcher Icons Configuration
 flutter_launcher_icons:
@@ -91,7 +95,6 @@ flutter_launcher_icons:
   macos:
     generate: true
     image_path: "assets/noisenet-icon.png"
-
 # Dependency overrides removed - switched to flutter_sound
 # dependency_overrides:
 #   record_platform_interface: ^1.0.2
@@ -104,7 +107,7 @@ flutter_launcher_icons:
 #   integrations:
 #     flutter_svg: true
 
-# Build flavors configuration will be added later when needed  
+# Build flavors configuration will be added later when needed
 # flutter_flavors:
 #   development:
 #     app:

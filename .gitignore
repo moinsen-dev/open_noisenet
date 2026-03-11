@@ -94,3 +94,6 @@ mobile/ios/build/
 
 # Hive files
 *.hive
+
+# Git worktrees
+.worktrees/

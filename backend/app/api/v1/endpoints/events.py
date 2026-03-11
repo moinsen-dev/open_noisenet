@@ -50,7 +50,24 @@ async def create_event(
     db.add(new_event)
     await db.flush()
     await db.refresh(new_event)
-    
+
+    # Queue background processing (non-blocking, fire-and-forget)
+    try:
+        from app.workers.noise_processing_tasks import process_real_time_measurement
+        process_real_time_measurement.delay(
+            device.device_id,
+            {
+                "spl_db": event_data.leq_db,
+                "timestamp": event_data.timestamp_start.isoformat(),
+                "location": {
+                    "latitude": event_data.location_lat,
+                    "longitude": event_data.location_lng,
+                },
+            },
+        )
+    except Exception:
+        pass  # Don't fail event creation if worker queue unavailable
+
     return EventResponse.model_validate(new_event)
 
 

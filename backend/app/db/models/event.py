@@ -47,3 +47,22 @@ class Event(Base):
     status: Mapped[Optional[str]] = mapped_column(
         String(32), nullable=True, default="active"
     )
+
+
+class EventAggregation(Base):
+    """Aggregated noise statistics for a device over a time bucket."""
+
+    __tablename__ = "event_aggregation"
+
+    device_id: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    time_bucket: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    bucket_duration: Mapped[Optional[str]] = mapped_column(
+        String(32), nullable=True
+    )
+    avg_leq_db: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    max_leq_db: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    min_leq_db: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    event_count: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    exceedance_count: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)

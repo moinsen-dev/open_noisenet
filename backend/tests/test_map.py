@@ -16,6 +16,7 @@ pytestmark = pytest.mark.asyncio
 async def _seed_map_data(db: AsyncSession):
     device = Device(
         id=uuid.uuid4(),
+        device_id=f"test-device-{uuid.uuid4().hex[:8]}",
         name="Map Test Device",
         device_type=DeviceType.SMARTPHONE,
         location_lat=52.520008,

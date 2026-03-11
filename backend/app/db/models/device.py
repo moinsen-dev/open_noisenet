@@ -26,16 +26,25 @@ class Device(Base):
 
     __tablename__ = "device"
 
+    device_id: Mapped[str] = mapped_column(
+        String(255), unique=True, nullable=False, index=True
+    )
     name: Mapped[Optional[str]] = mapped_column(String(128), nullable=True)
     device_type: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
     firmware_version: Mapped[Optional[str]] = mapped_column(String(32), nullable=True)
     location_lat: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
     location_lng: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    address: Mapped[Optional[str]] = mapped_column(String(512), nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    is_public: Mapped[bool] = mapped_column(Boolean, default=True)
     last_seen: Mapped[Optional[datetime]] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
+    last_heartbeat: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
     owner_id: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
+    hardware_info: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
     device_metadata: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
     calibration_offset: Mapped[Optional[float]] = mapped_column(
         Float, nullable=True, default=0.0

@@ -9,9 +9,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 from sqlalchemy.orm import selectinload
 
+from app.core.deps import require_user
 from app.db.session import get_session
 from app.db.models.event import Event, EventStatus
 from app.db.models.device import Device, DeviceType
+from app.db.models.user import User
 from app.schemas.event import EventCreate, EventResponse, EventListResponse, EventFilter, EventStats
 
 router = APIRouter()
@@ -147,7 +149,8 @@ async def get_event(
 @router.delete("/{event_id}")
 async def delete_event(
     event_id: UUID,
-    db: AsyncSession = Depends(get_session)
+    user: User = Depends(require_user),
+    db: AsyncSession = Depends(get_session),
 ):
     """Delete a noise event."""
     

@@ -180,7 +180,7 @@ alembic/versions/*.py
 *.joblib
 *.h5
 *.pb
-models/
+/models/
 
 # Database files
 *.sqlite

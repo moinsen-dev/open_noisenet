@@ -319,7 +319,8 @@ class ApiClientService {
       if (offset != null) queryParams['offset'] = offset;
 
       final response = await _dio.get('/events/', queryParameters: queryParams);
-      final List<dynamic> eventList = response.data as List<dynamic>;
+      final data = response.data as Map<String, dynamic>;
+      final List<dynamic> eventList = data['events'] as List<dynamic>;
       return eventList.map((json) => NoiseEventModel.fromJson(json as Map<String, dynamic>)).toList();
     } catch (e) {
       _logger.error('Failed to list events', e);
@@ -333,6 +334,62 @@ class ApiClientService {
       return NoiseEventModel.fromJson(response.data as Map<String, dynamic>);
     } catch (e) {
       _logger.error('Failed to get event: $eventId', e);
+      rethrow;
+    }
+  }
+
+  // Map endpoints (public, no auth required)
+  Future<Map<String, dynamic>> getMapEvents({
+    double? minLat,
+    double? maxLat,
+    double? minLng,
+    double? maxLng,
+    int hours = 24,
+    int limit = 500,
+  }) async {
+    try {
+      final queryParams = <String, dynamic>{'hours': hours, 'limit': limit};
+      if (minLat != null) queryParams['min_lat'] = minLat;
+      if (maxLat != null) queryParams['max_lat'] = maxLat;
+      if (minLng != null) queryParams['min_lng'] = minLng;
+      if (maxLng != null) queryParams['max_lng'] = maxLng;
+
+      final response = await _dio.get('/map/events', queryParameters: queryParams);
+      return response.data as Map<String, dynamic>;
+    } catch (e) {
+      _logger.error('Failed to get map events', e);
+      rethrow;
+    }
+  }
+
+  Future<Map<String, dynamic>> getMapHeatmap({
+    required double minLat,
+    required double maxLat,
+    required double minLng,
+    required double maxLng,
+    int hours = 24,
+  }) async {
+    try {
+      final response = await _dio.get('/map/heatmap', queryParameters: {
+        'min_lat': minLat,
+        'max_lat': maxLat,
+        'min_lng': minLng,
+        'max_lng': maxLng,
+        'hours': hours,
+      });
+      return response.data as Map<String, dynamic>;
+    } catch (e) {
+      _logger.error('Failed to get heatmap data', e);
+      rethrow;
+    }
+  }
+
+  Future<Map<String, dynamic>> getMapStats() async {
+    try {
+      final response = await _dio.get('/map/stats');
+      return response.data as Map<String, dynamic>;
+    } catch (e) {
+      _logger.error('Failed to get map stats', e);
       rethrow;
     }
   }

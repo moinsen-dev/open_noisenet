@@ -9,9 +9,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 from sqlalchemy.orm import selectinload
 
+from app.core.deps import require_user
 from app.db.session import get_session
 from app.db.models.event import Event, EventStatus
 from app.db.models.device import Device, DeviceType
+from app.db.models.user import User
 from app.schemas.event import EventCreate, EventResponse, EventListResponse, EventFilter, EventStats
 
 router = APIRouter()
@@ -42,13 +44,30 @@ async def create_event(
     
     # Create the event
     event_dict = event_data.model_dump(exclude={'device_id'})
-    event_dict['device_id'] = device.id  # Use internal UUID
+    event_dict['device_id'] = str(device.id)  # Use internal UUID as string
     
     new_event = Event(**event_dict)
     db.add(new_event)
     await db.flush()
     await db.refresh(new_event)
-    
+
+    # Queue background processing (non-blocking, fire-and-forget)
+    try:
+        from app.workers.noise_processing_tasks import process_real_time_measurement
+        process_real_time_measurement.delay(
+            device.device_id,
+            {
+                "spl_db": event_data.leq_db,
+                "timestamp": event_data.timestamp_start.isoformat(),
+                "location": {
+                    "latitude": event_data.location_lat,
+                    "longitude": event_data.location_lng,
+                },
+            },
+        )
+    except Exception:
+        pass  # Don't fail event creation if worker queue unavailable
+
     return EventResponse.model_validate(new_event)
 
 
@@ -127,43 +146,6 @@ async def list_events(
     )
 
 
-@router.get("/{event_id}", response_model=EventResponse)
-async def get_event(
-    event_id: UUID,
-    db: AsyncSession = Depends(get_session)
-):
-    """Get specific event details by UUID."""
-    
-    stmt = select(Event).where(Event.id == event_id)
-    result = await db.execute(stmt)
-    event = result.scalar_one_or_none()
-    
-    if not event:
-        raise HTTPException(status_code=404, detail=f"Event {event_id} not found")
-    
-    return EventResponse.model_validate(event)
-
-
-@router.delete("/{event_id}")
-async def delete_event(
-    event_id: UUID,
-    db: AsyncSession = Depends(get_session)
-):
-    """Delete a noise event."""
-    
-    stmt = select(Event).where(Event.id == event_id)
-    result = await db.execute(stmt)
-    event = result.scalar_one_or_none()
-    
-    if not event:
-        raise HTTPException(status_code=404, detail=f"Event {event_id} not found")
-    
-    await db.delete(event)
-    await db.flush()
-    
-    return {"message": f"Event {event_id} deleted successfully"}
-
-
 @router.get("/stats/", response_model=EventStats)
 async def get_event_stats(
     start_time: Optional[datetime] = Query(None, description="Stats after this time"),
@@ -171,24 +153,17 @@ async def get_event_stats(
     db: AsyncSession = Depends(get_session)
 ):
     """Get event statistics."""
-    
-    # Base query for events
-    base_stmt = select(Event)
-    if start_time:
-        base_stmt = base_stmt.where(Event.timestamp_start >= start_time)
-    if end_time:
-        base_stmt = base_stmt.where(Event.timestamp_end <= end_time)
-    
+
     # Total events
     total_stmt = select(func.count(Event.id))
     if start_time:
         total_stmt = total_stmt.where(Event.timestamp_start >= start_time)
     if end_time:
         total_stmt = total_stmt.where(Event.timestamp_end <= end_time)
-    
+
     total_result = await db.execute(total_stmt)
     total_events = total_result.scalar() or 0
-    
+
     # Aggregate stats
     if total_events > 0:
         stats_stmt = select(
@@ -200,7 +175,7 @@ async def get_event_stats(
             stats_stmt = stats_stmt.where(Event.timestamp_start >= start_time)
         if end_time:
             stats_stmt = stats_stmt.where(Event.timestamp_end <= end_time)
-        
+
         stats_result = await db.execute(stats_stmt)
         stats = stats_result.first()
         avg_leq = float(stats.avg_leq) if stats.avg_leq else None
@@ -208,32 +183,32 @@ async def get_event_stats(
         min_leq = float(stats.min_leq) if stats.min_leq else None
     else:
         avg_leq = max_leq = min_leq = None
-    
+
     # Events in last 24h and 7d
     now = datetime.utcnow()
     from datetime import timedelta
-    
+
     events_24h_stmt = select(func.count(Event.id)).where(
         Event.timestamp_start >= now - timedelta(hours=24)
     )
     events_7d_stmt = select(func.count(Event.id)).where(
         Event.timestamp_start >= now - timedelta(days=7)
     )
-    
+
     events_24h_result = await db.execute(events_24h_stmt)
     events_7d_result = await db.execute(events_7d_stmt)
-    
+
     events_last_24h = events_24h_result.scalar() or 0
     events_last_7d = events_7d_result.scalar() or 0
-    
+
     # Active devices count
-    devices_stmt = select(func.count(func.distinct(Device.id))).select_from(
-        Device.join(Event, Device.id == Event.device_id)
-    ).where(Event.timestamp_start >= now - timedelta(days=7))
-    
+    devices_stmt = select(func.count(func.distinct(Event.device_id))).where(
+        Event.timestamp_start >= now - timedelta(days=7)
+    )
+
     devices_result = await db.execute(devices_stmt)
     devices_active = devices_result.scalar() or 0
-    
+
     return EventStats(
         total_events=total_events,
         avg_leq_db=avg_leq,
@@ -243,3 +218,41 @@ async def get_event_stats(
         events_last_7d=events_last_7d,
         devices_active=devices_active
     )
+
+
+@router.get("/{event_id}", response_model=EventResponse)
+async def get_event(
+    event_id: UUID,
+    db: AsyncSession = Depends(get_session)
+):
+    """Get specific event details by UUID."""
+
+    stmt = select(Event).where(Event.id == event_id)
+    result = await db.execute(stmt)
+    event = result.scalar_one_or_none()
+
+    if not event:
+        raise HTTPException(status_code=404, detail=f"Event {event_id} not found")
+
+    return EventResponse.model_validate(event)
+
+
+@router.delete("/{event_id}")
+async def delete_event(
+    event_id: UUID,
+    user: User = Depends(require_user),
+    db: AsyncSession = Depends(get_session),
+):
+    """Delete a noise event."""
+
+    stmt = select(Event).where(Event.id == event_id)
+    result = await db.execute(stmt)
+    event = result.scalar_one_or_none()
+
+    if not event:
+        raise HTTPException(status_code=404, detail=f"Event {event_id} not found")
+
+    await db.delete(event)
+    await db.flush()
+
+    return {"message": f"Event {event_id} deleted successfully"}

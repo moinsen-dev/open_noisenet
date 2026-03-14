@@ -16,7 +16,7 @@ from sqlalchemy import select, and_, desc
 
 from app.core.logging import get_logger
 from app.db.models.device import Device
-from app.db.models.noise_event import NoiseEvent
+from app.db.models.event import Event
 from app.services.spl_calculation_service import SPLCalculationService
 
 logger = get_logger(__name__)

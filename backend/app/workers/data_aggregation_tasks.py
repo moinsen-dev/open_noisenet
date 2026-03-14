@@ -454,29 +454,86 @@ async def _calculate_system_daily_summary(
     }
 
 
-# Helper functions (placeholders for actual database queries)
+# Helper functions for database queries
 
 
 async def _get_active_devices(db) -> List[str]:
     """Get list of active device IDs."""
-    # This would query the devices table
-    return ["device_001", "device_002", "device_003"]  # Placeholder
+    from sqlalchemy import select
+    from app.db.models.device import Device
+    result = await db.execute(
+        select(Device.device_id).where(Device.is_active == True)
+    )
+    return [row[0] for row in result.all()]
 
 
 async def _get_device_measurements(
     device_id: str, start_time: datetime, end_time: datetime, db
 ) -> List[Dict]:
-    """Get measurements for a device in time range."""
-    # This would query the measurements table
-    return []  # Placeholder
+    """Get events for a device in time range (events serve as measurements)."""
+    from sqlalchemy import select
+    from app.db.models.event import Event
+    from app.db.models.device import Device
+
+    # Find device by device_id string, then query events by str(device.id)
+    device_result = await db.execute(
+        select(Device).where(Device.device_id == device_id)
+    )
+    device = device_result.scalar_one_or_none()
+    if not device:
+        return []
+
+    result = await db.execute(
+        select(Event)
+        .where(Event.device_id == str(device.id))
+        .where(Event.timestamp_start >= start_time)
+        .where(Event.timestamp_start < end_time)
+    )
+    events = result.scalars().all()
+    return [
+        {
+            "spl_db": float(e.leq_db),
+            "timestamp": e.timestamp_start,
+            "device_id": device_id,
+        }
+        for e in events
+    ]
 
 
 async def _get_device_events(
     device_id: str, start_time: datetime, end_time: datetime, db
 ) -> List[Dict]:
-    """Get events for a device in time range."""
-    # This would query the events table
-    return []  # Placeholder
+    """Get events with rule_triggered for a device."""
+    from sqlalchemy import select
+    from app.db.models.event import Event
+    from app.db.models.device import Device
+
+    device_result = await db.execute(
+        select(Device).where(Device.device_id == device_id)
+    )
+    device = device_result.scalar_one_or_none()
+    if not device:
+        return []
+
+    result = await db.execute(
+        select(Event)
+        .where(Event.device_id == str(device.id))
+        .where(Event.timestamp_start >= start_time)
+        .where(Event.timestamp_start < end_time)
+        .where(Event.rule_triggered.is_not(None))
+    )
+    events = result.scalars().all()
+    return [
+        {
+            "rule_triggered": e.rule_triggered,
+            "peak_level_db": float(e.lmax_db) if e.lmax_db else float(e.leq_db),
+            "start_time": e.timestamp_start,
+            "duration_seconds": (e.timestamp_end - e.timestamp_start).total_seconds()
+            if e.timestamp_end and e.timestamp_start
+            else 0,
+        }
+        for e in events
+    ]
 
 
 def _identify_dominant_sources(events: List[Dict]) -> List[str]:
@@ -494,18 +551,39 @@ def _identify_dominant_sources(events: List[Dict]) -> List[str]:
 
 
 async def _store_hourly_device_stats(stats: Dict[str, Any], db):
-    """Store hourly device statistics."""
-    # This would save to hourly_device_statistics table
-    pass
+    """Store as EventAggregation."""
+    from sqlalchemy import select
+    from app.db.models.event import EventAggregation
+    from app.db.models.device import Device
+
+    device_result = await db.execute(
+        select(Device).where(Device.device_id == stats["device_id"])
+    )
+    device = device_result.scalar_one_or_none()
+    if not device:
+        return
+
+    agg = EventAggregation(
+        device_id=str(device.id),
+        time_bucket=datetime.fromisoformat(stats["hour_start"]),
+        bucket_duration=str(timedelta(hours=1)),
+        avg_leq_db=stats["statistics"]["leq"],
+        max_leq_db=stats["statistics"]["lmax"],
+        min_leq_db=stats["statistics"]["lmin"],
+        event_count=stats["event_count"],
+        exceedance_count=stats["event_count"],
+    )
+    db.add(agg)
+    await db.flush()
 
 
 async def _store_hourly_system_stats(stats: Dict[str, Any], hour_start: datetime, db):
     """Store hourly system statistics."""
-    # This would save to hourly_system_statistics table
+    # No table for system stats yet
     pass
 
 
 async def _store_daily_stats(stats: Dict[str, Any], db):
     """Store daily statistics."""
-    # This would save to daily_statistics table
+    # No table for daily stats yet
     pass

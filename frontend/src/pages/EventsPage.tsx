@@ -35,7 +35,7 @@ import {
 } from '@mui/icons-material'
 import { format, parseISO } from 'date-fns'
 
-import { api, NoiseEvent, Device, EventListResponse } from '../services/api'
+import { api, NoiseEvent, Device } from '../services/api'
 
 interface EventsState {
   events: NoiseEvent[]
@@ -87,7 +87,11 @@ export default function EventsPage() {
       setState(prev => ({
         ...prev,
         loading: false,
-        error: error.response?.data?.message || error.message || 'Failed to load data from backend',
+        error:
+          error.response?.data?.detail ||
+          error.response?.data?.message ||
+          error.message ||
+          'Failed to load data from backend',
       }))
     }
   }
@@ -177,7 +181,7 @@ export default function EventsPage() {
   return (
     <Box>
       {/* Header */}
-      <Box sx={{ display: 'flex', justifyContent: 'between', alignItems: 'center', mb: 3 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Box>
           <Typography variant="h4" gutterBottom>
             Noise Events
@@ -284,7 +288,7 @@ export default function EventsPage() {
       {/* Events Table */}
       <Card>
         <CardContent>
-          <Box sx={{ display: 'flex', justifyContent: 'between', alignItems: 'center', mb: 2 }}>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
             <Typography variant="h6">
               Recent Events ({state.events.length})
             </Typography>

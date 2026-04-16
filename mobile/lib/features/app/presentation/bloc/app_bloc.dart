@@ -70,13 +70,10 @@ class AppBloc extends Bloc<AppEvent, AppState> {
       ));
       
       // Small delay to show the notification, then load the main app
-      await Future.delayed(const Duration(milliseconds: 500));
-
-      // TODO: Check if user is authenticated
-      // TODO: Initialize other services
+      await Future<void>.delayed(const Duration(milliseconds: 500));
 
       emit(AppLoaded(
-        isAuthenticated: false,
+        isAuthenticated: mode == BackendMode.authenticated.name,
         isDarkMode: isDarkMode,
         language: 'en',
         isOnboardingComplete: isOnboardingComplete,

@@ -19,7 +19,6 @@ import {
   Home,
   Map,
   Devices,
-  AdminPanelSettings,
   VolumeUp,
   Event,
 } from '@mui/icons-material'
@@ -32,7 +31,6 @@ const navigationItems = [
   { label: 'Events', path: '/events', icon: Event },
   { label: 'Noise Map', path: '/map', icon: Map },
   { label: 'Devices', path: '/devices', icon: Devices },
-  { label: 'Admin', path: '/admin', icon: AdminPanelSettings },
 ]
 
 interface LayoutProps {

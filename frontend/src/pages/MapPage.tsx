@@ -1,165 +1,239 @@
-import { useEffect, useRef } from 'react'
-import { Box, Card, CardContent, Typography, Paper } from '@mui/material'
+import { useEffect, useRef, useState } from 'react'
+import { Alert, Box, Card, CardContent, CircularProgress, Paper, Typography } from '@mui/material'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 
-// Fix for default markers in React Leaflet
-delete (L.Icon.Default.prototype as any)._getIconUrl
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
-  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
-  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
-})
+import { api, GeoJSONFeature, MapStats } from '../services/api'
+
+interface MapState {
+  features: GeoJSONFeature[]
+  stats: MapStats | null
+  loading: boolean
+  error: string | null
+}
+
+function getNoiseColor(level?: number): string {
+  if (level == null) return '#607D8B'
+  if (level < 45) return '#4CAF50'
+  if (level < 55) return '#FF9800'
+  if (level < 65) return '#FF5722'
+  return '#C62828'
+}
 
 export default function MapPage() {
   const mapRef = useRef<L.Map | null>(null)
+  const layerRef = useRef<L.LayerGroup | null>(null)
   const mapContainerRef = useRef<HTMLDivElement>(null)
+  const [state, setState] = useState<MapState>({
+    features: [],
+    stats: null,
+    loading: true,
+    error: null,
+  })
 
   useEffect(() => {
-    if (!mapContainerRef.current || mapRef.current) return
+    if (!mapContainerRef.current || mapRef.current) {
+      return
+    }
 
-    // Initialize map
     const map = L.map(mapContainerRef.current).setView([52.520008, 13.404954], 10)
 
-    // Add OpenStreetMap tiles
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+      attribution: '© OpenStreetMap contributors',
     }).addTo(map)
 
-    // Sample marker data (TODO: Replace with real API data)
-    const sampleDevices = [
-      { id: 1, lat: 52.520008, lng: 13.404954, level: 45.2 },
-      { id: 2, lat: 52.530008, lng: 13.414954, level: 58.7 },
-      { id: 3, lat: 52.510008, lng: 13.394954, level: 62.1 },
-    ]
-
-    // Add markers for devices
-    sampleDevices.forEach(device => {
-      const color = getNoiseColor(device.level)
-      
-      const marker = L.circleMarker([device.lat, device.lng], {
-        radius: 10,
-        fillColor: color,
-        color: '#fff',
-        weight: 2,
-        opacity: 1,
-        fillOpacity: 0.8
-      })
-      
-      marker.bindPopup(`
-        <div>
-          <strong>Device ${device.id}</strong><br/>
-          Noise Level: ${device.level} dB<br/>
-          Status: Active
-        </div>
-      `)
-      
-      marker.addTo(map)
-    })
-
+    layerRef.current = L.layerGroup().addTo(map)
     mapRef.current = map
 
     return () => {
-      if (mapRef.current) {
-        mapRef.current.remove()
-        mapRef.current = null
-      }
+      mapRef.current?.remove()
+      mapRef.current = null
+      layerRef.current = null
     }
   }, [])
 
-  const getNoiseColor = (level: number): string => {
-    if (level < 45) return '#4CAF50' // Green
-    if (level < 55) return '#FF9800' // Orange
-    if (level < 65) return '#FF5722' // Red
-    return '#9C27B0' // Purple
-  }
+  useEffect(() => {
+    let cancelled = false
+
+    async function loadMapData() {
+      setState((prev) => ({ ...prev, loading: true, error: null }))
+
+      try {
+        const [geojson, stats] = await Promise.all([
+          api.map.events({ hours: 168, limit: 500 }),
+          api.map.stats(),
+        ])
+
+        if (cancelled) {
+          return
+        }
+
+        setState({
+          features: geojson.features,
+          stats,
+          loading: false,
+          error: null,
+        })
+      } catch (error: any) {
+        if (cancelled) {
+          return
+        }
+
+        setState({
+          features: [],
+          stats: null,
+          loading: false,
+          error:
+            error.response?.data?.detail ||
+            error.message ||
+            'Failed to load map data from the backend.',
+        })
+      }
+    }
+
+    void loadMapData()
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!layerRef.current || !mapRef.current) {
+      return
+    }
+
+    layerRef.current.clearLayers()
+
+    if (state.features.length === 0) {
+      return
+    }
+
+    const bounds = L.latLngBounds([])
+
+    state.features.forEach((feature) => {
+      const [lng, lat] = feature.geometry.coordinates
+      const marker = L.circleMarker([lat, lng], {
+        radius: 9,
+        fillColor: getNoiseColor(feature.properties.leq_db),
+        color: '#ffffff',
+        weight: 2,
+        opacity: 1,
+        fillOpacity: 0.85,
+      })
+
+      marker.bindPopup(`
+        <div>
+          <strong>Event ${feature.properties.id.slice(0, 8)}</strong><br/>
+          Device: ${feature.properties.device_id.slice(0, 8)}<br/>
+          Leq: ${feature.properties.leq_db?.toFixed?.(1) ?? feature.properties.leq_db ?? '—'} dB<br/>
+          Status: ${feature.properties.status}<br/>
+          Started: ${feature.properties.timestamp_start ?? '—'}
+        </div>
+      `)
+
+      marker.addTo(layerRef.current!)
+      bounds.extend([lat, lng])
+    })
+
+    if (bounds.isValid()) {
+      mapRef.current.fitBounds(bounds.pad(0.2))
+    }
+  }, [state.features])
 
   return (
     <Box>
       <Typography variant="h4" gutterBottom>
-        Noise Level Map
+        Noise Event Map
       </Typography>
       <Typography variant="body1" color="textSecondary" paragraph>
-        Real-time environmental noise levels from connected devices.
+        Public MVP view of the live event feed from the supported `/map`
+        endpoints.
       </Typography>
 
-      <Box sx={{ display: 'flex', gap: 2, height: 'calc(100vh - 200px)' }}>
-        <Box sx={{ flex: 1 }}>
+      {state.error ? (
+        <Alert severity="warning" sx={{ mb: 2 }}>
+          {state.error}
+        </Alert>
+      ) : null}
+
+      <Box sx={{ display: 'flex', gap: 2, height: 'calc(100vh - 220px)' }}>
+        <Box sx={{ flex: 1, minHeight: 500 }}>
           <Paper
             ref={mapContainerRef}
             sx={{
+              position: 'relative',
               height: '100%',
               borderRadius: 2,
               overflow: 'hidden',
             }}
-          />
+          >
+            {state.loading ? (
+              <Box
+                sx={{
+                  position: 'absolute',
+                  inset: 0,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  zIndex: 500,
+                  backgroundColor: 'rgba(255,255,255,0.7)',
+                }}
+              >
+                <CircularProgress />
+              </Box>
+            ) : null}
+          </Paper>
         </Box>
-        
-        <Box sx={{ width: 300 }}>
+
+        <Box sx={{ width: 320 }}>
           <Card sx={{ mb: 2 }}>
             <CardContent>
               <Typography variant="h6" gutterBottom>
                 Legend
               </Typography>
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              {[
+                ['Quiet', '#4CAF50', '< 45 dB'],
+                ['Moderate', '#FF9800', '45-55 dB'],
+                ['Loud', '#FF5722', '55-65 dB'],
+                ['Very Loud', '#C62828', '> 65 dB'],
+              ].map(([label, color, range]) => (
+                <Box
+                  key={label}
+                  sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}
+                >
                   <Box
                     sx={{
                       width: 16,
                       height: 16,
                       borderRadius: '50%',
-                      backgroundColor: '#4CAF50'
+                      backgroundColor: color,
                     }}
                   />
-                  <Typography variant="body2">Quiet (&lt; 45 dB)</Typography>
+                  <Typography variant="body2">
+                    {label} ({range})
+                  </Typography>
                 </Box>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <Box
-                    sx={{
-                      width: 16,
-                      height: 16,
-                      borderRadius: '50%',
-                      backgroundColor: '#FF9800'
-                    }}
-                  />
-                  <Typography variant="body2">Moderate (45-55 dB)</Typography>
-                </Box>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <Box
-                    sx={{
-                      width: 16,
-                      height: 16,
-                      borderRadius: '50%',
-                      backgroundColor: '#FF5722'
-                    }}
-                  />
-                  <Typography variant="body2">Loud (55-65 dB)</Typography>
-                </Box>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <Box
-                    sx={{
-                      width: 16,
-                      height: 16,
-                      borderRadius: '50%',
-                      backgroundColor: '#9C27B0'
-                    }}
-                  />
-                  <Typography variant="body2">Very Loud (&gt; 65 dB)</Typography>
-                </Box>
-              </Box>
+              ))}
             </CardContent>
           </Card>
-          
+
           <Card>
             <CardContent>
               <Typography variant="h6" gutterBottom>
-                Active Devices
+                Current Map Stats
               </Typography>
               <Typography variant="body2" color="textSecondary">
-                3 devices currently monitoring
+                Events on map: {state.features.length}
               </Typography>
-              <Typography variant="body2" sx={{ mt: 1 }}>
-                Last updated: Just now
+              <Typography variant="body2" color="textSecondary">
+                Total devices: {state.stats?.total_devices ?? '—'}
+              </Typography>
+              <Typography variant="body2" color="textSecondary">
+                Events (24h): {state.stats?.events_24h ?? '—'}
+              </Typography>
+              <Typography variant="body2" color="textSecondary">
+                Avg Leq: {state.stats?.avg_leq_db?.toFixed(1) ?? '—'} dB
               </Typography>
             </CardContent>
           </Card>

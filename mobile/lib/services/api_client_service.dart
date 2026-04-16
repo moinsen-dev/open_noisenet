@@ -1,13 +1,11 @@
-/// API client service for communicating with OpenNoiseNet backend
+// API client service for communicating with the OpenNoiseNet backend.
 
-import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:talker_flutter/talker_flutter.dart';
 
 import '../core/models/api_models.dart';
-import '../features/noise_monitoring/data/models/noise_event_model.dart' as monitoring;
 import 'network_utils.dart';
 
 class ApiClientService {
@@ -15,23 +13,25 @@ class ApiClientService {
   static const String _accessTokenKey = 'access_token';
   static const String _refreshTokenKey = 'refresh_token';
   static const String _deviceIdKey = 'device_id';
-  
+
   // Smart backend URL detection for development
   static String get _defaultBaseUrl {
     // For release builds, use production URL
     if (kReleaseMode) {
       return 'https://api.open-noisenet.org/api/v1';
     }
-    
+
     // For development builds, use localhost as fallback
     // The NetworkUtils.getRecommendedBackendUrl() will provide better detection
     return 'http://localhost:8100/api/v1';
   }
-  
+
+  static String get defaultBaseUrl => _defaultBaseUrl;
+
   late final Dio _dio;
   final SharedPreferences _prefs;
   final Talker _logger;
-  
+
   String? _accessToken;
   String? _refreshToken;
   String? _deviceId;
@@ -40,7 +40,8 @@ class ApiClientService {
   ApiClientService({
     required SharedPreferences prefs,
     required Talker logger,
-  }) : _prefs = prefs, _logger = logger {
+  })  : _prefs = prefs,
+        _logger = logger {
     _initializeClient();
     _loadStoredCredentials();
   }
@@ -66,12 +67,13 @@ class ApiClientService {
         handler.next(options);
       },
       onResponse: (response, handler) {
-        _logger.debug('API Response: ${response.statusCode} ${response.requestOptions.uri}');
+        _logger.debug(
+            'API Response: ${response.statusCode} ${response.requestOptions.uri}');
         handler.next(response);
       },
       onError: (error, handler) async {
         _logger.error('API Error: ${error.message}', error);
-        
+
         // Handle token refresh on 401 errors
         if (error.response?.statusCode == 401 && _refreshToken != null) {
           try {
@@ -87,7 +89,7 @@ class ApiClientService {
             await _clearStoredCredentials();
           }
         }
-        
+
         handler.next(error);
       },
     ));
@@ -97,11 +99,11 @@ class ApiClientService {
     _dio.options.baseUrl = _baseUrl;
   }
 
-  Future<void> _loadStoredCredentials() async {
+  void _loadStoredCredentials() {
     _accessToken = _prefs.getString(_accessTokenKey);
     _refreshToken = _prefs.getString(_refreshTokenKey);
     _deviceId = _prefs.getString(_deviceIdKey);
-    
+
     _logger.info('Loaded API credentials', {
       'hasAccessToken': _accessToken != null,
       'hasRefreshToken': _refreshToken != null,
@@ -146,18 +148,32 @@ class ApiClientService {
   String? get deviceId => _deviceId;
   bool get isAuthenticated => _accessToken != null;
 
+  Future<String> ensureDeviceId() async {
+    if (_deviceId != null && _deviceId!.isNotEmpty) {
+      return _deviceId!;
+    }
+
+    final generatedDeviceId = _generateDeviceId();
+    await _storeCredentials(deviceId: generatedDeviceId);
+    _logger.info('Generated local device identity: $generatedDeviceId');
+    return generatedDeviceId;
+  }
+
   // Authentication endpoints
   Future<AuthTokens> login(String email, String password) async {
     try {
       final request = LoginRequest(email: email, password: password);
-      final response = await _dio.post('/auth/login', data: request.toJson());
-      
+      final response = await _dio.post<Map<String, dynamic>>(
+        '/auth/login',
+        data: request.toJson(),
+      );
+
       final tokens = AuthTokens.fromJson(response.data as Map<String, dynamic>);
       await _storeCredentials(
         accessToken: tokens.accessToken,
         refreshToken: tokens.refreshToken,
       );
-      
+
       _logger.info('User logged in successfully');
       return tokens;
     } catch (e) {
@@ -166,21 +182,25 @@ class ApiClientService {
     }
   }
 
-  Future<AuthTokens> register(String email, String password, String fullName) async {
+  Future<AuthTokens> register(
+      String email, String password, String fullName) async {
     try {
       final request = RegisterRequest(
         email: email,
         password: password,
         fullName: fullName,
       );
-      final response = await _dio.post('/auth/register', data: request.toJson());
-      
+      final response = await _dio.post<Map<String, dynamic>>(
+        '/auth/register',
+        data: request.toJson(),
+      );
+
       final tokens = AuthTokens.fromJson(response.data as Map<String, dynamic>);
       await _storeCredentials(
         accessToken: tokens.accessToken,
         refreshToken: tokens.refreshToken,
       );
-      
+
       _logger.info('User registered successfully');
       return tokens;
     } catch (e) {
@@ -190,17 +210,37 @@ class ApiClientService {
   }
 
   Future<void> logout() async {
-    try {
-      if (_refreshToken != null) {
-        // Attempt to invalidate token on server
-        await _dio.post('/auth/logout', data: {'refresh_token': _refreshToken});
-      }
-    } catch (e) {
-      _logger.warning('Server logout failed, clearing local credentials anyway', e);
-    } finally {
-      await _clearStoredCredentials();
-      _logger.info('User logged out');
-    }
+    await _clearStoredCredentials();
+    _logger.info('User logged out locally');
+  }
+
+  Future<DeviceModel> ensureDeviceRegistered({
+    String? name,
+    double? locationLat,
+    double? locationLng,
+    String? address,
+    bool isPublic = false,
+  }) async {
+    final resolvedDeviceId = await ensureDeviceId();
+    final deviceName = name ?? _defaultDeviceName();
+
+    final device = DeviceModel(
+      deviceId: resolvedDeviceId,
+      name: deviceName,
+      deviceType: DeviceType.smartphone,
+      firmwareVersion: 'mobile-0.1.0',
+      hardwareInfo: <String, dynamic>{
+        'platform': _platformLabel(),
+        'authenticated': isAuthenticated,
+      },
+      calibrationOffset: 0.0,
+      locationLat: locationLat,
+      locationLng: locationLng,
+      address: address,
+      isPublic: isPublic,
+    );
+
+    return await registerDevice(device);
   }
 
   Future<AuthTokens> _refreshAccessToken() async {
@@ -209,16 +249,17 @@ class ApiClientService {
     }
 
     try {
-      final response = await _dio.post('/auth/refresh', data: {
+      final response =
+          await _dio.post<Map<String, dynamic>>('/auth/refresh', data: {
         'refresh_token': _refreshToken,
       });
-      
+
       final tokens = AuthTokens.fromJson(response.data as Map<String, dynamic>);
       await _storeCredentials(
         accessToken: tokens.accessToken,
         refreshToken: tokens.refreshToken,
       );
-      
+
       _logger.info('Access token refreshed');
       return tokens;
     } catch (e) {
@@ -231,13 +272,18 @@ class ApiClientService {
   // Device management endpoints
   Future<DeviceModel> registerDevice(DeviceModel device) async {
     try {
-      final response = await _dio.post('/devices/register', data: device.toJson());
-      final registeredDevice = DeviceModel.fromJson(response.data as Map<String, dynamic>);
-      
+      final response = await _dio.post<Map<String, dynamic>>(
+        '/devices/register',
+        data: device.toJson(),
+      );
+      final registeredDevice =
+          DeviceModel.fromJson(response.data as Map<String, dynamic>);
+
       // Store device ID for future requests
       await _storeCredentials(deviceId: registeredDevice.deviceId);
-      
-      _logger.info('Device registered successfully: ${registeredDevice.deviceId}');
+
+      _logger
+          .info('Device registered successfully: ${registeredDevice.deviceId}');
       return registeredDevice;
     } catch (e) {
       _logger.error('Device registration failed', e);
@@ -247,7 +293,8 @@ class ApiClientService {
 
   Future<DeviceModel> getDevice(String deviceId) async {
     try {
-      final response = await _dio.get('/devices/$deviceId');
+      final response =
+          await _dio.get<Map<String, dynamic>>('/devices/$deviceId');
       return DeviceModel.fromJson(response.data as Map<String, dynamic>);
     } catch (e) {
       _logger.error('Failed to get device: $deviceId', e);
@@ -257,9 +304,13 @@ class ApiClientService {
 
   Future<DeviceModel> updateDevice(String deviceId, DeviceModel device) async {
     try {
-      final response = await _dio.put('/devices/$deviceId', data: device.toJson());
-      final updatedDevice = DeviceModel.fromJson(response.data as Map<String, dynamic>);
-      
+      final response = await _dio.put<Map<String, dynamic>>(
+        '/devices/$deviceId',
+        data: device.toJson(),
+      );
+      final updatedDevice =
+          DeviceModel.fromJson(response.data as Map<String, dynamic>);
+
       _logger.info('Device updated successfully: $deviceId');
       return updatedDevice;
     } catch (e) {
@@ -270,7 +321,10 @@ class ApiClientService {
 
   Future<void> sendHeartbeat(HeartbeatRequest heartbeat) async {
     try {
-      await _dio.post('/devices/${heartbeat.deviceId}/heartbeat', data: heartbeat.toJson());
+      await _dio.post<Map<String, dynamic>>(
+        '/devices/${heartbeat.deviceId}/heartbeat',
+        data: heartbeat.toJson(),
+      );
       _logger.debug('Heartbeat sent for device: ${heartbeat.deviceId}');
     } catch (e) {
       _logger.error('Failed to send heartbeat', e);
@@ -280,9 +334,11 @@ class ApiClientService {
 
   Future<List<DeviceModel>> listDevices() async {
     try {
-      final response = await _dio.get('/devices/');
+      final response = await _dio.get<List<dynamic>>('/devices/');
       final List<dynamic> deviceList = response.data as List<dynamic>;
-      return deviceList.map((json) => DeviceModel.fromJson(json as Map<String, dynamic>)).toList();
+      return deviceList
+          .map((json) => DeviceModel.fromJson(json as Map<String, dynamic>))
+          .toList();
     } catch (e) {
       _logger.error('Failed to list devices', e);
       rethrow;
@@ -292,9 +348,13 @@ class ApiClientService {
   // Event endpoints
   Future<NoiseEventModel> createEvent(NoiseEventModel event) async {
     try {
-      final response = await _dio.post('/events/', data: event.toJson());
-      final createdEvent = NoiseEventModel.fromJson(response.data as Map<String, dynamic>);
-      
+      final response = await _dio.post<Map<String, dynamic>>(
+        '/events/',
+        data: event.toJson(),
+      );
+      final createdEvent =
+          NoiseEventModel.fromJson(response.data as Map<String, dynamic>);
+
       _logger.info('Event created successfully for device: ${event.deviceId}');
       return createdEvent;
     } catch (e) {
@@ -313,15 +373,21 @@ class ApiClientService {
     try {
       final queryParams = <String, dynamic>{};
       if (deviceId != null) queryParams['device_id'] = deviceId;
-      if (startTime != null) queryParams['start_time'] = startTime.toIso8601String();
+      if (startTime != null)
+        queryParams['start_time'] = startTime.toIso8601String();
       if (endTime != null) queryParams['end_time'] = endTime.toIso8601String();
       if (limit != null) queryParams['limit'] = limit;
       if (offset != null) queryParams['offset'] = offset;
 
-      final response = await _dio.get('/events/', queryParameters: queryParams);
+      final response = await _dio.get<Map<String, dynamic>>(
+        '/events/',
+        queryParameters: queryParams,
+      );
       final data = response.data as Map<String, dynamic>;
       final List<dynamic> eventList = data['events'] as List<dynamic>;
-      return eventList.map((json) => NoiseEventModel.fromJson(json as Map<String, dynamic>)).toList();
+      return eventList
+          .map((json) => NoiseEventModel.fromJson(json as Map<String, dynamic>))
+          .toList();
     } catch (e) {
       _logger.error('Failed to list events', e);
       rethrow;
@@ -330,7 +396,7 @@ class ApiClientService {
 
   Future<NoiseEventModel> getEvent(String eventId) async {
     try {
-      final response = await _dio.get('/events/$eventId');
+      final response = await _dio.get<Map<String, dynamic>>('/events/$eventId');
       return NoiseEventModel.fromJson(response.data as Map<String, dynamic>);
     } catch (e) {
       _logger.error('Failed to get event: $eventId', e);
@@ -354,7 +420,10 @@ class ApiClientService {
       if (minLng != null) queryParams['min_lng'] = minLng;
       if (maxLng != null) queryParams['max_lng'] = maxLng;
 
-      final response = await _dio.get('/map/events', queryParameters: queryParams);
+      final response = await _dio.get<Map<String, dynamic>>(
+        '/map/events',
+        queryParameters: queryParams,
+      );
       return response.data as Map<String, dynamic>;
     } catch (e) {
       _logger.error('Failed to get map events', e);
@@ -370,7 +439,8 @@ class ApiClientService {
     int hours = 24,
   }) async {
     try {
-      final response = await _dio.get('/map/heatmap', queryParameters: {
+      final response = await _dio
+          .get<Map<String, dynamic>>('/map/heatmap', queryParameters: {
         'min_lat': minLat,
         'max_lat': maxLat,
         'min_lng': minLng,
@@ -386,7 +456,7 @@ class ApiClientService {
 
   Future<Map<String, dynamic>> getMapStats() async {
     try {
-      final response = await _dio.get('/map/stats');
+      final response = await _dio.get<Map<String, dynamic>>('/map/stats');
       return response.data as Map<String, dynamic>;
     } catch (e) {
       _logger.error('Failed to get map stats', e);
@@ -399,7 +469,7 @@ class ApiClientService {
     try {
       // Health check is at root level, not under /api/v1
       final rootUrl = _baseUrl.replaceAll('/api/v1', '');
-      final response = await _dio.get('$rootUrl/health');
+      final response = await _dio.get<Map<String, dynamic>>('$rootUrl/health');
       return response.data as Map<String, dynamic>;
     } catch (e) {
       _logger.error('Health check failed', e);
@@ -414,7 +484,7 @@ class ApiClientService {
       await healthCheck();
       final endTime = DateTime.now();
       final latency = endTime.difference(startTime);
-      
+
       return ConnectionTestResult(
         success: true,
         latencyMs: latency.inMilliseconds,
@@ -443,7 +513,7 @@ class ApiClientService {
       } else {
         errorMessage = 'Unexpected error: ${e.toString()}';
       }
-      
+
       return ConnectionTestResult(
         success: false,
         latencyMs: null,
@@ -454,22 +524,16 @@ class ApiClientService {
   }
 
   // Batch event submission for performance
-  Future<List<NoiseEventModel>> createEventsBatch(List<NoiseEventModel> events) async {
-    try {
-      final eventDataList = events.map((event) => event.toJson()).toList();
-      final response = await _dio.post('/events/batch', data: {
-        'events': eventDataList,
-      });
-      
-      final List<dynamic> createdEventsList = response.data as List<dynamic>;
-      final createdEvents = createdEventsList.map((json) => NoiseEventModel.fromJson(json as Map<String, dynamic>)).toList();
-      
-      _logger.info('Batch created ${createdEvents.length} events');
-      return createdEvents;
-    } catch (e) {
-      _logger.error('Failed to create events batch', e);
-      rethrow;
+  Future<List<NoiseEventModel>> createEventsBatch(
+      List<NoiseEventModel> events) async {
+    final createdEvents = <NoiseEventModel>[];
+
+    for (final event in events) {
+      createdEvents.add(await createEvent(event));
     }
+
+    _logger.info('Sequentially submitted ${createdEvents.length} events');
+    return createdEvents;
   }
 
   // Connection test
@@ -486,8 +550,8 @@ class ApiClientService {
   Future<bool> submitAnonymousEvent(NoiseEventModel event) async {
     try {
       // Use the regular /events/ endpoint which handles anonymous submissions by auto-creating devices
-      await _dio.post('/events/', data: event.toJson());
-      
+      await _dio.post<Map<String, dynamic>>('/events/', data: event.toJson());
+
       _logger.info('Anonymous event submitted successfully');
       return true;
     } catch (e) {
@@ -505,16 +569,17 @@ class ApiClientService {
   Future<List<BackendPreset>> getRecommendedUrls() async {
     final networkUtils = NetworkUtils();
     final presets = networkUtils.getCommonPresets();
-    
+
     // Update auto-detect preset with actual detected IP
     for (int i = 0; i < presets.length; i++) {
       if (presets[i].isAutoDetect) {
-        final detectedUrl = await networkUtils.getRecommendedBackendUrl(port: 8100);
+        final detectedUrl =
+            await networkUtils.getRecommendedBackendUrl(port: 8100);
         presets[i] = presets[i].withUrl(detectedUrl);
         break;
       }
     }
-    
+
     return presets;
   }
 
@@ -522,16 +587,17 @@ class ApiClientService {
   Future<Map<String, dynamic>> getNetworkDebugInfo() async {
     final networkUtils = NetworkUtils();
     final networkInfo = await networkUtils.getNetworkInfo();
-    
+
     networkInfo['currentBackendUrl'] = _baseUrl;
     networkInfo['isAuthenticated'] = isAuthenticated;
     networkInfo['deviceId'] = _deviceId;
-    
+
     return networkInfo;
   }
 
   // Submit events with fallback to queue for later submission
-  Future<bool> submitEventWithFallback(NoiseEventModel event, {bool forceAnonymous = false}) async {
+  Future<bool> submitEventWithFallback(NoiseEventModel event,
+      {bool forceAnonymous = false}) async {
     // If backend is not available, queue for later
     if (!await isBackendAvailable()) {
       _logger.info('Backend unavailable, event will be stored locally');
@@ -544,11 +610,55 @@ class ApiClientService {
         await createEvent(event);
         return true;
       } catch (e) {
-        _logger.warning('Authenticated event submission failed, trying anonymous', e);
+        _logger.warning(
+            'Authenticated event submission failed, trying anonymous', e);
       }
     }
 
     // Fallback to anonymous submission
     return await submitAnonymousEvent(event);
+  }
+
+  String _generateDeviceId() {
+    final timestamp = DateTime.now().millisecondsSinceEpoch.toRadixString(36);
+    return 'mobile-${_platformLabel()}-$timestamp';
+  }
+
+  String _defaultDeviceName() {
+    switch (defaultTargetPlatform) {
+      case TargetPlatform.android:
+        return 'OpenNoiseNet Android Sensor';
+      case TargetPlatform.iOS:
+        return 'OpenNoiseNet iPhone Sensor';
+      case TargetPlatform.macOS:
+        return 'OpenNoiseNet Mac Sensor';
+      case TargetPlatform.windows:
+        return 'OpenNoiseNet Windows Sensor';
+      case TargetPlatform.linux:
+        return 'OpenNoiseNet Linux Sensor';
+      case TargetPlatform.fuchsia:
+        return 'OpenNoiseNet Sensor';
+    }
+  }
+
+  String _platformLabel() {
+    if (kIsWeb) {
+      return 'web';
+    }
+
+    switch (defaultTargetPlatform) {
+      case TargetPlatform.android:
+        return 'android';
+      case TargetPlatform.iOS:
+        return 'ios';
+      case TargetPlatform.macOS:
+        return 'macos';
+      case TargetPlatform.windows:
+        return 'windows';
+      case TargetPlatform.linux:
+        return 'linux';
+      case TargetPlatform.fuchsia:
+        return 'fuchsia';
+    }
   }
 }

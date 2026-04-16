@@ -1,4 +1,4 @@
-/// Authentication page for backend login and registration
+// Authentication page for backend login and registration.
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 
@@ -12,20 +12,22 @@ class AuthPage extends StatefulWidget {
   State<AuthPage> createState() => _AuthPageState();
 }
 
-class _AuthPageState extends State<AuthPage> with SingleTickerProviderStateMixin {
+class _AuthPageState extends State<AuthPage>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
   final ApiClientService _apiClientService = GetIt.instance<ApiClientService>();
-  
+
   // Controllers for form fields
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _fullNameController = TextEditingController();
-  final TextEditingController _confirmPasswordController = TextEditingController();
-  
+  final TextEditingController _confirmPasswordController =
+      TextEditingController();
+
   // Form keys for validation
   final GlobalKey<FormState> _loginFormKey = GlobalKey<FormState>();
   final GlobalKey<FormState> _registerFormKey = GlobalKey<FormState>();
-  
+
   bool _isLoading = false;
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
@@ -60,11 +62,11 @@ class _AuthPageState extends State<AuthPage> with SingleTickerProviderStateMixin
             // Status card
             _buildStatusCard(),
             const SizedBox(height: 24),
-            
+
             // Tab bar
             Container(
               decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.surfaceVariant,
+                color: Theme.of(context).colorScheme.surfaceContainerHighest,
                 borderRadius: BorderRadius.circular(8),
               ),
               child: TabBar(
@@ -76,7 +78,7 @@ class _AuthPageState extends State<AuthPage> with SingleTickerProviderStateMixin
               ),
             ),
             const SizedBox(height: 16),
-            
+
             // Tab views
             Expanded(
               child: TabBarView(
@@ -95,7 +97,7 @@ class _AuthPageState extends State<AuthPage> with SingleTickerProviderStateMixin
 
   Widget _buildStatusCard() {
     final isAuthenticated = _apiClientService.isAuthenticated;
-    
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -113,9 +115,9 @@ class _AuthPageState extends State<AuthPage> with SingleTickerProviderStateMixin
                 Text(
                   isAuthenticated ? 'Authenticated' : 'Not Authenticated',
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    color: isAuthenticated ? Colors.green : Colors.orange,
-                    fontWeight: FontWeight.w600,
-                  ),
+                        color: isAuthenticated ? Colors.green : Colors.orange,
+                        fontWeight: FontWeight.w600,
+                      ),
                 ),
               ],
             ),
@@ -131,8 +133,8 @@ class _AuthPageState extends State<AuthPage> with SingleTickerProviderStateMixin
               Text(
                 'Device ID: ${_apiClientService.deviceId}',
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Colors.grey[600],
-                ),
+                      color: Colors.grey[600],
+                    ),
               ),
             ],
             if (isAuthenticated) ...[
@@ -175,7 +177,8 @@ class _AuthPageState extends State<AuthPage> with SingleTickerProviderStateMixin
                     Expanded(
                       child: Text(
                         _errorMessage!,
-                        style: TextStyle(color: Colors.red.shade600, fontSize: 14),
+                        style:
+                            TextStyle(color: Colors.red.shade600, fontSize: 14),
                       ),
                     ),
                   ],
@@ -183,7 +186,6 @@ class _AuthPageState extends State<AuthPage> with SingleTickerProviderStateMixin
               ),
               const SizedBox(height: 16),
             ],
-            
             TextFormField(
               controller: _emailController,
               keyboardType: TextInputType.emailAddress,
@@ -196,14 +198,14 @@ class _AuthPageState extends State<AuthPage> with SingleTickerProviderStateMixin
                 if (value == null || value.isEmpty) {
                   return 'Please enter your email';
                 }
-                if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
+                if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
+                    .hasMatch(value)) {
                   return 'Please enter a valid email';
                 }
                 return null;
               },
             ),
             const SizedBox(height: 16),
-            
             TextFormField(
               controller: _passwordController,
               obscureText: _obscurePassword,
@@ -211,7 +213,9 @@ class _AuthPageState extends State<AuthPage> with SingleTickerProviderStateMixin
                 labelText: 'Password',
                 prefixIcon: const Icon(Icons.lock),
                 suffixIcon: IconButton(
-                  icon: Icon(_obscurePassword ? Icons.visibility : Icons.visibility_off),
+                  icon: Icon(_obscurePassword
+                      ? Icons.visibility
+                      : Icons.visibility_off),
                   onPressed: () {
                     setState(() {
                       _obscurePassword = !_obscurePassword;
@@ -228,7 +232,6 @@ class _AuthPageState extends State<AuthPage> with SingleTickerProviderStateMixin
               },
             ),
             const SizedBox(height: 24),
-            
             ElevatedButton(
               onPressed: _isLoading ? null : _handleLogin,
               child: _isLoading
@@ -240,12 +243,11 @@ class _AuthPageState extends State<AuthPage> with SingleTickerProviderStateMixin
                   : const Text('Login'),
             ),
             const SizedBox(height: 16),
-            
             Text(
               'Backend URL: ${_apiClientService.baseUrl}',
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: Colors.grey[600],
-              ),
+                    color: Colors.grey[600],
+                  ),
               textAlign: TextAlign.center,
             ),
           ],
@@ -276,7 +278,8 @@ class _AuthPageState extends State<AuthPage> with SingleTickerProviderStateMixin
                     Expanded(
                       child: Text(
                         _errorMessage!,
-                        style: TextStyle(color: Colors.red.shade600, fontSize: 14),
+                        style:
+                            TextStyle(color: Colors.red.shade600, fontSize: 14),
                       ),
                     ),
                   ],
@@ -284,7 +287,6 @@ class _AuthPageState extends State<AuthPage> with SingleTickerProviderStateMixin
               ),
               const SizedBox(height: 16),
             ],
-            
             TextFormField(
               controller: _fullNameController,
               decoration: const InputDecoration(
@@ -303,7 +305,6 @@ class _AuthPageState extends State<AuthPage> with SingleTickerProviderStateMixin
               },
             ),
             const SizedBox(height: 16),
-            
             TextFormField(
               controller: _emailController,
               keyboardType: TextInputType.emailAddress,
@@ -316,14 +317,14 @@ class _AuthPageState extends State<AuthPage> with SingleTickerProviderStateMixin
                 if (value == null || value.isEmpty) {
                   return 'Please enter your email';
                 }
-                if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
+                if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
+                    .hasMatch(value)) {
                   return 'Please enter a valid email';
                 }
                 return null;
               },
             ),
             const SizedBox(height: 16),
-            
             TextFormField(
               controller: _passwordController,
               obscureText: _obscurePassword,
@@ -331,7 +332,9 @@ class _AuthPageState extends State<AuthPage> with SingleTickerProviderStateMixin
                 labelText: 'Password',
                 prefixIcon: const Icon(Icons.lock),
                 suffixIcon: IconButton(
-                  icon: Icon(_obscurePassword ? Icons.visibility : Icons.visibility_off),
+                  icon: Icon(_obscurePassword
+                      ? Icons.visibility
+                      : Icons.visibility_off),
                   onPressed: () {
                     setState(() {
                       _obscurePassword = !_obscurePassword;
@@ -351,7 +354,6 @@ class _AuthPageState extends State<AuthPage> with SingleTickerProviderStateMixin
               },
             ),
             const SizedBox(height: 16),
-            
             TextFormField(
               controller: _confirmPasswordController,
               obscureText: _obscureConfirmPassword,
@@ -359,7 +361,9 @@ class _AuthPageState extends State<AuthPage> with SingleTickerProviderStateMixin
                 labelText: 'Confirm Password',
                 prefixIcon: const Icon(Icons.lock_outline),
                 suffixIcon: IconButton(
-                  icon: Icon(_obscureConfirmPassword ? Icons.visibility : Icons.visibility_off),
+                  icon: Icon(_obscureConfirmPassword
+                      ? Icons.visibility
+                      : Icons.visibility_off),
                   onPressed: () {
                     setState(() {
                       _obscureConfirmPassword = !_obscureConfirmPassword;
@@ -379,7 +383,6 @@ class _AuthPageState extends State<AuthPage> with SingleTickerProviderStateMixin
               },
             ),
             const SizedBox(height: 24),
-            
             ElevatedButton(
               onPressed: _isLoading ? null : _handleRegister,
               child: _isLoading
@@ -411,19 +414,20 @@ class _AuthPageState extends State<AuthPage> with SingleTickerProviderStateMixin
         _emailController.text,
         _passwordController.text,
       );
-      
+      await _apiClientService.ensureDeviceRegistered();
+
       if (mounted) {
         setState(() {
           _isLoading = false;
         });
-        
+
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Login successful!'),
             backgroundColor: Colors.green,
           ),
         );
-        
+
         // Clear form
         _emailController.clear();
         _passwordController.clear();
@@ -454,25 +458,26 @@ class _AuthPageState extends State<AuthPage> with SingleTickerProviderStateMixin
         _passwordController.text,
         _fullNameController.text,
       );
-      
+      await _apiClientService.ensureDeviceRegistered();
+
       if (mounted) {
         setState(() {
           _isLoading = false;
         });
-        
+
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Registration successful! You are now logged in.'),
             backgroundColor: Colors.green,
           ),
         );
-        
+
         // Clear form
         _fullNameController.clear();
         _emailController.clear();
         _passwordController.clear();
         _confirmPasswordController.clear();
-        
+
         // Switch to login tab
         _tabController.animateTo(0);
       }
@@ -493,12 +498,12 @@ class _AuthPageState extends State<AuthPage> with SingleTickerProviderStateMixin
 
     try {
       await _apiClientService.logout();
-      
+
       if (mounted) {
         setState(() {
           _isLoading = false;
         });
-        
+
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Logged out successfully'),
@@ -511,7 +516,7 @@ class _AuthPageState extends State<AuthPage> with SingleTickerProviderStateMixin
         setState(() {
           _isLoading = false;
         });
-        
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Logout failed: ${e.toString()}'),

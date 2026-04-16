@@ -72,6 +72,8 @@ dev = [
     "pytest-mock>=3.11.0",
     "httpx>=0.25.0",
     "faker>=19.0.0",
+    "aiosqlite>=0.22.1",
+    "greenlet>=3.2.5",
     
     # Code quality
     "black>=23.9.0",
@@ -212,10 +214,4 @@ exclude_lines = [
     "if __name__ == .__main__.:",
     "class .*\\bProtocol\\):",
     "@(abc\\.)?abstractmethod",
-]
-
-[dependency-groups]
-dev = [
-    "aiosqlite>=0.22.1",
-    "greenlet>=3.2.5",
 ]

@@ -13,7 +13,7 @@ from app.db.base import Base
 class User(Base):
     """A registered user of the platform."""
 
-    __tablename__ = "user"
+    __tablename__ = "users"
 
     email: Mapped[str] = mapped_column(
         String(255), unique=True, index=True, nullable=False

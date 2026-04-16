@@ -1,13 +1,11 @@
 # Multi-stage build for React app
 FROM node:18-alpine as builder
 
-# Build arguments for environment variables
-ARG REACT_APP_API_URL=http://localhost:8100
-ARG REACT_APP_MAPBOX_TOKEN=""
+# Build argument for the Vite API base URL
+ARG VITE_API_URL=http://localhost:8100/api/v1
 
 # Set environment variables for build
-ENV REACT_APP_API_URL=$REACT_APP_API_URL
-ENV REACT_APP_MAPBOX_TOKEN=$REACT_APP_MAPBOX_TOKEN
+ENV VITE_API_URL=$VITE_API_URL
 
 WORKDIR /app
 

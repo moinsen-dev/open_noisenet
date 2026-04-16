@@ -1,23 +1,35 @@
-"""Admin endpoints."""
+"""Admin endpoints.
 
-from fastapi import APIRouter
+The admin surface exists in the codebase but is not released as part of the MVP.
+"""
+
+from fastapi import APIRouter, HTTPException, status
 
 router = APIRouter()
 
 
 @router.get("/stats")
 async def get_admin_stats():
-    """Get system statistics for admin dashboard."""
-    return {"message": "Get admin stats - TODO"}
+    """Admin APIs are intentionally out of scope for the current MVP."""
+    raise HTTPException(
+        status_code=status.HTTP_501_NOT_IMPLEMENTED,
+        detail="Admin APIs are not part of the current MVP release.",
+    )
 
 
 @router.get("/devices")
 async def get_admin_devices():
-    """Get all devices for admin management."""
-    return {"message": "Get admin devices - TODO"}
+    """Admin APIs are intentionally out of scope for the current MVP."""
+    raise HTTPException(
+        status_code=status.HTTP_501_NOT_IMPLEMENTED,
+        detail="Admin APIs are not part of the current MVP release.",
+    )
 
 
 @router.get("/system-health")
 async def get_system_health():
-    """Get system health metrics."""
-    return {"message": "Get system health - TODO"}
+    """Admin APIs are intentionally out of scope for the current MVP."""
+    raise HTTPException(
+        status_code=status.HTTP_501_NOT_IMPLEMENTED,
+        detail="Admin APIs are not part of the current MVP release.",
+    )

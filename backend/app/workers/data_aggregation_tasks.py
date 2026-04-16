@@ -475,7 +475,7 @@ async def _get_device_measurements(
     from app.db.models.event import Event
     from app.db.models.device import Device
 
-    # Find device by device_id string, then query events by str(device.id)
+    # Find device by public device_id, then query events by the internal UUID.
     device_result = await db.execute(
         select(Device).where(Device.device_id == device_id)
     )
@@ -485,7 +485,7 @@ async def _get_device_measurements(
 
     result = await db.execute(
         select(Event)
-        .where(Event.device_id == str(device.id))
+        .where(Event.device_id == device.id)
         .where(Event.timestamp_start >= start_time)
         .where(Event.timestamp_start < end_time)
     )
@@ -517,7 +517,7 @@ async def _get_device_events(
 
     result = await db.execute(
         select(Event)
-        .where(Event.device_id == str(device.id))
+        .where(Event.device_id == device.id)
         .where(Event.timestamp_start >= start_time)
         .where(Event.timestamp_start < end_time)
         .where(Event.rule_triggered.is_not(None))
@@ -564,7 +564,7 @@ async def _store_hourly_device_stats(stats: Dict[str, Any], db):
         return
 
     agg = EventAggregation(
-        device_id=str(device.id),
+        device_id=device.id,
         time_bucket=datetime.fromisoformat(stats["hour_start"]),
         bucket_duration=str(timedelta(hours=1)),
         avg_leq_db=stats["statistics"]["leq"],

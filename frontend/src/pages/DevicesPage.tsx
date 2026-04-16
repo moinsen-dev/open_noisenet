@@ -1,190 +1,189 @@
+import { useEffect, useState } from 'react'
 import {
+  Alert,
   Box,
   Card,
   CardContent,
-  Typography,
+  Chip,
+  CircularProgress,
   Table,
   TableBody,
   TableCell,
   TableContainer,
   TableHead,
   TableRow,
-  Chip,
-  IconButton,
+  Typography,
 } from '@mui/material'
-import { Edit, Delete, Circle } from '@mui/icons-material'
+import { Circle } from '@mui/icons-material'
+import { formatDistanceToNow, parseISO } from 'date-fns'
 
-interface Device {
-  id: string
-  name: string
-  type: 'smartphone' | 'esp32' | 'raspberry_pi'
-  status: 'online' | 'offline' | 'warning'
-  lastSeen: string
-  location: string
-  currentLevel?: number
+import { api, Device } from '../services/api'
+
+interface DevicesState {
+  devices: Device[]
+  loading: boolean
+  error: string | null
 }
 
-const mockDevices: Device[] = [
-  {
-    id: 'device-001',
-    name: 'Berlin Mitte Sensor',
-    type: 'smartphone',
-    status: 'online',
-    lastSeen: '2 minutes ago',
-    location: 'Berlin, Germany',
-    currentLevel: 52.3,
-  },
-  {
-    id: 'device-002',
-    name: 'Park Monitor',
-    type: 'esp32',
-    status: 'online',
-    lastSeen: '5 minutes ago',
-    location: 'Munich, Germany',
-    currentLevel: 41.7,
-  },
-  {
-    id: 'device-003',
-    name: 'Traffic Junction',
-    type: 'raspberry_pi',
-    status: 'warning',
-    lastSeen: '1 hour ago',
-    location: 'Hamburg, Germany',
-    currentLevel: 67.2,
-  },
-]
-
-function getStatusColor(status: Device['status']) {
-  switch (status) {
-    case 'online':
-      return 'success'
-    case 'warning':
-      return 'warning'
-    case 'offline':
-      return 'error'
-    default:
-      return 'default'
+function getStatusLabel(device: Device) {
+  if (!device.is_active) {
+    return 'inactive'
   }
+
+  return device.last_heartbeat || device.last_seen ? 'active' : 'registered'
 }
 
-function getDeviceTypeLabel(type: Device['type']) {
-  switch (type) {
-    case 'smartphone':
-      return 'Smartphone'
-    case 'esp32':
-      return 'ESP32'
-    case 'raspberry_pi':
-      return 'Raspberry Pi'
-    default:
-      return type
+function formatTimestamp(value?: string) {
+  if (!value) {
+    return 'No heartbeat yet'
+  }
+
+  try {
+    return formatDistanceToNow(parseISO(value), { addSuffix: true })
+  } catch {
+    return value
   }
 }
 
 export default function DevicesPage() {
+  const [state, setState] = useState<DevicesState>({
+    devices: [],
+    loading: true,
+    error: null,
+  })
+
+  useEffect(() => {
+    let cancelled = false
+
+    async function loadDevices() {
+      setState((prev) => ({ ...prev, loading: true, error: null }))
+
+      try {
+        const devices = await api.devices.list()
+
+        if (cancelled) {
+          return
+        }
+
+        setState({
+          devices,
+          loading: false,
+          error: null,
+        })
+      } catch (error: any) {
+        if (cancelled) {
+          return
+        }
+
+        setState({
+          devices: [],
+          loading: false,
+          error:
+            error.response?.data?.detail ||
+            error.message ||
+            'Failed to load devices from the backend.',
+        })
+      }
+    }
+
+    void loadDevices()
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
   return (
     <Box>
       <Typography variant="h4" gutterBottom>
-        Device Management
+        Devices
       </Typography>
       <Typography variant="body1" color="textSecondary" paragraph>
-        Monitor and manage your noise monitoring devices.
+        Registered devices from the supported MVP `/devices` endpoints.
       </Typography>
+
+      {state.error ? (
+        <Alert severity="warning" sx={{ mb: 2 }}>
+          {state.error}
+        </Alert>
+      ) : null}
 
       <Card>
         <CardContent>
           <Typography variant="h6" gutterBottom>
-            Connected Devices ({mockDevices.length})
+            Registered Devices ({state.devices.length})
           </Typography>
-          
-          <TableContainer>
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell>Device</TableCell>
-                  <TableCell>Type</TableCell>
-                  <TableCell>Status</TableCell>
-                  <TableCell>Location</TableCell>
-                  <TableCell>Current Level</TableCell>
-                  <TableCell>Last Seen</TableCell>
-                  <TableCell>Actions</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {mockDevices.map((device) => (
-                  <TableRow key={device.id}>
-                    <TableCell>
-                      <Box>
-                        <Typography variant="body1" fontWeight="medium">
-                          {device.name}
-                        </Typography>
-                        <Typography variant="body2" color="textSecondary">
-                          {device.id}
-                        </Typography>
-                      </Box>
-                    </TableCell>
-                    <TableCell>
-                      <Chip
-                        label={getDeviceTypeLabel(device.type)}
-                        size="small"
-                        variant="outlined"
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <Circle
-                          sx={{
-                            fontSize: 12,
-                            color: `${getStatusColor(device.status)}.main`,
-                          }}
-                        />
-                        <Chip
-                          label={device.status}
-                          color={getStatusColor(device.status)}
-                          size="small"
-                        />
-                      </Box>
-                    </TableCell>
-                    <TableCell>{device.location}</TableCell>
-                    <TableCell>
-                      {device.currentLevel ? (
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <Typography variant="body2" fontWeight="medium">
-                            {device.currentLevel} dB
-                          </Typography>
-                          <Circle
-                            sx={{
-                              fontSize: 8,
-                              color: device.currentLevel > 60 ? 'error.main' : 
-                                     device.currentLevel > 50 ? 'warning.main' : 'success.main',
-                            }}
-                          />
-                        </Box>
-                      ) : (
-                        <Typography variant="body2" color="textSecondary">
-                          No data
-                        </Typography>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <Typography variant="body2" color="textSecondary">
-                        {device.lastSeen}
-                      </Typography>
-                    </TableCell>
-                    <TableCell>
-                      <Box sx={{ display: 'flex', gap: 1 }}>
-                        <IconButton size="small" color="primary">
-                          <Edit fontSize="small" />
-                        </IconButton>
-                        <IconButton size="small" color="error">
-                          <Delete fontSize="small" />
-                        </IconButton>
-                      </Box>
-                    </TableCell>
+
+          {state.loading ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
+              <CircularProgress />
+            </Box>
+          ) : (
+            <TableContainer>
+              <Table>
+                <TableHead>
+                  <TableRow>
+                    <TableCell>Device</TableCell>
+                    <TableCell>Type</TableCell>
+                    <TableCell>Status</TableCell>
+                    <TableCell>Location</TableCell>
+                    <TableCell>Visibility</TableCell>
+                    <TableCell>Last Seen</TableCell>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
+                </TableHead>
+                <TableBody>
+                  {state.devices.map((device) => {
+                    const status = getStatusLabel(device)
+
+                    return (
+                      <TableRow key={device.id}>
+                        <TableCell>
+                          <Box>
+                            <Typography variant="body1" fontWeight="medium">
+                              {device.name}
+                            </Typography>
+                            <Typography variant="body2" color="textSecondary">
+                              {device.device_id}
+                            </Typography>
+                          </Box>
+                        </TableCell>
+                        <TableCell>
+                          <Chip label={device.device_type} size="small" variant="outlined" />
+                        </TableCell>
+                        <TableCell>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <Circle
+                              sx={{
+                                fontSize: 12,
+                                color: device.is_active ? 'success.main' : 'warning.main',
+                              }}
+                            />
+                            <Chip
+                              label={status}
+                              color={device.is_active ? 'success' : 'warning'}
+                              size="small"
+                            />
+                          </Box>
+                        </TableCell>
+                        <TableCell>
+                          {device.address ||
+                            (device.location_lat != null && device.location_lng != null
+                              ? `${device.location_lat.toFixed(4)}, ${device.location_lng.toFixed(4)}`
+                              : 'No location set')}
+                        </TableCell>
+                        <TableCell>{device.is_public ? 'Public' : 'Private'}</TableCell>
+                        <TableCell>
+                          <Typography variant="body2" color="textSecondary">
+                            {formatTimestamp(device.last_heartbeat || device.last_seen)}
+                          </Typography>
+                        </TableCell>
+                      </TableRow>
+                    )
+                  })}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          )}
         </CardContent>
       </Card>
     </Box>

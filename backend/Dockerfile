@@ -5,7 +5,9 @@ FROM python:3.9-slim
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     PIP_NO_CACHE_DIR=1 \
-    PIP_DISABLE_PIP_VERSION_CHECK=1
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    VIRTUAL_ENV=/opt/venv \
+    PATH="/opt/venv/bin:$PATH"
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
@@ -19,20 +21,23 @@ RUN apt-get update && apt-get install -y \
 # Install UV package manager
 RUN pip install uv
 
+# Create a virtual environment outside /app so bind mounts do not shadow it.
+RUN uv venv /opt/venv
+
 # Create app user
 RUN groupadd -r app && useradd -r -g app app
 
 # Set work directory
 WORKDIR /app
 
-# Copy project configuration
-COPY pyproject.toml ./
+# Copy application metadata and source
+COPY pyproject.toml uv.lock ./
+COPY app ./app
+COPY migrations ./migrations
+COPY alembic.ini ./
 
-# Install dependencies using UV
-RUN uv pip install --system -e .
-
-# Copy application code
-COPY . .
+# Install dependencies using the locked UV environment
+RUN uv sync --frozen --no-dev --active
 
 # Create uploads directory
 RUN mkdir -p /app/uploads && chown -R app:app /app/uploads

@@ -15,8 +15,32 @@ from app.db.models.event import Event, EventStatus
 from app.db.models.device import Device, DeviceType
 from app.db.models.user import User
 from app.schemas.event import EventCreate, EventResponse, EventListResponse, EventFilter, EventStats
+from app.services.background_processing import queue_realtime_measurement
 
 router = APIRouter()
+
+
+def _serialize_event(event: Event) -> EventResponse:
+    return EventResponse(
+        id=event.id,
+        device_id=event.device.device_id if event.device else str(event.device_id),
+        timestamp_start=event.timestamp_start,
+        timestamp_end=event.timestamp_end,
+        leq_db=event.leq_db,
+        lmax_db=event.lmax_db,
+        lmin_db=event.lmin_db,
+        laeq_db=event.laeq_db,
+        exceedance_pct=event.exceedance_pct,
+        samples_count=event.samples_count,
+        rule_triggered=event.rule_triggered,
+        location_lat=event.location_lat,
+        location_lng=event.location_lng,
+        weather_conditions=event.weather_conditions,
+        event_metadata=event.event_metadata,
+        status=event.status,
+        created_at=event.created_at,
+        updated_at=event.updated_at,
+    )
 
 
 @router.post("/", response_model=EventResponse)
@@ -43,32 +67,33 @@ async def create_event(
         await db.refresh(device)
     
     # Create the event
-    event_dict = event_data.model_dump(exclude={'device_id'})
-    event_dict['device_id'] = str(device.id)  # Use internal UUID as string
+    event_dict = event_data.model_dump(exclude={"device_id"})
+    event_dict["device_id"] = device.id
     
     new_event = Event(**event_dict)
     db.add(new_event)
     await db.flush()
     await db.refresh(new_event)
 
-    # Queue background processing (non-blocking, fire-and-forget)
-    try:
-        from app.workers.noise_processing_tasks import process_real_time_measurement
-        process_real_time_measurement.delay(
-            device.device_id,
-            {
-                "spl_db": event_data.leq_db,
-                "timestamp": event_data.timestamp_start.isoformat(),
-                "location": {
-                    "latitude": event_data.location_lat,
-                    "longitude": event_data.location_lng,
-                },
-            },
-        )
-    except Exception:
-        pass  # Don't fail event creation if worker queue unavailable
+    # Background processing is optional in the MVP. Event ingestion must succeed
+    # even when Redis/Celery is not running.
+    queue_realtime_measurement(
+        device_id=device.device_id,
+        leq_db=event_data.leq_db,
+        timestamp_start=event_data.timestamp_start,
+        location_lat=event_data.location_lat,
+        location_lng=event_data.location_lng,
+    )
 
-    return EventResponse.model_validate(new_event)
+    event_stmt = (
+        select(Event)
+        .options(selectinload(Event.device))
+        .where(Event.id == new_event.id)
+    )
+    event_result = await db.execute(event_stmt)
+    created_event = event_result.scalar_one()
+
+    return _serialize_event(created_event)
 
 
 @router.get("/", response_model=EventListResponse)
@@ -87,7 +112,7 @@ async def list_events(
     """List noise events with filtering and pagination."""
     
     # Build the query
-    stmt = select(Event)
+    stmt = select(Event).options(selectinload(Event.device))
     
     # Apply filters
     if device_id:
@@ -139,7 +164,7 @@ async def list_events(
     events = result.scalars().all()
     
     return EventListResponse(
-        events=[EventResponse.model_validate(event) for event in events],
+        events=[_serialize_event(event) for event in events],
         total=total,
         offset=offset,
         limit=limit
@@ -227,14 +252,14 @@ async def get_event(
 ):
     """Get specific event details by UUID."""
 
-    stmt = select(Event).where(Event.id == event_id)
+    stmt = select(Event).options(selectinload(Event.device)).where(Event.id == event_id)
     result = await db.execute(stmt)
     event = result.scalar_one_or_none()
 
     if not event:
         raise HTTPException(status_code=404, detail=f"Event {event_id} not found")
 
-    return EventResponse.model_validate(event)
+    return _serialize_event(event)
 
 
 @router.delete("/{event_id}")

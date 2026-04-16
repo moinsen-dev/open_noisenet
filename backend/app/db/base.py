@@ -6,8 +6,7 @@ import uuid
 from datetime import datetime
 from typing import Any
 
-from sqlalchemy import DateTime, func
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy import DateTime, Uuid, func
 from sqlalchemy.ext.declarative import as_declarative, declared_attr
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -26,7 +25,7 @@ class Base:
     
     # Common columns for all tables
     id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), 
+        Uuid(as_uuid=True),
         primary_key=True, 
         default=uuid.uuid4
     )

@@ -6,6 +6,7 @@ import 'package:dio/dio.dart';
 import '../features/noise_monitoring/data/models/noise_event_model.dart';
 import '../features/noise_monitoring/data/repositories/event_repository.dart';
 import '../core/logging/app_logger.dart';
+import 'api_client_service.dart';
 import 'settings_service.dart';
 
 class EventSubmissionService {
@@ -21,7 +22,7 @@ class EventSubmissionService {
   bool _isSubmitting = false;
 
   // Configuration (will be moved to settings later)
-  String _baseUrl = 'http://localhost:8100/api/v1'; // Default backend URL
+  String _baseUrl = ApiClientService.defaultBaseUrl;
   Duration _submissionInterval = const Duration(minutes: 5);
   int _maxRetries = 3;
 

@@ -18,9 +18,9 @@ check_requirements() {
         exit 1
     fi
     
-    # Check Docker Compose
-    if ! command -v docker-compose &> /dev/null; then
-        echo "❌ Docker Compose is not installed. Please install Docker Compose first."
+    # Check Docker Compose plugin
+    if ! docker compose version &> /dev/null; then
+        echo "❌ Docker Compose plugin is not installed. Please install Docker Desktop or the Compose plugin first."
         exit 1
     fi
     
@@ -30,9 +30,14 @@ check_requirements() {
         exit 1
     fi
     
-    # Check Python for backend
+    # Check Python and uv for backend
     if ! command -v python3 &> /dev/null; then
         echo "❌ Python 3 is not installed. Please install Python 3 first."
+        exit 1
+    fi
+
+    if ! command -v uv &> /dev/null; then
+        echo "❌ uv is not installed. Please install uv first: https://docs.astral.sh/uv/"
         exit 1
     fi
     
@@ -66,18 +71,9 @@ setup_backend() {
     
     cd backend
     
-    # Check if uv is installed, install if not
-    if ! command -v uv &> /dev/null; then
-        echo "📦 Installing uv package manager..."
-        curl -LsSf https://astral.sh/uv/install.sh | sh
-        source $HOME/.cargo/env
-    fi
-    
     # Install dependencies
     echo "📦 Installing Python dependencies..."
-    uv venv
-    source .venv/bin/activate
-    uv pip install -e .
+    uv sync --extra dev
     
     echo "✅ Backend setup complete"
     cd ..
@@ -91,7 +87,7 @@ setup_frontend() {
     
     # Install dependencies
     echo "📦 Installing Node.js dependencies..."
-    npm install
+    npm ci
     
     echo "✅ Frontend setup complete"
     cd ..
@@ -126,7 +122,7 @@ start_services() {
     echo "🚀 Building and starting Docker services..."
     
     # Build and start services
-    docker-compose up --build -d postgres redis
+    docker compose up --build -d postgres redis
     
     # Wait for database to be ready
     echo "⏳ Waiting for database to be ready..."
@@ -135,13 +131,12 @@ start_services() {
     # Run database migrations
     echo "🗄️  Running database migrations..."
     cd backend
-    source .venv/bin/activate
-    alembic upgrade head
+    uv run alembic upgrade head
     cd ..
     
     # Start all services
     echo "🔄 Starting all services..."
-    docker-compose up -d
+    docker compose up -d
     
     echo "✅ All services started successfully!"
 }
@@ -152,25 +147,25 @@ show_info() {
     echo "🎉 Setup completed successfully!"
     echo ""
     echo "📋 Service URLs:"
-    echo "  Backend API:     http://localhost:8000"
-    echo "  API Docs:        http://localhost:8000/docs"
-    echo "  Frontend:        http://localhost:3000"
+    echo "  Backend API:     http://localhost:8100"
+    echo "  API Docs:        http://localhost:8100/docs"
+    echo "  Frontend:        http://localhost:3100"
     echo "  Database:        localhost:5432"
     echo "  Redis:           localhost:6379"
     echo "  Grafana:         http://localhost:3001 (admin/admin)"
     echo "  Prometheus:      http://localhost:9090"
     echo ""
     echo "🔧 Useful commands:"
-    echo "  View logs:       docker-compose logs -f"
-    echo "  Stop services:   docker-compose down"
-    echo "  Restart:         docker-compose restart"
-    echo "  Reset database:  docker-compose down -v && docker-compose up -d"
+    echo "  View logs:       docker compose logs -f"
+    echo "  Stop services:   docker compose down"
+    echo "  Restart:         docker compose restart"
+    echo "  Reset database:  docker compose down -v && docker compose up -d"
     echo ""
     echo "📖 Next steps:"
     echo "  1. Edit .env file with your configuration"
-    echo "  2. Check all services are running: docker-compose ps"
-    echo "  3. Visit http://localhost:3000 to see the frontend"
-    echo "  4. Check API documentation at http://localhost:8000/docs"
+    echo "  2. Check all services are running: docker compose ps"
+    echo "  3. Visit http://localhost:3100 to see the dashboard"
+    echo "  4. Check API documentation at http://localhost:8100/docs"
     echo ""
 }
 

@@ -6,6 +6,7 @@ from typing import Optional
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.db.models.device import Device
 from app.db.models.event import Event
@@ -34,7 +35,7 @@ async def get_map_events(
     """Get events in GeoJSON format for map display."""
     cutoff = datetime.now(timezone.utc) - timedelta(hours=hours)
 
-    stmt = select(Event).where(
+    stmt = select(Event).options(selectinload(Event.device)).where(
         Event.location_lat.is_not(None),
         Event.location_lng.is_not(None),
         Event.timestamp_start >= cutoff,
@@ -63,7 +64,7 @@ async def get_map_events(
             },
             properties={
                 "id": str(ev.id),
-                "device_id": str(ev.device_id),
+                "device_id": ev.device.device_id if ev.device else str(ev.device_id),
                 "leq_db": float(ev.leq_db) if ev.leq_db is not None else None,
                 "lmax_db": float(ev.lmax_db) if ev.lmax_db is not None else None,
                 "lmin_db": float(ev.lmin_db) if ev.lmin_db is not None else None,

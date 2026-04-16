@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:get_it/get_it.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/logging/app_logger.dart';
+import '../../../../services/api_client_service.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -11,6 +13,7 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> {
+  final ApiClientService _apiClientService = GetIt.instance<ApiClientService>();
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
@@ -36,8 +39,11 @@ class _LoginPageState extends State<LoginPage> {
     AppLogger.auth('Login attempt for email: ${_emailController.text}');
 
     try {
-      // TODO: Implement actual authentication logic
-      await Future.delayed(const Duration(seconds: 2)); // Simulate API call
+      await _apiClientService.login(
+        _emailController.text.trim(),
+        _passwordController.text,
+      );
+      await _apiClientService.ensureDeviceRegistered();
 
       AppLogger.success('Login successful for ${_emailController.text}');
 

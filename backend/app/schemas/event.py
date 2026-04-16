@@ -32,7 +32,7 @@ class EventResponse(BaseModel):
     """Schema for event API responses."""
     
     id: uuid.UUID = Field(..., description="Event internal ID")
-    device_id: uuid.UUID = Field(..., description="Device internal ID")
+    device_id: str = Field(..., description="Public device identifier")
     timestamp_start: datetime = Field(..., description="Event start timestamp")
     timestamp_end: datetime = Field(..., description="Event end timestamp")
     leq_db: float = Field(..., description="Equivalent continuous sound level (dB)")

@@ -5,7 +5,6 @@ import Layout from './components/Layout'
 import HomePage from './pages/HomePage'
 import EventsPage from './pages/EventsPage'
 import MapPage from './pages/MapPage'
-import AdminPage from './pages/AdminPage'
 import DevicesPage from './pages/DevicesPage'
 import NotFoundPage from './pages/NotFoundPage'
 
@@ -18,7 +17,6 @@ function App() {
           <Route path="/events" element={<EventsPage />} />
           <Route path="/map" element={<MapPage />} />
           <Route path="/devices" element={<DevicesPage />} />
-          <Route path="/admin" element={<AdminPage />} />
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </Container>

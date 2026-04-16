@@ -2,12 +2,13 @@
 Event model for noise events.
 """
 
+import uuid
 from datetime import datetime
 from enum import Enum
 from typing import Optional
 
-from sqlalchemy import Float, String, DateTime, Integer, JSON, func
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy import DateTime, Float, ForeignKey, Integer, JSON, String, Uuid
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
 
@@ -24,9 +25,14 @@ class EventStatus(str, Enum):
 class Event(Base):
     """Noise event recorded by a monitoring device."""
 
-    __tablename__ = "event"
+    __tablename__ = "events"
 
-    device_id: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    device_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(as_uuid=True),
+        ForeignKey("devices.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
     timestamp_start: Mapped[Optional[datetime]] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
@@ -44,17 +50,21 @@ class Event(Base):
     location_lng: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
     weather_conditions: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
     event_metadata: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
-    status: Mapped[Optional[str]] = mapped_column(
-        String(32), nullable=True, default="active"
-    )
+    status: Mapped[str] = mapped_column(String(32), nullable=False, default="active")
+    device: Mapped["Device"] = relationship("Device")
 
 
 class EventAggregation(Base):
     """Aggregated noise statistics for a device over a time bucket."""
 
-    __tablename__ = "event_aggregation"
+    __tablename__ = "event_aggregations"
 
-    device_id: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    device_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(as_uuid=True),
+        ForeignKey("devices.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
     time_bucket: Mapped[Optional[datetime]] = mapped_column(
         DateTime(timezone=True), nullable=True
     )

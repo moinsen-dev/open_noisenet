@@ -8,10 +8,6 @@ CREATE EXTENSION IF NOT EXISTS timescaledb CASCADE;
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp" CASCADE;
 CREATE EXTENSION IF NOT EXISTS pg_stat_statements CASCADE;
 
--- Create custom data types
-CREATE TYPE device_type_enum AS ENUM ('smartphone', 'esp32', 'raspberry_pi', 'custom');
-CREATE TYPE event_status_enum AS ENUM ('pending', 'processed', 'failed');
-
 -- Users table for authentication
 CREATE TABLE users (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -30,7 +26,7 @@ CREATE TABLE devices (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     device_id VARCHAR(255) UNIQUE NOT NULL,
     name VARCHAR(255) NOT NULL,
-    device_type device_type_enum NOT NULL DEFAULT 'smartphone',
+    device_type VARCHAR(64) NOT NULL DEFAULT 'smartphone',
     owner_id UUID REFERENCES users(id) ON DELETE SET NULL,
     -- location GEOGRAPHY(Point, 4326),  -- Requires PostGIS
     location_lat DECIMAL(10, 8),
@@ -47,7 +43,10 @@ CREATE TABLE devices (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Events table for noise measurements (hypertable)
+-- Events table for noise measurements.
+-- Keep this as a regular table for the MVP bootstrap path. The previous
+-- hypertable conversion conflicted with the UUID primary key and broke
+-- first-start clean-room setups.
 CREATE TABLE events (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     device_id UUID NOT NULL REFERENCES devices(id) ON DELETE CASCADE,
@@ -65,14 +64,9 @@ CREATE TABLE events (
     location_lng DECIMAL(11, 8),
     weather_conditions JSONB,
     event_metadata JSONB,
-    status event_status_enum DEFAULT 'pending',
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
--- Convert events to hypertable for time-series optimization
-SELECT create_hypertable('events', 'timestamp_start', 
-    chunk_time_interval => INTERVAL '1 day',
-    create_default_indexes => false
+    status VARCHAR(32) NOT NULL DEFAULT 'active',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
 -- Audio snippets table (optional, encrypted)
@@ -89,12 +83,6 @@ CREATE TABLE audio_snippets (
     uploaded_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
     is_processed BOOLEAN DEFAULT false
-);
-
--- Convert audio_snippets to hypertable
-SELECT create_hypertable('audio_snippets', 'uploaded_at',
-    chunk_time_interval => INTERVAL '1 day',
-    create_default_indexes => false
 );
 
 -- Event labels from AI classification
@@ -135,7 +123,7 @@ CREATE TABLE event_aggregations (
     id SERIAL PRIMARY KEY,
     device_id UUID NOT NULL REFERENCES devices(id) ON DELETE CASCADE,
     time_bucket TIMESTAMP WITH TIME ZONE NOT NULL,
-    bucket_duration INTERVAL NOT NULL, -- '1 hour', '1 day', etc.
+    bucket_duration VARCHAR(32) NOT NULL, -- '1 hour', '1 day', etc.
     avg_leq_db REAL,
     max_leq_db REAL,
     min_leq_db REAL,
@@ -143,12 +131,6 @@ CREATE TABLE event_aggregations (
     exceedance_count INTEGER,
     exceedance_pct REAL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
--- Convert aggregations to hypertable
-SELECT create_hypertable('event_aggregations', 'time_bucket',
-    chunk_time_interval => INTERVAL '7 days',
-    create_default_indexes => false
 );
 
 -- Create indexes for optimal query performance
@@ -207,6 +189,9 @@ CREATE TRIGGER update_users_updated_at BEFORE UPDATE ON users
 CREATE TRIGGER update_devices_updated_at BEFORE UPDATE ON devices
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+CREATE TRIGGER update_events_updated_at BEFORE UPDATE ON events
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
 -- Function to clean up expired audio snippets
 CREATE OR REPLACE FUNCTION cleanup_expired_snippets()
 RETURNS INTEGER AS $$
@@ -242,7 +227,7 @@ BEGIN
     SELECT 
         device_id,
         date_trunc('hour', timestamp_start) AS time_bucket,
-        INTERVAL '1 hour' AS bucket_duration,
+        '1 hour' AS bucket_duration,
         AVG(leq_db) AS avg_leq_db,
         MAX(leq_db) AS max_leq_db,
         MIN(leq_db) AS min_leq_db,
@@ -274,7 +259,8 @@ SELECT
     d.device_id,
     d.name,
     d.device_type,
-    d.location,
+    d.location_lat,
+    d.location_lng,
     d.address,
     d.is_active,
     d.last_seen,

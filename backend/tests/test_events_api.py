@@ -30,6 +30,7 @@ async def test_create_event(client: AsyncClient, db_session: AsyncSession):
     })
     assert response.status_code == 200
     data = response.json()
+    assert data["device_id"] == "test-device-001"
     assert data["leq_db"] == 65.0
     assert data["status"] == "active"
 

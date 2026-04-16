@@ -1,78 +1,47 @@
-# NoiseNet Mobile
+# OpenNoiseNet Mobile
 
-Flutter mobile application for OpenNoiseNet environmental noise monitoring platform.
+This package contains the Flutter mobile client used for local monitoring, storage, and backend event submission.
 
-## Features
+The mobile app is not yet a polished public release. In the current stabilization milestone, the active focus is:
 
-- **Device Management**: Pair and configure ESP32/Raspberry Pi noise sensors
-- **Real-time Monitoring**: Live noise level visualization and alerts
-- **On-device AI**: Sound classification using minicpm-o-2.6 model
-- **Offline Capability**: Store data locally and sync when connected
-- **Location-based**: Automatic device location detection and management
+- backend authentication
+- device registration and identification
+- event submission and sync behavior
+- keeping the monitoring flow compatible with the supported backend MVP
 
-## Architecture
+Out of scope for the current milestone:
 
-- **State Management**: BLoC pattern for predictable state handling
-- **Dependency Injection**: GetIt for service location
-- **API Layer**: Retrofit for type-safe HTTP communication
-- **Database**: SQLite for local data persistence
-- **Audio Processing**: Native platform integration for real-time capture
+- shipping AI classification as a core user-facing feature
+- presenting experimental analysis code as finished product behavior
+- expanding into firmware or hardware delivery
 
-## Getting Started
-
-### Prerequisites
-
-- Flutter 3.13.0+
-- Dart 3.1.0+
-- Android Studio / Xcode for platform-specific development
-
-### Installation
+## Local Development
 
 ```bash
-# Get dependencies
 flutter pub get
-
-# Generate code
-flutter packages pub run build_runner build
-
-# Run the app
-flutter run
-```
-
-### Development Build
-
-```bash
-# Run with development flavor
-flutter run --flavor development --target lib/main_development.dart
-```
-
-### Production Build
-
-```bash
-# Build production APK
-flutter build apk --flavor production --target lib/main_production.dart
-
-# Build production iOS
-flutter build ios --flavor production --target lib/main_production.dart
-```
-
-## Configuration
-
-The app connects to the OpenNoiseNet backend API. Configure the base URL in:
-
-- Development: `lib/core/config/development_config.dart`
-- Production: `lib/core/config/production_config.dart`
-
-## Testing
-
-```bash
-# Run unit tests
+flutter analyze
 flutter test
-
-# Run integration tests
-flutter test integration_test/
 ```
 
-## Contributing
+## Backend Assumption
 
-Please read the main [CONTRIBUTING.md](../CONTRIBUTING.md) for contribution guidelines.
+The mobile client expects the local backend at:
+
+- `http://localhost:8100/api/v1`
+
+Override with the `API_BASE_URL` Dart define when needed.
+
+## Live Backend Smoke
+
+To verify the mobile auth, device registration, and event submission path against a real local stack:
+
+```bash
+flutter run -d web-server \
+  --web-hostname 127.0.0.1 \
+  --web-port 43123 \
+  -t tool/live_backend_smoke.dart
+```
+
+Open `http://127.0.0.1:43123` and wait for the page status to become `PASS`.
+
+Accepted analyzer debt for this milestone is tracked in [ANALYZER_BASELINE.md](/Users/udi/work/moinsen/ideas/open_noisenet/mobile/ANALYZER_BASELINE.md).

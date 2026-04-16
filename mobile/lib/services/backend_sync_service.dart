@@ -1,4 +1,4 @@
-/// Service for managing backend synchronization and offline functionality
+// Service for managing backend synchronization and offline functionality.
 import 'dart:convert';
 
 import 'package:get_it/get_it.dart';
@@ -12,22 +12,24 @@ import '../core/database/dao/noise_measurement_dao.dart';
 import '../services/sqlite_preferences_service.dart';
 
 enum BackendMode {
-  offline,      // No backend connection, local only
-  anonymous,    // Backend available, anonymous submissions
+  offline, // No backend connection, local only
+  anonymous, // Backend available, anonymous submissions
   authenticated // Backend available, authenticated user
 }
 
 class BackendSyncService {
   static const String _queuedEventsKey = 'queued_events';
-  static const String _submissionModeKey = 'submission_mode'; // 'disabled', 'anonymous', 'authenticated'
-  
+  static const String _submissionModeKey =
+      'submission_mode'; // 'disabled', 'anonymous', 'authenticated'
+
   // Lazy initialization of GetIt dependencies
   ApiClientService get _apiClient => GetIt.instance<ApiClientService>();
   SharedPreferences get _prefs => GetIt.instance<SharedPreferences>();
-  SQLitePreferencesService get _sqlitePrefs => GetIt.instance<SQLitePreferencesService>();
+  SQLitePreferencesService get _sqlitePrefs =>
+      GetIt.instance<SQLitePreferencesService>();
   final NoiseMeasurementDao _measurementDao = NoiseMeasurementDao();
   Talker get _logger => GetIt.instance<Talker>();
-  
+
   BackendMode _currentMode = BackendMode.offline;
   final List<NoiseEventModel> _queuedEvents = [];
 
@@ -39,7 +41,7 @@ class BackendSyncService {
   Future<void> initialize() async {
     await _loadQueuedEvents();
     await _updateBackendMode();
-    
+
     _logger.info('BackendSyncService initialized', {
       'mode': _currentMode.name,
       'queued_events': _queuedEvents.length,
@@ -51,15 +53,15 @@ class BackendSyncService {
     try {
       // Check if user has forced offline mode
       final isForceOffline = await _sqlitePrefs.getForceOfflineMode();
-      
+
       if (isForceOffline) {
         _currentMode = BackendMode.offline;
         _logger.info('Backend mode: Force offline mode enabled by user');
         return;
       }
-      
+
       final isAvailable = await _apiClient.isBackendAvailable();
-      
+
       if (!isAvailable) {
         _currentMode = BackendMode.offline;
         _logger.info('Backend mode: Offline (backend not available)');
@@ -70,22 +72,37 @@ class BackendSyncService {
         _currentMode = BackendMode.anonymous;
         _logger.info('Backend mode: Anonymous');
       }
-      
+
       _logger.debug('Backend mode updated: ${_currentMode.name}');
     } catch (e) {
       _currentMode = BackendMode.offline;
-      _logger.warning('Failed to update backend mode, defaulting to offline', e);
+      _logger.warning(
+          'Failed to update backend mode, defaulting to offline', e);
     }
   }
 
   /// Get current submission mode setting
   Future<String> getSubmissionMode() async {
-    return _prefs.getString(_submissionModeKey) ?? 'disabled';
+    final autoSubmissionEnabled = await _sqlitePrefs.getAutoSubmissionEnabled();
+    if (!autoSubmissionEnabled) {
+      return 'disabled';
+    }
+
+    final derivedMode =
+        _apiClient.isAuthenticated ? 'authenticated' : 'anonymous';
+    final legacyMode = _prefs.getString(_submissionModeKey);
+
+    if (legacyMode != derivedMode) {
+      await _prefs.setString(_submissionModeKey, derivedMode);
+    }
+
+    return derivedMode;
   }
 
   /// Set submission mode ('disabled', 'anonymous', 'authenticated')
   Future<void> setSubmissionMode(String mode) async {
     await _prefs.setString(_submissionModeKey, mode);
+    await _sqlitePrefs.setAutoSubmissionEnabled(mode != 'disabled');
     await _updateBackendMode();
     _logger.info('Submission mode set to: $mode');
   }
@@ -106,17 +123,29 @@ class BackendSyncService {
     Map<String, dynamic>? weatherConditions,
     Map<String, dynamic>? eventMetadata,
   }) async {
-    
     final submissionMode = await getSubmissionMode();
-    
+
     // If submission is disabled, only store locally
     if (submissionMode == 'disabled') {
       _logger.info('Backend submission disabled, storing locally only');
       return false;
     }
 
+    String deviceId = await _apiClient.ensureDeviceId();
+
+    if (_currentMode != BackendMode.offline) {
+      try {
+        final registeredDevice = await _apiClient.ensureDeviceRegistered();
+        deviceId = registeredDevice.deviceId;
+      } catch (e) {
+        _logger.warning(
+          'Failed to register device before event submission, falling back to local device identity',
+          e,
+        );
+      }
+    }
+
     // Create event model
-    final deviceId = _apiClient.deviceId ?? 'anonymous-${const Uuid().v4()}';
     final event = NoiseEventModel(
       deviceId: deviceId,
       timestampStart: timestampStart,
@@ -140,13 +169,14 @@ class BackendSyncService {
     switch (_currentMode) {
       case BackendMode.offline:
         return await _queueEventForLater(event);
-        
+
       case BackendMode.anonymous:
-        if (submissionMode == 'anonymous' || submissionMode == 'authenticated') {
+        if (submissionMode == 'anonymous' ||
+            submissionMode == 'authenticated') {
           return await _submitEventAnonymous(event);
         }
         return await _queueEventForLater(event);
-        
+
       case BackendMode.authenticated:
         if (submissionMode == 'authenticated') {
           return await _submitEventAuthenticated(event);
@@ -189,20 +219,20 @@ class BackendSyncService {
   Future<bool> _queueEventForLater(NoiseEventModel event) async {
     _queuedEvents.add(event);
     await _saveQueuedEvents();
-    
+
     _logger.info('Event queued for later submission', {
       'queue_size': _queuedEvents.length,
     });
-    
+
     return false; // Indicates it wasn't submitted immediately
   }
 
   /// Attempt to sync all queued events
   Future<int> syncQueuedEvents() async {
     if (_queuedEvents.isEmpty) return 0;
-    
+
     await _updateBackendMode();
-    
+
     if (_currentMode == BackendMode.offline) {
       _logger.info('Backend still offline, keeping events queued');
       return 0;
@@ -222,11 +252,13 @@ class BackendSyncService {
 
     for (final event in List<NoiseEventModel>.from(_queuedEvents)) {
       bool success = false;
-      
+
       try {
-        if (_currentMode == BackendMode.authenticated && submissionMode == 'authenticated') {
+        if (_currentMode == BackendMode.authenticated &&
+            submissionMode == 'authenticated') {
           success = await _submitEventAuthenticated(event);
-        } else if (submissionMode == 'anonymous' || submissionMode == 'authenticated') {
+        } else if (submissionMode == 'anonymous' ||
+            submissionMode == 'authenticated') {
           success = await _submitEventAnonymous(event);
         }
 
@@ -243,14 +275,14 @@ class BackendSyncService {
     for (final event in eventsToRemove) {
       _queuedEvents.remove(event);
     }
-    
+
     await _saveQueuedEvents();
-    
+
     _logger.info('Sync completed', {
       'submitted': successCount,
       'remaining': _queuedEvents.length,
     });
-    
+
     return successCount;
   }
 
@@ -259,7 +291,7 @@ class BackendSyncService {
     final count = _queuedEvents.length;
     _queuedEvents.clear();
     await _saveQueuedEvents();
-    
+
     _logger.info('Event queue cleared', {'count': count});
   }
 
@@ -267,7 +299,7 @@ class BackendSyncService {
   Future<Map<String, dynamic>> getBackendStatus() async {
     await _updateBackendMode();
     final submissionMode = await getSubmissionMode();
-    
+
     return {
       'mode': _currentMode.name,
       'submission_enabled': submissionMode != 'disabled',
@@ -285,9 +317,8 @@ class BackendSyncService {
       if (data != null && data.isNotEmpty) {
         final List<dynamic> jsonList = json.decode(data) as List<dynamic>;
         _queuedEvents.clear();
-        _queuedEvents.addAll(
-          jsonList.map((json) => NoiseEventModel.fromJson(json as Map<String, dynamic>))
-        );
+        _queuedEvents.addAll(jsonList.map(
+            (json) => NoiseEventModel.fromJson(json as Map<String, dynamic>)));
       }
     } catch (e) {
       _logger.error('Failed to load queued events', e);
@@ -310,7 +341,7 @@ class BackendSyncService {
     try {
       // Get local measurements count
       final totalLocalEvents = await _measurementDao.count();
-      
+
       return {
         'total_local_events': totalLocalEvents,
         'queued_for_submission': _queuedEvents.length,

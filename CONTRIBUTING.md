@@ -1,147 +1,94 @@
-# Contributing to Open NoiseNet
+# Contributing to OpenNoiseNet
 
-**🚨 SEEKING CONTRIBUTORS & SPONSORS 🚨**
+OpenNoiseNet is not in a blank planning phase. The repository already contains substantial software, and the current priority is to stabilize that existing codebase before expanding scope.
 
-Open NoiseNet is currently in the **concept and planning phase** - we're looking for passionate contributors and sponsors to help bring this vision to life!
+Read [docs/current-status.md](/Users/udi/work/moinsen/ideas/open_noisenet/docs/current-status.md) before starting work. It defines the supported MVP surface and the intentionally unreleased areas for this milestone.
 
-## 🎯 What is Open NoiseNet?
+## What We Need Right Now
 
-Open NoiseNet is an ambitious open-source project to democratize environmental noise monitoring through affordable DIY devices. We're building a global network of citizen-operated noise sensors that will:
+The immediate audience for this phase is maintainers and contributors who can help make the current software stack reliable:
 
-- Enable communities to measure and document noise pollution
-- Provide data for advocacy and policy change
-- Create the world's first open, crowd-sourced noise pollution map
-- Empower citizens with affordable (~€30-45) monitoring devices
+- backend API stabilization
+- dashboard and landing consistency
+- mobile backend integration cleanup
+- documentation and developer workflow fixes
+- verification across local and Docker-based setups
 
-## 🔍 Project Status
+Not part of the current milestone:
 
-**We're currently seeking:**
-- **Core developers** to implement the initial MVP
-- **Hardware engineers** familiar with ESP32 and MEMS microphones  
-- **Backend developers** experienced with FastAPI/PostgreSQL
-- **Frontend developers** skilled in React and mapping libraries
-- **Community organizers** to coordinate contributors and outreach
-- **Sponsors** to fund initial prototyping and infrastructure
+- firmware implementation
+- hardware BOM or enclosure work
+- new AI features
+- admin tooling
+- notification systems
 
-**No code has been written yet** - this is your chance to shape the project from the ground up!
+## Working Rules
 
-## 🛠️ How You Can Contribute
+- Prefer `uv` for Python dependency management and command execution.
+- Treat `backend/pyproject.toml` and `backend/uv.lock` as the Python source of truth.
+- Do not present TODO or placeholder endpoints as shipped features.
+- Keep the React dashboard aligned to `/auth`, `/devices`, `/events`, and `/map`.
+- Keep the landing site narrative consistent with the actual project state.
+- If you touch docs, update the canonical status document or link back to it.
 
-### 🎯 Priority Areas (MVP Phase)
+## Local Setup
 
-1. **Firmware Development**
-   - ESP32 audio capture with I2S MEMS microphones
-   - A-weighted SPL calculation and Leq15 processing
-   - HTTPS communication with backend
-   - Skills needed: Arduino/ESP-IDF, DSP, embedded systems
+### Backend
 
-2. **Backend Development** 
-   - FastAPI event ingestion service
-   - PostgreSQL + TimescaleDB time-series storage
-   - Device management and OTA update system
-   - Skills needed: Python, FastAPI, PostgreSQL, Docker
+```bash
+cd backend
+uv sync --extra dev
+uv run pytest -q
+uv run uvicorn app.main:app --reload --port 8100
+```
 
-3. **Frontend Development**
-   - React-based public noise mapping interface
-   - Real-time event visualization with Leaflet/Mapbox
-   - Device dashboard and community features
-   - Skills needed: React, mapping libraries, responsive design
+### Dashboard
 
-4. **Hardware Design**
-   - Weather-resistant enclosure design (3D printable)
-   - Circuit board layouts and assembly guides
-   - Solar power integration for remote deployment
-   - Skills needed: CAD, electronics, weatherproofing
+```bash
+cd frontend
+npm ci
+npm run type-check
+npm run dev
+```
 
-5. **Documentation & Community**
-   - DIY assembly guides and calibration procedures
-   - Community onboarding and contribution workflows
-   - GDPR compliance documentation
-   - Skills needed: Technical writing, community management
+### Landing
 
-### 💡 Other Ways to Help
+```bash
+cd landing
+npm install
+npm run build
+npm run dev
+```
 
-- **Testing**: Help validate hardware designs and software implementations
-- **Translation**: Make the project accessible in multiple languages
-- **Outreach**: Connect us with NGOs, citizen science organizations, and funding opportunities
-- **Legal/Privacy**: Ensure GDPR compliance and data protection best practices
+### Mobile
 
-## 💰 Sponsorship Opportunities
+```bash
+cd mobile
+flutter pub get
+flutter analyze
+flutter test
+```
 
-We're seeking sponsors to fund:
+### Full Stack
 
-- **Initial prototyping**: Hardware components for proof-of-concept devices
-- **Cloud infrastructure**: Server hosting for the central data collection service
-- **Community events**: Hackathons and workshops to onboard contributors
-- **Documentation**: Professional technical writing and translation services
+```bash
+docker compose up --build
+```
 
-**Sponsor benefits:**
-- Recognition in project documentation and public materials
-- Early access to prototypes and beta deployments
-- Opportunity to shape the project roadmap
-- Association with impactful citizen science initiative
+## Contribution Flow
 
-## 🚀 Getting Started
+1. Start from an issue or a clearly scoped change.
+2. Verify whether the work is inside the current MVP surface.
+3. Make the smallest coherent change that improves stability or consistency.
+4. Run the relevant checks for the surface you changed.
+5. Update docs when the visible behavior or local workflow changes.
 
-### For Contributors
+## Verification Expectations
 
-1. **Join the conversation**: Open an issue introducing yourself and your interests
-2. **Review the specs**: Read `prd.md` and `technology.md` to understand the vision
-3. **Pick your focus**: Choose from the priority areas above
-4. **Start small**: Propose a specific first contribution in your area of expertise
+Backend changes should keep imports, auth, devices, events, and map behavior working.
 
-### For Sponsors
+Dashboard changes should keep `npm run type-check` and `npm run build` green.
 
-1. **Contact us**: Open an issue with "SPONSOR:" prefix to discuss partnership
-2. **Define scope**: Tell us what aspects of the project you'd like to support
-3. **Set expectations**: We'll work together to define deliverables and recognition
+Landing changes should keep `npm run build` working without network access for fonts.
 
-## 📋 Project Roadmap
-
-### Phase 1: MVP (3-6 months) - **SEEKING CONTRIBUTORS NOW**
-- [ ] ESP32 firmware with SPL detection
-- [ ] FastAPI backend for data ingestion
-- [ ] Basic React frontend with map visualization
-- [ ] Hardware BOM and assembly guide
-- [ ] Community documentation
-
-### Phase 2: Expansion (6-12 months)
-- [ ] ML-based noise classification
-- [ ] Pattern detection for recurring noise sources
-- [ ] NGO partnerships for pilot deployments
-- [ ] Mobile app for device management
-
-### Phase 3: Scale (12-24 months)  
-- [ ] Solar/LTE hardware variants
-- [ ] Advanced analytics and reporting tools
-- [ ] Policy engagement toolkit
-- [ ] Global federation of regional servers
-
-## 💬 Communication
-
-- **Issues**: Use GitHub issues for specific technical discussions and proposals
-- **Discussions**: Use GitHub Discussions for broader project conversations
-- **Email**: [Contact information TBD - create project email]
-
-## 🤝 Code of Conduct
-
-This project follows standard open-source community guidelines:
-- Be respectful and inclusive
-- Focus on constructive feedback
-- Help newcomers get involved
-- Maintain high technical standards
-- Prioritize privacy and user safety
-
-## 🌍 Impact Vision
-
-By contributing to Open NoiseNet, you're helping create:
-- **Transparency**: Open data about noise pollution levels globally
-- **Advocacy tools**: Evidence for communities fighting noise pollution  
-- **Scientific insights**: Large-scale data for noise pollution research
-- **Democratic participation**: Citizen-powered environmental monitoring
-
-**Ready to make some noise about noise pollution? Let's build this together! 🔊**
-
----
-
-*This project is in early development. Star ⭐ this repository to follow our progress!*
+Mobile changes should improve the real backend path and avoid introducing more placeholder behavior into the active app flow.

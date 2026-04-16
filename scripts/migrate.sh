@@ -16,14 +16,13 @@ else
     exit 1
 fi
 
-# Check if backend environment is activated
+# Enter backend project directory
 activate_backend() {
     cd backend
-    if [ ! -d ".venv" ]; then
-        echo "❌ Backend virtual environment not found. Please run setup.sh first."
+    if ! command -v uv &> /dev/null; then
+        echo "❌ uv is not installed. Please install uv first."
         exit 1
     fi
-    source .venv/bin/activate
 }
 
 # Wait for database to be available
@@ -34,7 +33,7 @@ wait_for_db() {
     attempt=0
     
     while [ $attempt -lt $max_attempts ]; do
-        if docker-compose exec -T postgres pg_isready -h localhost -p 5432 -U $POSTGRES_USER > /dev/null 2>&1; then
+        if docker compose exec -T postgres pg_isready -h localhost -p 5432 -U $POSTGRES_USER > /dev/null 2>&1; then
             echo "✅ Database is ready"
             return 0
         fi
@@ -53,7 +52,7 @@ create_migration() {
     echo "📝 Creating initial database migration..."
     
     if [ ! -f "migrations/versions/001_initial_migration.py" ]; then
-        alembic revision --autogenerate -m "Initial migration"
+        uv run alembic revision --autogenerate -m "Initial migration"
         echo "✅ Initial migration created"
     else
         echo "✅ Initial migration already exists"
@@ -65,7 +64,7 @@ run_migrations() {
     echo "🔄 Running database migrations..."
     
     # Upgrade to latest
-    alembic upgrade head
+    uv run alembic upgrade head
     
     echo "✅ Database migrations completed"
 }
@@ -141,7 +140,7 @@ if __name__ == "__main__":
 EOF
 
     # Run the seeding script
-    python seed_data.py
+    uv run python seed_data.py
     
     # Clean up
     rm seed_data.py
@@ -158,7 +157,7 @@ new_migration() {
     fi
     
     echo "📝 Creating new migration: $1..."
-    alembic revision --autogenerate -m "$1"
+    uv run alembic revision --autogenerate -m "$1"
     echo "✅ Migration created successfully"
 }
 
@@ -172,13 +171,13 @@ reset_database() {
         echo "🔄 Resetting database..."
         
         # Stop services
-        docker-compose down
+        docker compose down
         
         # Remove database volume
         docker volume rm open_noisenet_postgres_data 2>/dev/null || true
         
         # Start database service
-        docker-compose up -d postgres redis
+        docker compose up -d postgres redis
         
         # Wait for database
         wait_for_db
@@ -190,7 +189,7 @@ reset_database() {
         seed_data
         
         # Start all services
-        docker-compose up -d
+        docker compose up -d
         
         echo "✅ Database reset completed"
     else
@@ -205,11 +204,11 @@ show_status() {
     
     # Show current migration
     echo "Current migration:"
-    alembic current
+    uv run alembic current
     
     echo ""
     echo "Migration history:"
-    alembic history
+    uv run alembic history
     
     echo ""
     echo "Database connection test:"

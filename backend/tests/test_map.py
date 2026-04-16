@@ -28,7 +28,7 @@ async def _seed_map_data(db: AsyncSession):
 
     event = Event(
         id=uuid.uuid4(),
-        device_id=str(device.id),
+        device_id=device.id,
         timestamp_start=datetime.now(timezone.utc),
         timestamp_end=datetime.now(timezone.utc),
         leq_db=65.0,

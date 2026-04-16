@@ -2,15 +2,10 @@
 Application configuration settings.
 """
 
-import secrets
-from typing import Any, Dict, List, Optional, Union
+from typing import Annotated, Any, Dict, List, Optional
 
-from pydantic import AnyHttpUrl, EmailStr, Field, field_validator
-from pydantic_settings import BaseSettings
-try:
-    from pydantic.v1 import PostgresDsn
-except ImportError:
-    from pydantic import PostgresDsn
+from pydantic import AliasChoices, Field, field_validator
+from pydantic_settings import BaseSettings, NoDecode
 
 
 class Settings(BaseSettings):
@@ -36,15 +31,28 @@ class Settings(BaseSettings):
 
     # Redis
     REDIS_URL: str = Field(default="redis://localhost:6379")
+    ENABLE_BACKGROUND_TASKS: bool = Field(
+        default=False,
+        description="Enable Celery-backed background processing for post-ingest workflows",
+    )
     
     # CORS - simplified
-    BACKEND_CORS_ORIGINS: List[str] = Field(
-        default=["http://localhost:3000", "http://localhost:8080"],
+    BACKEND_CORS_ORIGINS: Annotated[List[str], NoDecode] = Field(
+        default=["http://localhost:3000", "http://localhost:3100"],
+        validation_alias=AliasChoices("BACKEND_CORS_ORIGINS", "CORS_ORIGINS"),
         description="CORS allowed origins"
+    )
+    BACKEND_CORS_ORIGIN_REGEX: Optional[str] = Field(
+        default=r"https?://(localhost|127\.0\.0\.1)(:\d+)?",
+        validation_alias=AliasChoices(
+            "BACKEND_CORS_ORIGIN_REGEX",
+            "CORS_ORIGIN_REGEX",
+        ),
+        description="Regex for local development origins",
     )
     
     # Trusted hosts
-    ALLOWED_HOSTS: List[str] = Field(
+    ALLOWED_HOSTS: Annotated[List[str], NoDecode] = Field(
         default=["localhost", "127.0.0.1", "0.0.0.0", "backend", "*"],
         description="Allowed host headers"
     )
@@ -116,6 +124,14 @@ class Settings(BaseSettings):
         env_file = ".env"
         case_sensitive = True
         extra = "ignore"
+
+    @field_validator("BACKEND_CORS_ORIGINS", "ALLOWED_HOSTS", mode="before")
+    @classmethod
+    def parse_csv_settings(cls, value: Any) -> Any:
+        """Allow comma-separated env vars for list settings."""
+        if isinstance(value, str):
+            return [item.strip() for item in value.split(",") if item.strip()]
+        return value
 
 
 settings = Settings()

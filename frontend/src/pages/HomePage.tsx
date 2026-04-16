@@ -1,23 +1,34 @@
+import { useEffect, useState } from 'react'
 import {
+  Alert,
   Box,
   Card,
   CardContent,
+  CircularProgress,
   Grid,
+  List,
+  ListItem,
+  ListItemText,
   Typography,
-  LinearProgress,
 } from '@mui/material'
-import {
-  VolumeUp,
-  Devices,
-  TrendingUp,
-  Warning,
-} from '@mui/icons-material'
+import { Devices, TrendingUp, VolumeUp, Warning } from '@mui/icons-material'
+import { formatDistanceToNow, parseISO } from 'date-fns'
+
+import { api, MapStats, NoiseEvent } from '../services/api'
 
 interface StatCardProps {
   title: string
   value: string | number
   icon: React.ReactNode
   color?: 'primary' | 'secondary' | 'error' | 'warning' | 'info' | 'success'
+}
+
+interface DashboardState {
+  stats: MapStats | null
+  recentEvents: NoiseEvent[]
+  backendHealthy: boolean
+  loading: boolean
+  error: string | null
 }
 
 function StatCard({ title, value, icon, color = 'primary' }: StatCardProps) {
@@ -54,13 +65,64 @@ function StatCard({ title, value, icon, color = 'primary' }: StatCardProps) {
 }
 
 export default function HomePage() {
-  // TODO: Replace with real data from API
-  const stats = {
-    activeDevices: 42,
-    currentAvgLevel: '52.3 dB',
-    eventsToday: 127,
-    alertsActive: 3,
-  }
+  const [state, setState] = useState<DashboardState>({
+    stats: null,
+    recentEvents: [],
+    backendHealthy: false,
+    loading: true,
+    error: null,
+  })
+
+  useEffect(() => {
+    let cancelled = false
+
+    async function loadDashboard() {
+      setState((prev) => ({ ...prev, loading: true, error: null }))
+
+      try {
+        const [health, stats, eventsResponse] = await Promise.all([
+          api.health(),
+          api.map.stats(),
+          api.events.list({ limit: 5 }),
+        ])
+
+        if (cancelled) {
+          return
+        }
+
+        setState({
+          stats,
+          recentEvents: eventsResponse.events,
+          backendHealthy: health.status === 'healthy',
+          loading: false,
+          error: null,
+        })
+      } catch (error: any) {
+        if (cancelled) {
+          return
+        }
+
+        setState({
+          stats: null,
+          recentEvents: [],
+          backendHealthy: false,
+          loading: false,
+          error:
+            error.response?.data?.detail ||
+            error.message ||
+            'Failed to load the dashboard from the backend.',
+        })
+      }
+    }
+
+    void loadDashboard()
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  const stats = state.stats
 
   return (
     <Box>
@@ -68,14 +130,21 @@ export default function HomePage() {
         Dashboard Overview
       </Typography>
       <Typography variant="body1" color="textSecondary" paragraph>
-        Monitor environmental noise levels across your network of devices.
+        Current MVP status across the supported backend surfaces: auth, devices,
+        events, and map data.
       </Typography>
+
+      {state.error ? (
+        <Alert severity="warning" sx={{ mb: 3 }}>
+          {state.error}
+        </Alert>
+      ) : null}
 
       <Grid container spacing={3}>
         <Grid item xs={12} sm={6} md={3}>
           <StatCard
-            title="Active Devices"
-            value={stats.activeDevices}
+            title="Registered Devices"
+            value={stats?.total_devices ?? '—'}
             icon={<Devices />}
             color="primary"
           />
@@ -83,60 +152,83 @@ export default function HomePage() {
         <Grid item xs={12} sm={6} md={3}>
           <StatCard
             title="Avg Noise Level"
-            value={stats.currentAvgLevel}
+            value={stats?.avg_leq_db ? `${stats.avg_leq_db.toFixed(1)} dB` : '—'}
             icon={<VolumeUp />}
             color="info"
           />
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
           <StatCard
-            title="Events Today"
-            value={stats.eventsToday}
+            title="Events (24h)"
+            value={stats?.events_24h ?? '—'}
             icon={<TrendingUp />}
             color="success"
           />
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
           <StatCard
-            title="Active Alerts"
-            value={stats.alertsActive}
+            title="Active Devices (24h)"
+            value={stats?.active_devices_24h ?? '—'}
             icon={<Warning />}
             color="warning"
           />
         </Grid>
 
         <Grid item xs={12} md={8}>
-          <Card>
+          <Card sx={{ minHeight: 280 }}>
             <CardContent>
               <Typography variant="h6" gutterBottom>
-                Recent Activity
+                Recent Events
               </Typography>
-              <Typography variant="body2" color="textSecondary">
-                Loading activity data...
-              </Typography>
-              <Box sx={{ mt: 2 }}>
-                <LinearProgress />
-              </Box>
+
+              {state.loading ? (
+                <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
+                  <CircularProgress />
+                </Box>
+              ) : state.recentEvents.length === 0 ? (
+                <Typography variant="body2" color="textSecondary">
+                  No events have been ingested yet. Once a device submits an
+                  event, it will appear here.
+                </Typography>
+              ) : (
+                <List disablePadding>
+                  {state.recentEvents.map((event) => (
+                    <ListItem key={event.id} disableGutters divider>
+                      <ListItemText
+                        primary={`${event.leq_db.toFixed(1)} dB • ${event.status}`}
+                        secondary={`Device ${event.device_id.slice(0, 8)} • ${formatDistanceToNow(
+                          parseISO(event.timestamp_start),
+                          { addSuffix: true }
+                        )}`}
+                      />
+                    </ListItem>
+                  ))}
+                </List>
+              )}
             </CardContent>
           </Card>
         </Grid>
 
         <Grid item xs={12} md={4}>
-          <Card>
+          <Card sx={{ minHeight: 280 }}>
             <CardContent>
               <Typography variant="h6" gutterBottom>
                 System Status
               </Typography>
-              <Typography variant="body2" color="textSecondary">
-                All systems operational
+              <Typography variant="body2" color="textSecondary" paragraph>
+                This dashboard is wired to the current software MVP only.
+                Admin tools, snippets, AI processing, and firmware workflows are
+                intentionally excluded from this surface.
               </Typography>
-              <Box sx={{ mt: 2 }}>
-                <Typography variant="body2">
-                  Database: ✓ Healthy<br />
-                  API: ✓ Online<br />
-                  Workers: ✓ Active
-                </Typography>
-              </Box>
+              <Typography variant="body2">
+                API: {state.backendHealthy ? 'Healthy' : 'Unavailable'}
+              </Typography>
+              <Typography variant="body2">
+                Background Processing: Best effort
+              </Typography>
+              <Typography variant="body2">
+                Supported Surfaces: Auth, Devices, Events, Map
+              </Typography>
             </CardContent>
           </Card>
         </Grid>

@@ -28,7 +28,7 @@ Future<void> configureDependencies() async {
   final dio = Dio();
   dio.options = BaseOptions(
     baseUrl: const String.fromEnvironment('API_BASE_URL',
-        defaultValue: 'http://localhost:8100'),
+        defaultValue: 'http://localhost:8100/api/v1'),
     connectTimeout: const Duration(seconds: 5),
     receiveTimeout: const Duration(seconds: 3),
     headers: {

@@ -1,5 +1,4 @@
-/// API data models for backend communication
-library api_models;
+// API data models for backend communication.
 
 import 'package:json_annotation/json_annotation.dart';
 
@@ -19,12 +18,14 @@ enum DeviceType {
 
 /// Event processing status
 enum EventStatus {
-  @JsonValue('pending')
-  pending,
+  @JsonValue('active')
+  active,
   @JsonValue('processed')
   processed,
-  @JsonValue('failed')
-  failed,
+  @JsonValue('archived')
+  archived,
+  @JsonValue('invalid')
+  invalid,
 }
 
 /// Device registration/update model

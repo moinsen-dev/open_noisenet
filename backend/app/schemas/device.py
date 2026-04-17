@@ -50,6 +50,11 @@ class DeviceResponse(BaseModel):
     firmware_version: Optional[str] = Field(None, description="Device firmware version")
     hardware_info: Optional[Dict[str, Any]] = Field(None, description="Additional hardware information")
     calibration_offset: float = Field(..., description="Calibration offset in dB")
+    site_id: Optional[uuid.UUID] = Field(None, description="Assigned Pro site ID")
+    zone_id: Optional[uuid.UUID] = Field(None, description="Assigned Pro zone ID")
+    calibration_profile_id: Optional[uuid.UUID] = Field(
+        None, description="Assigned calibration profile ID"
+    )
     is_active: bool = Field(..., description="Whether device is active")
     is_public: bool = Field(..., description="Whether device data is public")
     created_at: datetime = Field(..., description="Device creation timestamp")

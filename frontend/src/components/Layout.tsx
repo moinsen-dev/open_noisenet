@@ -21,6 +21,7 @@ import {
   Devices,
   VolumeUp,
   Event,
+  Business,
 } from '@mui/icons-material'
 import { useNavigate, useLocation } from 'react-router-dom'
 
@@ -31,6 +32,7 @@ const navigationItems = [
   { label: 'Events', path: '/events', icon: Event },
   { label: 'Noise Map', path: '/map', icon: Map },
   { label: 'Devices', path: '/devices', icon: Devices },
+  { label: 'Pro Ops', path: '/operations', icon: Business },
 ]
 
 interface LayoutProps {

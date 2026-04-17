@@ -8,6 +8,17 @@ CREATE EXTENSION IF NOT EXISTS timescaledb CASCADE;
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp" CASCADE;
 CREATE EXTENSION IF NOT EXISTS pg_stat_statements CASCADE;
 
+-- Keep clean-room Docker databases aligned with the schema represented in this
+-- bootstrap script so Alembic-based checks do not fail before any migrations
+-- are run in the container lifecycle.
+CREATE TABLE IF NOT EXISTS alembic_version (
+    version_num VARCHAR(32) PRIMARY KEY
+);
+
+DELETE FROM alembic_version;
+INSERT INTO alembic_version (version_num)
+VALUES ('c3e9d4f7ab21');
+
 -- Users table for authentication
 CREATE TABLE users (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -49,7 +60,9 @@ CREATE TABLE devices (
 -- first-start clean-room setups.
 CREATE TABLE events (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    event_uuid VARCHAR(36) UNIQUE,
     device_id UUID NOT NULL REFERENCES devices(id) ON DELETE CASCADE,
+    episode_id UUID,
     timestamp_start TIMESTAMP WITH TIME ZONE NOT NULL,
     timestamp_end TIMESTAMP WITH TIME ZONE NOT NULL,
     leq_db REAL NOT NULL,
@@ -64,6 +77,17 @@ CREATE TABLE events (
     location_lng DECIMAL(11, 8),
     weather_conditions JSONB,
     event_metadata JSONB,
+    analysis_state VARCHAR(64) NOT NULL DEFAULT 'not_started',
+    classification_label VARCHAR(100),
+    classification_confidence REAL,
+    classification_source VARCHAR(64),
+    segment_type VARCHAR(64),
+    reportability_score REAL,
+    reportability_reason VARCHAR(255),
+    peak_to_average_delta_db REAL,
+    variability_db REAL,
+    threshold_exceedance_ratio REAL,
+    analysis_updated_at TIMESTAMP WITH TIME ZONE,
     status VARCHAR(32) NOT NULL DEFAULT 'active',
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
@@ -133,6 +157,166 @@ CREATE TABLE event_aggregations (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- Pro tenant boundary tables
+CREATE TABLE organizations (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    name VARCHAR(255) NOT NULL,
+    slug VARCHAR(255) UNIQUE NOT NULL,
+    plan_tier VARCHAR(32) NOT NULL DEFAULT 'pro_site',
+    status VARCHAR(32) NOT NULL DEFAULT 'pilot',
+    billing_state VARCHAR(32) NOT NULL DEFAULT 'trial',
+    created_by_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE TABLE organization_memberships (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    role VARCHAR(32) NOT NULL DEFAULT 'member',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    CONSTRAINT uq_org_membership_org_user UNIQUE (organization_id, user_id)
+);
+
+CREATE TABLE sites (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+    name VARCHAR(255) NOT NULL,
+    timezone VARCHAR(64) NOT NULL DEFAULT 'UTC',
+    address TEXT,
+    location_lat DECIMAL(10, 8),
+    location_lng DECIMAL(11, 8),
+    is_public BOOLEAN DEFAULT false,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE TABLE zones (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    site_id UUID NOT NULL REFERENCES sites(id) ON DELETE CASCADE,
+    name VARCHAR(255) NOT NULL,
+    description TEXT,
+    quiet_hours_start VARCHAR(5),
+    quiet_hours_end VARCHAR(5),
+    is_public BOOLEAN DEFAULT false,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    CONSTRAINT uq_zone_site_name UNIQUE (site_id, name)
+);
+
+CREATE TABLE policies (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE,
+    site_id UUID REFERENCES sites(id) ON DELETE CASCADE,
+    zone_id UUID REFERENCES zones(id) ON DELETE CASCADE,
+    scope_type VARCHAR(32) NOT NULL,
+    name VARCHAR(255) NOT NULL,
+    evidence_mode VARCHAR(32) NOT NULL DEFAULT 'derived_only',
+    retention_days INTEGER NOT NULL DEFAULT 365,
+    quiet_hours_start VARCHAR(5),
+    quiet_hours_end VARCHAR(5),
+    day_threshold_db REAL,
+    night_threshold_db REAL,
+    is_active BOOLEAN DEFAULT true,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE TABLE calibration_profiles (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+    site_id UUID REFERENCES sites(id) ON DELETE CASCADE,
+    name VARCHAR(255) NOT NULL,
+    offset_db REAL NOT NULL DEFAULT 0.0,
+    method VARCHAR(255),
+    confidence REAL,
+    notes TEXT,
+    is_active BOOLEAN DEFAULT true,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE TABLE episodes (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+    site_id UUID NOT NULL REFERENCES sites(id) ON DELETE CASCADE,
+    zone_id UUID REFERENCES zones(id) ON DELETE SET NULL,
+    device_id UUID REFERENCES devices(id) ON DELETE SET NULL,
+    policy_id UUID REFERENCES policies(id) ON DELETE SET NULL,
+    primary_class VARCHAR(128) NOT NULL,
+    class_family VARCHAR(128),
+    review_label VARCHAR(128),
+    classification_confidence REAL,
+    severity VARCHAR(32) NOT NULL DEFAULT 'low',
+    reviewed_severity VARCHAR(32),
+    nuisance_score REAL NOT NULL DEFAULT 0.0,
+    quiet_hours_triggered BOOLEAN DEFAULT false,
+    evidence_mode VARCHAR(32) NOT NULL DEFAULT 'derived_only',
+    review_state VARCHAR(32) NOT NULL DEFAULT 'pending_review',
+    lifecycle_state VARCHAR(32) NOT NULL DEFAULT 'closed',
+    started_at TIMESTAMP WITH TIME ZONE NOT NULL,
+    ended_at TIMESTAMP WITH TIME ZONE NOT NULL,
+    event_count INTEGER NOT NULL DEFAULT 1,
+    review_notes TEXT,
+    review_metadata JSONB,
+    model_bundle_id VARCHAR(128),
+    reviewed_by_id UUID REFERENCES users(id) ON DELETE SET NULL,
+    reviewed_at TIMESTAMP WITH TIME ZONE,
+    exported_at TIMESTAMP WITH TIME ZONE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+ALTER TABLE events
+    ADD CONSTRAINT fk_events_episode_id_episodes
+    FOREIGN KEY (episode_id) REFERENCES episodes(id) ON DELETE SET NULL;
+
+CREATE TABLE cases (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+    site_id UUID NOT NULL REFERENCES sites(id) ON DELETE CASCADE,
+    zone_id UUID REFERENCES zones(id) ON DELETE SET NULL,
+    opened_by_id UUID REFERENCES users(id) ON DELETE SET NULL,
+    status VARCHAR(32) NOT NULL DEFAULT 'open',
+    title VARCHAR(255) NOT NULL,
+    summary TEXT,
+    opened_at TIMESTAMP WITH TIME ZONE NOT NULL,
+    closed_at TIMESTAMP WITH TIME ZONE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE TABLE case_episode_links (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    case_id UUID NOT NULL REFERENCES cases(id) ON DELETE CASCADE,
+    episode_id UUID NOT NULL REFERENCES episodes(id) ON DELETE CASCADE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    CONSTRAINT uq_case_episode_link UNIQUE (case_id, episode_id)
+);
+
+CREATE TABLE export_jobs (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    case_id UUID NOT NULL REFERENCES cases(id) ON DELETE CASCADE,
+    created_by_id UUID REFERENCES users(id) ON DELETE SET NULL,
+    format VARCHAR(16) NOT NULL,
+    status VARCHAR(32) NOT NULL DEFAULT 'ready',
+    file_name VARCHAR(255) NOT NULL,
+    content_type VARCHAR(128) NOT NULL,
+    output_text TEXT,
+    output_encoding VARCHAR(32) NOT NULL DEFAULT 'utf-8',
+    exported_at TIMESTAMP WITH TIME ZONE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+ALTER TABLE devices
+    ADD COLUMN site_id UUID REFERENCES sites(id) ON DELETE SET NULL,
+    ADD COLUMN zone_id UUID REFERENCES zones(id) ON DELETE SET NULL,
+    ADD COLUMN calibration_profile_id UUID REFERENCES calibration_profiles(id) ON DELETE SET NULL;
+
 -- Create indexes for optimal query performance
 -- Device indexes
 CREATE INDEX idx_devices_device_id ON devices(device_id);
@@ -141,6 +325,9 @@ CREATE INDEX idx_devices_location_lat_lng ON devices(location_lat, location_lng)
 CREATE INDEX idx_devices_active ON devices(is_active) WHERE is_active = true;
 CREATE INDEX idx_devices_last_seen ON devices(last_seen DESC);
 CREATE INDEX idx_devices_owner ON devices(owner_id);
+CREATE INDEX idx_devices_site ON devices(site_id);
+CREATE INDEX idx_devices_zone ON devices(zone_id);
+CREATE INDEX idx_devices_calibration_profile ON devices(calibration_profile_id);
 
 -- Event indexes
 CREATE INDEX idx_events_device_id_time ON events(device_id, timestamp_start DESC);
@@ -149,6 +336,9 @@ CREATE INDEX idx_events_location_lat_lng ON events(location_lat, location_lng) W
 CREATE INDEX idx_events_leq_db ON events(leq_db);
 CREATE INDEX idx_events_status ON events(status);
 CREATE INDEX idx_events_rule ON events(rule_triggered) WHERE rule_triggered IS NOT NULL;
+CREATE INDEX idx_events_analysis_state ON events(analysis_state);
+CREATE INDEX idx_events_classification_label ON events(classification_label) WHERE classification_label IS NOT NULL;
+CREATE INDEX idx_events_episode_id ON events(episode_id) WHERE episode_id IS NOT NULL;
 
 -- Audio snippet indexes
 CREATE INDEX idx_audio_snippets_event_id ON audio_snippets(event_id);
@@ -172,6 +362,30 @@ CREATE INDEX idx_aggregations_bucket_duration ON event_aggregations(bucket_durat
 -- User indexes
 CREATE INDEX idx_users_email ON users(email);
 CREATE INDEX idx_users_active ON users(is_active) WHERE is_active = true;
+CREATE INDEX idx_organizations_slug ON organizations(slug);
+CREATE INDEX idx_org_memberships_org ON organization_memberships(organization_id);
+CREATE INDEX idx_org_memberships_user ON organization_memberships(user_id);
+CREATE INDEX idx_sites_org ON sites(organization_id);
+CREATE INDEX idx_zones_site ON zones(site_id);
+CREATE INDEX idx_policies_org ON policies(organization_id) WHERE organization_id IS NOT NULL;
+CREATE INDEX idx_policies_site ON policies(site_id) WHERE site_id IS NOT NULL;
+CREATE INDEX idx_policies_zone ON policies(zone_id) WHERE zone_id IS NOT NULL;
+CREATE INDEX idx_calibration_profiles_org ON calibration_profiles(organization_id);
+CREATE INDEX idx_calibration_profiles_site ON calibration_profiles(site_id) WHERE site_id IS NOT NULL;
+CREATE INDEX idx_episodes_org ON episodes(organization_id);
+CREATE INDEX idx_episodes_site ON episodes(site_id);
+CREATE INDEX idx_episodes_zone ON episodes(zone_id) WHERE zone_id IS NOT NULL;
+CREATE INDEX idx_episodes_device ON episodes(device_id);
+CREATE INDEX idx_episodes_policy ON episodes(policy_id) WHERE policy_id IS NOT NULL;
+CREATE INDEX idx_episodes_reviewed_by ON episodes(reviewed_by_id) WHERE reviewed_by_id IS NOT NULL;
+CREATE INDEX idx_cases_org ON cases(organization_id);
+CREATE INDEX idx_cases_site ON cases(site_id);
+CREATE INDEX idx_cases_zone ON cases(zone_id) WHERE zone_id IS NOT NULL;
+CREATE INDEX idx_cases_opened_by ON cases(opened_by_id);
+CREATE INDEX idx_case_episode_links_case ON case_episode_links(case_id);
+CREATE INDEX idx_case_episode_links_episode ON case_episode_links(episode_id);
+CREATE INDEX idx_export_jobs_case ON export_jobs(case_id);
+CREATE INDEX idx_export_jobs_created_by ON export_jobs(created_by_id);
 
 -- Create functions for data management
 CREATE OR REPLACE FUNCTION update_updated_at_column()
@@ -184,6 +398,36 @@ $$ language 'plpgsql';
 
 -- Create triggers for updated_at
 CREATE TRIGGER update_users_updated_at BEFORE UPDATE ON users
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_organizations_updated_at BEFORE UPDATE ON organizations
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_organization_memberships_updated_at BEFORE UPDATE ON organization_memberships
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_sites_updated_at BEFORE UPDATE ON sites
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_zones_updated_at BEFORE UPDATE ON zones
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_policies_updated_at BEFORE UPDATE ON policies
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_calibration_profiles_updated_at BEFORE UPDATE ON calibration_profiles
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_episodes_updated_at BEFORE UPDATE ON episodes
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_cases_updated_at BEFORE UPDATE ON cases
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_case_episode_links_updated_at BEFORE UPDATE ON case_episode_links
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_export_jobs_updated_at BEFORE UPDATE ON export_jobs
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 CREATE TRIGGER update_devices_updated_at BEFORE UPDATE ON devices

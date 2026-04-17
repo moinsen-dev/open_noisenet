@@ -7,7 +7,7 @@ from datetime import datetime
 from enum import Enum
 from typing import Optional
 
-from sqlalchemy import Boolean, DateTime, Float, JSON, String, Uuid
+from sqlalchemy import Boolean, DateTime, Float, ForeignKey, JSON, String, Uuid
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
@@ -45,7 +45,18 @@ class Device(Base):
         DateTime(timezone=True), nullable=True
     )
     owner_id: Mapped[Optional[uuid.UUID]] = mapped_column(
-        Uuid(as_uuid=True), nullable=True
+        Uuid(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+    site_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("sites.id", ondelete="SET NULL"), nullable=True
+    )
+    zone_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("zones.id", ondelete="SET NULL"), nullable=True
+    )
+    calibration_profile_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        Uuid(as_uuid=True),
+        ForeignKey("calibration_profiles.id", ondelete="SET NULL"),
+        nullable=True,
     )
     hardware_info: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
     calibration_offset: Mapped[float] = mapped_column(

@@ -7,6 +7,7 @@ import EventsPage from './pages/EventsPage'
 import MapPage from './pages/MapPage'
 import DevicesPage from './pages/DevicesPage'
 import NotFoundPage from './pages/NotFoundPage'
+import OperationsPage from './pages/OperationsPage'
 
 function App() {
   return (
@@ -17,6 +18,7 @@ function App() {
           <Route path="/events" element={<EventsPage />} />
           <Route path="/map" element={<MapPage />} />
           <Route path="/devices" element={<DevicesPage />} />
+          <Route path="/operations" element={<OperationsPage />} />
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </Container>

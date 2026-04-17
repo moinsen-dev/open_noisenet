@@ -192,7 +192,9 @@ class SiteDeviceResponse(BaseModel):
     zone_id: Optional[uuid.UUID]
     calibration_profile_id: Optional[uuid.UUID]
     is_active: bool
+    hardware_info: Optional[dict]
     last_seen: Optional[datetime]
+    last_heartbeat: Optional[datetime]
     updated_at: datetime
 
     class Config:
@@ -224,6 +226,7 @@ class EpisodeResponse(BaseModel):
     ended_at: datetime
     event_count: int
     review_notes: Optional[str]
+    review_metadata: Optional[dict]
     model_bundle_id: Optional[str]
     reviewed_by_id: Optional[uuid.UUID]
     reviewed_at: Optional[datetime]
@@ -253,15 +256,38 @@ class CaseCreate(BaseModel):
     episode_ids: List[uuid.UUID] = Field(..., min_length=1)
 
 
+class CaseAuditEntry(BaseModel):
+    event_type: str
+    at: datetime
+    actor_id: Optional[uuid.UUID] = None
+    actor_email: Optional[str] = None
+    note: Optional[str] = None
+    from_status: Optional[str] = None
+    to_status: Optional[str] = None
+    changed_fields: Optional[List[str]] = None
+    metadata: Optional[dict] = None
+
+
+class CaseUpdateRequest(BaseModel):
+    status: Optional[CaseStatus] = None
+    title: Optional[str] = Field(None, min_length=3, max_length=255)
+    summary: Optional[str] = None
+    note: Optional[str] = None
+
+
 class CaseResponse(BaseModel):
     id: uuid.UUID
     organization_id: uuid.UUID
     site_id: uuid.UUID
     zone_id: Optional[uuid.UUID]
     opened_by_id: Optional[uuid.UUID]
+    closed_by_id: Optional[uuid.UUID]
+    last_status_changed_by_id: Optional[uuid.UUID]
+    last_status_changed_at: Optional[datetime]
     status: str
     title: str
     summary: Optional[str]
+    audit_history: List[CaseAuditEntry]
     opened_at: datetime
     closed_at: Optional[datetime]
     episode_ids: List[uuid.UUID]

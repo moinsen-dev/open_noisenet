@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -9,6 +11,7 @@ import 'core/theme/app_theme.dart';
 import 'features/app/presentation/bloc/app_bloc.dart';
 import 'features/noise_monitoring/presentation/bloc/monitoring_bloc.dart';
 import 'services/background_monitoring_service.dart';
+import 'services/ios_background_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -19,9 +22,12 @@ void main() async {
   // Initialize dependency injection
   await configureDependencies();
 
-  // Initialize background monitoring service
-  final backgroundService = BackgroundMonitoringService();
-  await backgroundService.initialize();
+  if (Platform.isIOS) {
+    await IOSBackgroundService().initialize();
+  } else {
+    final backgroundService = BackgroundMonitoringService();
+    await backgroundService.initialize();
+  }
 
   // Set preferred orientations
   await SystemChrome.setPreferredOrientations([
@@ -71,7 +77,8 @@ class NoiseNetApp extends StatelessWidget {
                   // Handle global app state changes
                   if (state is AppError) {
                     _showErrorSnackBar(context, state.message);
-                  } else if (state is AppConnectionStatus && state.shouldShowNotification) {
+                  } else if (state is AppConnectionStatus &&
+                      state.shouldShowNotification) {
                     _showConnectionStatusSnackBar(context, state);
                   }
                 },
@@ -106,10 +113,11 @@ class NoiseNetApp extends StatelessWidget {
     );
   }
 
-  void _showConnectionStatusSnackBar(BuildContext context, AppConnectionStatus status) {
+  void _showConnectionStatusSnackBar(
+      BuildContext context, AppConnectionStatus status) {
     Color backgroundColor;
     IconData icon;
-    
+
     switch (status.mode) {
       case 'offline':
         backgroundColor = Colors.orange;
@@ -127,7 +135,7 @@ class NoiseNetApp extends StatelessWidget {
         backgroundColor = Colors.grey;
         icon = Icons.error;
     }
-    
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Row(

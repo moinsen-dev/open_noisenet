@@ -370,6 +370,22 @@ class Case(Base):
     )
     title: Mapped[str] = mapped_column(String(255), nullable=False)
     summary: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    audit_history: Mapped[Optional[list]] = mapped_column(JSON, nullable=True)
+    closed_by_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        Uuid(as_uuid=True),
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    last_status_changed_by_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        Uuid(as_uuid=True),
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    last_status_changed_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
     opened_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False
     )

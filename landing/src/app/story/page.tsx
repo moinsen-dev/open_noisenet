@@ -93,8 +93,7 @@ export default function StoryPage() {
           <div className="bg-slate-900 rounded-xl p-8 max-w-md mx-4 border border-slate-700">
             <h3 className="text-xl font-bold text-white mb-4">Skip the Story?</h3>
             <p className="text-slate-300 mb-6">
-              This story helps explain why OpenNoiseNet matters for communities worldwide. 
-              You can always read it later from the menu.
+              This story explains why the platform exists. You can always come back later after reviewing the current public + Pro product direction.
             </p>
             <div className="flex space-x-4">
               <Button 
@@ -347,10 +346,10 @@ export default function StoryPage() {
               <div className="bg-slate-800/60 rounded-xl p-6 border border-slate-700">
                 <div className="flex items-center space-x-3 mb-4">
                   <Users className="w-6 h-6 text-blue-400" />
-                  <h3 className="text-xl font-semibold text-white">Community Driven</h3>
+                  <h3 className="text-xl font-semibold text-white">Open Source, Hardening Focus</h3>
                 </div>
                 <p className="text-slate-300">
-                  Built by volunteers who believe everyone deserves peaceful neighborhoods and restful nights.
+                  The platform is still community-aligned and open source, but the immediate work is now reliability, field validation, and product hardening.
                 </p>
               </div>
             </div>
@@ -403,7 +402,7 @@ export default function StoryPage() {
               <span className="text-warn-400">Witnesses</span>
             </h2>
             <p className="text-xl md:text-2xl text-slate-300 mb-8 max-w-3xl mx-auto leading-relaxed">
-              24/7, our community sensors stand guard. Collecting evidence. Building the case for quieter cities.
+              The next proof point is not bigger slogans. It is a trustworthy field baseline: unattended capture, reliable uploads, and evidence operators can actually review.
             </p>
           </div>
 
@@ -411,16 +410,16 @@ export default function StoryPage() {
           <div className="bg-slate-900/90 rounded-xl p-8 border border-slate-700">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
               <div className="text-center">
-                <div className="text-3xl font-bold text-green-400 mb-2">1,247</div>
-                <p className="text-slate-300">Active Sensors</p>
+                <div className="text-3xl font-bold text-green-400 mb-2">Live MVP</div>
+                <p className="text-slate-300">Public layer</p>
               </div>
               <div className="text-center">
-                <div className="text-3xl font-bold text-blue-400 mb-2">156M</div>
-                <p className="text-slate-300">Data Points Collected</p>
+                <div className="text-3xl font-bold text-blue-400 mb-2">Hardening</div>
+                <p className="text-slate-300">Episodes, cases, exports</p>
               </div>
               <div className="text-center">
-                <div className="text-3xl font-bold text-warn-400 mb-2">23</div>
-                <p className="text-slate-300">Cities Participating</p>
+                <div className="text-3xl font-bold text-warn-400 mb-2">Active Gate</div>
+                <p className="text-slate-300">24h/72h field validation</p>
               </div>
             </div>
 
@@ -451,12 +450,11 @@ export default function StoryPage() {
       <section className="relative h-screen flex items-center justify-center bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
         <div className="relative z-20 max-w-6xl mx-auto px-4 text-center">
           <h2 className="text-5xl md:text-6xl font-bold text-white mb-8">
-            Join the Quiet 
-            <span className="text-warn-400">Revolution</span>
+            Help Finish the
+            <span className="text-warn-400">Platform</span>
           </h2>
           <p className="text-xl md:text-2xl text-slate-300 mb-12 max-w-4xl mx-auto leading-relaxed">
-            Every sensor matters. Every measurement counts. Every voice makes a difference. 
-            Help us build a world where peace and quiet aren&apos;t luxuries.
+            The human problem is clear. The next step is turning today&apos;s public map, smartphone field node, and operator workflow into a trustworthy platform for real use.
           </p>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
@@ -464,12 +462,12 @@ export default function StoryPage() {
               <div className="bg-warn-500 p-4 rounded-full w-fit mx-auto mb-4 group-hover:scale-110 transition-transform">
                 <Volume2 className="w-8 h-8 text-white" />
               </div>
-              <h3 className="text-xl font-semibold text-white mb-4">Build a Sensor</h3>
+              <h3 className="text-xl font-semibold text-white mb-4">Run a Field Node</h3>
               <p className="text-slate-300 mb-6">
-                Create your own noise monitoring device for just €30-45 with our DIY guide.
+                Validate the smartphone monitoring path in real-world conditions and help close the stabilization gate.
               </p>
-              <Button variant="outline" className="border-warn-400 text-warn-400 hover:bg-warn-400 hover:text-white">
-                Get Started
+              <Button variant="outline" className="border-warn-400 text-warn-400 hover:bg-warn-400 hover:text-white" asChild>
+                <Link href="/#platform">See Current Platform</Link>
               </Button>
             </div>
 
@@ -477,12 +475,12 @@ export default function StoryPage() {
               <div className="bg-noise-500 p-4 rounded-full w-fit mx-auto mb-4 group-hover:scale-110 transition-transform">
                 <Users className="w-8 h-8 text-white" />
               </div>
-              <h3 className="text-xl font-semibold text-white mb-4">Join the Community</h3>
+              <h3 className="text-xl font-semibold text-white mb-4">Contribute to the Stack</h3>
               <p className="text-slate-300 mb-6">
-                Connect with fellow advocates, share data, and campaign for policy changes.
+                Backend, mobile, dashboard, and operator hardening all still need sharp engineering work.
               </p>
-              <Button variant="outline" className="border-noise-400 text-noise-400 hover:bg-noise-400 hover:text-white">
-                Get Involved
+              <Button variant="outline" className="border-noise-400 text-noise-400 hover:bg-noise-400 hover:text-white" asChild>
+                <Link href="https://github.com/moinsen-dev/open_noisenet" target="_blank">View GitHub</Link>
               </Button>
             </div>
 
@@ -490,12 +488,12 @@ export default function StoryPage() {
               <div className="bg-green-500 p-4 rounded-full w-fit mx-auto mb-4 group-hover:scale-110 transition-transform">
                 <Shield className="w-8 h-8 text-white" />
               </div>
-              <h3 className="text-xl font-semibold text-white mb-4">Use the Data</h3>
+              <h3 className="text-xl font-semibold text-white mb-4">Use the Public Layer</h3>
               <p className="text-slate-300 mb-6">
-                Access open data for research, advocacy, and community awareness campaigns.
+                Public visibility remains part of the mission, but it now needs to stay clearly separated from tenant-bound operator workflows.
               </p>
-              <Button variant="outline" className="border-green-400 text-green-400 hover:bg-green-400 hover:text-white">
-                Explore Data
+              <Button variant="outline" className="border-green-400 text-green-400 hover:bg-green-400 hover:text-white" asChild>
+                <Link href="/technology">Review Technology</Link>
               </Button>
             </div>
           </div>
@@ -507,8 +505,8 @@ export default function StoryPage() {
               className="text-lg px-8 py-6 h-auto"
               asChild
             >
-              <Link href="/#download">
-                Download Our Apps
+              <Link href="/#access">
+                Review Current Platform
               </Link>
             </Button>
             <Button 
@@ -532,8 +530,7 @@ export default function StoryPage() {
                 </div>
                 <h3 className="text-2xl font-bold text-white mb-2">Thank You for Reading</h3>
                 <p className="text-slate-300 max-w-2xl mx-auto">
-                  You&apos;ve discovered the human story behind OpenNoiseNet. 
-                  Every sensor deployed helps build quieter, healthier communities worldwide.
+                  You&apos;ve seen the human problem behind OpenNoiseNet. The current build now needs reliability, hardening, and honest progress toward a usable public + Pro system.
                 </p>
               </div>
 

@@ -35,11 +35,29 @@ Commercial defaults for this roadmap:
 - The first commercial object is the **episode**, not the raw event.
 - Enterprise API, partner integrations, and dedicated hardware stay after self-serve beta.
 
+## Execution Reality
+
+The repo already contains initial implementation slices from later phases:
+
+- Pro domain foundation: organizations, sites, zones, policies, calibration profiles
+- incident layer: episodes, cases, exports
+- operator UI: Pro setup, episode inbox, case detail
+
+Those slices should be treated as **pre-release foundations**.
+
+The ordering below still describes the required gating sequence for release readiness:
+
+- stabilization exit must close first
+- later-phase slices must be hardened before self-serve claims
+- commercial packaging still comes after the product and runtime are trustworthy
+
 ## Delivery Order
 
 ### Phase 0: Stabilization Exit and Commercial Baseline
 
 **Goal:** turn the existing system into a trustworthy base for pilots, demos, and early Pro work.
+
+Status: **active, not yet closed**
 
 Core work:
 
@@ -59,6 +77,8 @@ Exit criteria:
 ### Phase 1: Pro Domain Foundation
 
 **Goal:** add the commercial domain layer without breaking the current MVP foundation.
+
+Status: **initial slice implemented, hardening still required**
 
 Core work:
 
@@ -84,6 +104,8 @@ Exit criteria:
 ### Phase 2: Episode Engine and Evidence Model
 
 **Goal:** convert raw device events into the commercial product object.
+
+Status: **initial slice implemented, hardening still required**
 
 Core work:
 
@@ -119,6 +141,8 @@ Exit criteria:
 
 **Goal:** deliver the first genuinely payable workflow.
 
+Status: **initial slice implemented, hardening still required**
+
 Core work:
 
 - build a Pro dashboard around episode inbox, site and zone filters, device health, and review state
@@ -136,6 +160,8 @@ Exit criteria:
 ### Phase 4: Commercial Readiness and Self-Serve Beta
 
 **Goal:** make the product sellable as a hosted beta.
+
+Status: **not started**
 
 Core work:
 
@@ -162,6 +188,8 @@ Exit criteria:
 ### Phase 5: Post-Beta Expansion
 
 **Goal:** expand only after the self-serve beta proves the core workflow.
+
+Status: **not started**
 
 Core work:
 

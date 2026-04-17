@@ -99,17 +99,24 @@ async def device_heartbeat(
     
     if not device:
         raise HTTPException(status_code=404, detail=f"Device {device_id} not found")
-    
+
     # Update device last seen timestamp
     device.last_heartbeat = heartbeat_data.timestamp
+    device.last_seen = heartbeat_data.timestamp
+    hardware_info = dict(device.hardware_info or {})
     if heartbeat_data.battery_level is not None:
-        # Store battery level in hardware_info if not already there
-        if device.hardware_info is None:
-            device.hardware_info = {}
-        device.hardware_info['battery_level'] = heartbeat_data.battery_level
-    
+        hardware_info['battery_level'] = heartbeat_data.battery_level
+    if heartbeat_data.signal_strength is not None:
+        hardware_info['signal_strength'] = heartbeat_data.signal_strength
+    if heartbeat_data.status:
+        hardware_info['last_runtime_status'] = heartbeat_data.status
+        hardware_info['last_runtime_status_at'] = (
+            heartbeat_data.timestamp.isoformat()
+        )
+    device.hardware_info = hardware_info
+
     await db.flush()
-    
+
     return {"message": f"Heartbeat received for device {device_id}", "timestamp": heartbeat_data.timestamp}
 
 

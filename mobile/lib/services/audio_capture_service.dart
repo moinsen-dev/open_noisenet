@@ -29,6 +29,12 @@ class AudioCaptureService {
 
   bool _isCapturing = false;
   bool get isCapturing => _isCapturing;
+  DateTime? _lastSampleAt;
+  int _capturedSampleCount = 0;
+  int _restartCount = 0;
+  DateTime? _lastRestartAt;
+  DateTime? get lastSampleAt => _lastSampleAt;
+  int get capturedSampleCount => _capturedSampleCount;
 
   // Calibration offset (device-specific, can be adjusted)
   double _calibrationOffset = 0.0;
@@ -119,6 +125,19 @@ class AudioCaptureService {
     }
   }
 
+  /// Restart the microphone stream after an interruption or stalled stream.
+  Future<bool> restartCapture({BuildContext? context}) async {
+    AppLogger.warning('AudioCaptureService: Restarting audio capture');
+    await stopCapture();
+    await Future<void>.delayed(const Duration(milliseconds: 300));
+    final restarted = await startCapture(context: context);
+    if (restarted) {
+      _restartCount++;
+      _lastRestartAt = DateTime.now();
+    }
+    return restarted;
+  }
+
   /// Handle incoming noise readings
   void _handleNoiseReading(NoiseReading reading) {
     // Process readings immediately - StreamController is already thread-safe
@@ -128,6 +147,9 @@ class AudioCaptureService {
   /// Process noise reading with enhanced A-weighting
   void _processNoiseReading(NoiseReading reading) {
     try {
+      _lastSampleAt = DateTime.now();
+      _capturedSampleCount++;
+
       // Apply device calibration
       final calibratedMeanDb = reading.meanDecibel + _calibrationOffset;
 
@@ -202,7 +224,8 @@ class AudioCaptureService {
   NoiseStatistics getNoiseStatistics({Duration? timeWindow}) {
     final measurements = timeWindow != null
         ? _recentMeasurements
-            .where((m) => m.timestamp.isAfter(DateTime.now().subtract(timeWindow)))
+            .where(
+                (m) => m.timestamp.isAfter(DateTime.now().subtract(timeWindow)))
             .map((m) => m.splDb)
             .toList()
         : _recentMeasurements.map((m) => m.splDb).toList();
@@ -211,7 +234,8 @@ class AudioCaptureService {
   }
 
   /// Check for noise event detection
-  bool detectNoiseEvent(double thresholdDb, {Duration minDuration = const Duration(seconds: 30)}) {
+  bool detectNoiseEvent(double thresholdDb,
+      {Duration minDuration = const Duration(seconds: 30)}) {
     if (_recentMeasurements.isEmpty) return false;
 
     final currentSPL = _recentMeasurements.last.splDb;
@@ -257,6 +281,20 @@ class AudioCaptureService {
     stopCapture();
     _splStreamController.close();
     _noiseReadingController.close();
+  }
+
+  /// Runtime diagnostics for unattended sensor operation.
+  Map<String, dynamic> getDiagnostics() {
+    return {
+      'isCapturing': _isCapturing,
+      'capturedSampleCount': _capturedSampleCount,
+      'restartCount': _restartCount,
+      'lastRestartAt': _lastRestartAt?.toIso8601String(),
+      'lastSampleAt': _lastSampleAt?.toIso8601String(),
+      'timeSinceLastSampleMs': _lastSampleAt == null
+          ? null
+          : DateTime.now().difference(_lastSampleAt!).inMilliseconds,
+    };
   }
 }
 

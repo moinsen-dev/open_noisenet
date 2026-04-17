@@ -10,11 +10,13 @@ import 'event_detection_service.dart';
 
 /// Service to manage Android foreground service for continuous noise monitoring
 class AndroidForegroundService {
-  static final AndroidForegroundService _instance = AndroidForegroundService._internal();
+  static final AndroidForegroundService _instance =
+      AndroidForegroundService._internal();
   factory AndroidForegroundService() => _instance;
   AndroidForegroundService._internal();
 
-  static const MethodChannel _channel = MethodChannel('com.opennoisenet.mobile/noise_service');
+  static const MethodChannel _channel =
+      MethodChannel('com.opennoisenet.mobile/noise_service');
 
   final AudioCaptureService _audioCapture = AudioCaptureService();
   final EventDetectionService _eventDetection = EventDetectionService();
@@ -77,7 +79,6 @@ class AndroidForegroundService {
       _isServiceRunning = true;
       AppLogger.success('Android foreground service started successfully');
       return true;
-
     } catch (e) {
       AppLogger.audio('Failed to start Android foreground service: $e');
       await stopService(); // Cleanup on failure
@@ -102,14 +103,13 @@ class AndroidForegroundService {
 
       // Stop audio capture and event detection
       await _audioCapture.stopCapture();
-      _eventDetection.stopMonitoring();
+      await _eventDetection.stopMonitoring();
 
       // Stop the Android service
       await _channel.invokeMethod('stopService');
 
       _isServiceRunning = false;
       AppLogger.success('Android foreground service stopped');
-
     } catch (e) {
       AppLogger.audio('Error stopping Android foreground service: $e');
       _isServiceRunning = false; // Force reset state
@@ -136,7 +136,8 @@ class AndroidForegroundService {
         };
 
       default:
-        AppLogger.audio('Unknown method call from Android service: ${call.method}');
+        AppLogger.audio(
+            'Unknown method call from Android service: ${call.method}');
     }
   }
 
@@ -153,8 +154,7 @@ class AndroidForegroundService {
     try {
       // Get current noise statistics
       final stats = _audioCapture.getNoiseStatistics(
-        timeWindow: const Duration(minutes: 1)
-      );
+          timeWindow: const Duration(minutes: 1));
 
       final currentSPL = stats.leq;
       final status = _getMonitoringStatus(currentSPL);
@@ -166,7 +166,6 @@ class AndroidForegroundService {
         'leq15': _audioCapture.calculateLeq15(),
         'eventsDetected': _eventDetection.getRecentEventCount(),
       });
-
     } catch (e) {
       AppLogger.audio('Error updating notification: $e');
     }
@@ -201,7 +200,8 @@ class AndroidForegroundService {
     if (!Platform.isAndroid) return true;
 
     try {
-      final result = await _channel.invokeMethod('isBatteryOptimizationDisabled');
+      final result =
+          await _channel.invokeMethod('isBatteryOptimizationDisabled');
       return result as bool? ?? false;
     } catch (e) {
       AppLogger.audio('Error checking battery optimization status: $e');

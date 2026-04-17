@@ -15,6 +15,7 @@ import '../../features/events/presentation/pages/noise_events_detail_page.dart';
 import '../../features/events/presentation/pages/noise_levels_detail_page.dart';
 import '../../features/events/presentation/pages/analysis_results_page.dart';
 import '../../features/events/presentation/pages/storage_management_page.dart';
+import '../../features/events/presentation/pages/event_sync_debug_page.dart';
 
 class AppRouter {
   static final GoRouter router = GoRouter(
@@ -33,7 +34,7 @@ class AppRouter {
         name: 'login',
         builder: (context, state) => const LoginPage(),
       ),
-      
+
       // Backend Authentication
       GoRoute(
         path: '/auth',
@@ -104,7 +105,7 @@ class AppRouter {
         builder: (context, state) => const NoiseEventsDetailPage(),
       ),
 
-      // Noise Levels Detail Page  
+      // Noise Levels Detail Page
       GoRoute(
         path: '/noise-levels',
         name: 'noise-levels',
@@ -123,6 +124,13 @@ class AppRouter {
         path: '/storage-management',
         name: 'storage-management',
         builder: (context, state) => const StorageManagementPage(),
+      ),
+
+      // Event Sync Debug Page
+      GoRoute(
+        path: '/event-sync-debug',
+        name: 'event-sync-debug',
+        builder: (context, state) => const EventSyncDebugPage(),
       ),
     ],
 

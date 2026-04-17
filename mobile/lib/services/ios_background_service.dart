@@ -2,27 +2,24 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/services.dart';
-import 'package:get_it/get_it.dart';
 
 import '../core/logging/app_logger.dart';
-import 'audio_capture_service.dart';
-import 'event_detection_service.dart';
 
 /// Service to manage iOS background audio session for continuous noise monitoring
 class IOSBackgroundService {
-  static final IOSBackgroundService _instance = IOSBackgroundService._internal();
+  static final IOSBackgroundService _instance =
+      IOSBackgroundService._internal();
   factory IOSBackgroundService() => _instance;
   IOSBackgroundService._internal();
 
-  static const MethodChannel _channel = MethodChannel('com.opennoisenet.mobile/ios_background');
-
-  final AudioCaptureService _audioCapture = AudioCaptureService();
-  final EventDetectionService _eventDetection = EventDetectionService();
+  static const MethodChannel _channel =
+      MethodChannel('com.opennoisenet.mobile/ios_background');
 
   bool _isBackgroundSessionActive = false;
-  StreamSubscription<double>? _splSubscription;
   Timer? _backgroundTaskTimer;
   String? _currentBackgroundTaskId;
+  int _backgroundTaskRenewalCount = 0;
+  DateTime? _lastBackgroundTaskRenewedAt;
 
   /// Check if background session is active
   bool get isActive => _isBackgroundSessionActive;
@@ -63,22 +60,9 @@ class IOSBackgroundService {
       // Start background task management
       await _startBackgroundTaskManagement();
 
-      // Start audio capture
-      final audioStarted = await _audioCapture.startCapture();
-      if (!audioStarted) {
-        throw Exception('Failed to start audio capture');
-      }
-
-      // Start event detection
-      await _eventDetection.startMonitoring(_audioCapture.splStream);
-
-      // Monitor audio levels for background processing
-      _splSubscription = _audioCapture.splStream.listen(_onSPLUpdate);
-
       _isBackgroundSessionActive = true;
       AppLogger.success('iOS background audio session started');
       return true;
-
     } catch (e) {
       AppLogger.audio('Failed to start iOS background session: $e');
       await stopBackgroundSession();
@@ -94,16 +78,9 @@ class IOSBackgroundService {
     try {
       AppLogger.audio('Stopping iOS background audio session...');
 
-      // Cancel subscriptions and timers
-      await _splSubscription?.cancel();
-      _splSubscription = null;
-
+      // Cancel timers
       _backgroundTaskTimer?.cancel();
       _backgroundTaskTimer = null;
-
-      // Stop audio capture and event detection
-      await _audioCapture.stopCapture();
-      _eventDetection.stopMonitoring();
 
       // End background tasks
       await _endBackgroundTasks();
@@ -113,7 +90,6 @@ class IOSBackgroundService {
 
       _isBackgroundSessionActive = false;
       AppLogger.success('iOS background audio session stopped');
-
     } catch (e) {
       AppLogger.audio('Error stopping iOS background session: $e');
       _isBackgroundSessionActive = false;
@@ -123,15 +99,7 @@ class IOSBackgroundService {
   /// Configure AVAudioSession for background recording
   Future<bool> _configureAudioSession() async {
     try {
-      final result = await _channel.invokeMethod('configureAudioSession', {
-        'category': 'AVAudioSessionCategoryRecord',
-        'mode': 'AVAudioSessionModeMeasurement',
-        'options': [
-          'AVAudioSessionCategoryOptionMixWithOthers',
-          'AVAudioSessionCategoryOptionAllowBluetooth',
-          'AVAudioSessionCategoryOptionDefaultToSpeaker'
-        ],
-      });
+      final result = await _channel.invokeMethod('configureAudioSession');
 
       return result as bool? ?? false;
     } catch (e) {
@@ -179,9 +147,10 @@ class IOSBackgroundService {
       _currentBackgroundTaskId = taskId as String?;
 
       if (_currentBackgroundTaskId != null) {
+        _backgroundTaskRenewalCount++;
+        _lastBackgroundTaskRenewedAt = DateTime.now();
         AppLogger.audio('Background task renewed: $_currentBackgroundTaskId');
       }
-
     } catch (e) {
       AppLogger.audio('Error renewing background task: $e');
     }
@@ -239,26 +208,22 @@ class IOSBackgroundService {
     final type = arguments['type'] as String?;
 
     if (type == 'began') {
-      // Audio interrupted (phone call, etc.)
       AppLogger.audio('Audio interruption began');
-      await _audioCapture.stopCapture();
     } else if (type == 'ended') {
-      // Interruption ended
       AppLogger.audio('Audio interruption ended');
       final shouldResume = arguments['shouldResume'] as bool? ?? false;
 
       if (shouldResume && _isBackgroundSessionActive) {
-        // Restart audio capture after interruption
         await Future.delayed(const Duration(milliseconds: 500));
-        await _audioCapture.startCapture();
+        await _configureAudioSession();
       }
     }
   }
 
   /// Handle audio session resumption
   Future<void> _handleAudioResumption() async {
-    if (_isBackgroundSessionActive && !_audioCapture.isCapturing) {
-      await _audioCapture.startCapture();
+    if (_isBackgroundSessionActive) {
+      await _configureAudioSession();
     }
   }
 
@@ -275,12 +240,6 @@ class IOSBackgroundService {
     AppLogger.audio('Optimizing for foreground mode');
   }
 
-  /// Handle SPL updates
-  void _onSPLUpdate(double spl) {
-    // Process SPL updates for background monitoring
-    // Keep processing minimal to conserve battery
-  }
-
   /// Request background app refresh permission
   Future<bool> requestBackgroundAppRefresh() async {
     try {
@@ -295,7 +254,8 @@ class IOSBackgroundService {
   /// Check background app refresh status
   Future<String> getBackgroundAppRefreshStatus() async {
     try {
-      final result = await _channel.invokeMethod('getBackgroundAppRefreshStatus');
+      final result =
+          await _channel.invokeMethod('getBackgroundAppRefreshStatus');
       return result as String? ?? 'unknown';
     } catch (e) {
       AppLogger.audio('Error checking background app refresh status: $e');
@@ -311,7 +271,8 @@ class IOSBackgroundService {
       'battery_impact': 'Moderate - continuous microphone access',
       'user_permissions': 'Requires microphone and background app refresh',
       'system_interruptions': 'Phone calls and other audio apps will interrupt',
-      'app_store_review': 'May require additional justification for background audio',
+      'app_store_review':
+          'May require additional justification for background audio',
       'recommendations': [
         'Inform users about battery usage',
         'Provide clear privacy policy for audio recording',
@@ -326,10 +287,11 @@ class IOSBackgroundService {
     return {
       'isActive': _isBackgroundSessionActive,
       'platform': Platform.operatingSystem,
-      'hasAudioCapture': _audioCapture.isCapturing,
-      'hasEventDetection': _eventDetection.isMonitoring,
       'currentBackgroundTask': _currentBackgroundTaskId,
       'backgroundTaskTimer': _backgroundTaskTimer?.isActive ?? false,
+      'backgroundTaskRenewalCount': _backgroundTaskRenewalCount,
+      'lastBackgroundTaskRenewedAt':
+          _lastBackgroundTaskRenewedAt?.toIso8601String(),
     };
   }
 

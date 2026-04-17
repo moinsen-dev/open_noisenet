@@ -1194,7 +1194,7 @@ export default function OperationsPage() {
                           <TableCell>Type</TableCell>
                           <TableCell>Zone</TableCell>
                           <TableCell>Calibration</TableCell>
-                          <TableCell>Last Seen</TableCell>
+                          <TableCell>Last Heartbeat</TableCell>
                         </TableRow>
                       </TableHead>
                       <TableBody>
@@ -1215,7 +1215,7 @@ export default function OperationsPage() {
                             <TableCell>
                               {profiles.find((profile) => profile.id === device.calibration_profile_id)?.name || '—'}
                             </TableCell>
-                            <TableCell>{device.last_seen || 'No heartbeat yet'}</TableCell>
+                            <TableCell>{device.last_heartbeat || device.last_seen || 'No heartbeat yet'}</TableCell>
                           </TableRow>
                         ))}
                       </TableBody>

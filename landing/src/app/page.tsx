@@ -7,12 +7,10 @@ import { useRouter } from 'next/navigation';
 import { getAssetPath } from '@/lib/asset-path';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
 import NoiseVisualization from '@/components/noise-visualization';
 import { shouldShowStoryFirst } from '@/lib/cookies';
 import { 
   Github, 
-  Download, 
   Smartphone, 
   Users, 
   BarChart3, 
@@ -20,7 +18,6 @@ import {
   Globe,
   Zap,
   Heart,
-  Mail,
   MapPin,
   Headphones,
   Volume2,
@@ -55,17 +52,17 @@ export default function Home() {
               <Link href="/technology" className="text-slate-300 hover:text-white transition-colors">
                 Technology
               </Link>
-              <Link href="#features" className="text-slate-300 hover:text-white transition-colors">
-                Features
+              <Link href="#platform" className="text-slate-300 hover:text-white transition-colors">
+                Platform
               </Link>
-              <Link href="#download" className="text-slate-300 hover:text-white transition-colors">
-                Apps
+              <Link href="#access" className="text-slate-300 hover:text-white transition-colors">
+                Access
               </Link>
               <Link href="#contribute" className="text-slate-300 hover:text-white transition-colors">
                 Contribute
               </Link>
-              <Link href="#newsletter" className="text-slate-300 hover:text-white transition-colors">
-                Newsletter
+              <Link href="#progress" className="text-slate-300 hover:text-white transition-colors">
+                Progress
               </Link>
             </div>
           </div>
@@ -78,14 +75,16 @@ export default function Home() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <div className="space-y-8">
               <div className="space-y-4">
+                <div className="inline-flex items-center rounded-full border border-warn-500/30 bg-warn-500/10 px-4 py-2 text-sm font-medium text-warn-300">
+                  Stabilization gate active • Pro foundations implemented • Hardening in progress
+                </div>
                 <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white leading-tight">
-                  Democratizing 
-                  <span className="text-warn-400 block">Environmental</span>
-                  <span className="text-noise-400">Noise Monitoring</span>
+                  Privacy-First
+                  <span className="text-warn-400 block">Noise Monitoring</span>
+                  <span className="text-noise-400">for Public + Pro</span>
                 </h1>
                 <p className="text-xl text-slate-300 leading-relaxed">
-                  Join the global network of citizen-operated noise sensors. Build affordable DIY devices, 
-                  contribute data, and help create quieter communities through open-source environmental monitoring.
+                  OpenNoiseNet is evolving into a Hybrid Public + Pro platform: smartphone field nodes and public map visibility on one side, operator workflows for episodes, cases, and exports on the other.
                 </p>
               </div>
               
@@ -96,9 +95,9 @@ export default function Home() {
                   className="text-lg px-8 py-6 h-auto"
                   asChild
                 >
-                  <Link href="#download">
-                    <Download className="w-5 h-5" />
-                    Get the Apps
+                  <Link href="#platform">
+                    <BarChart3 className="w-5 h-5" />
+                    See the Current Platform
                   </Link>
                 </Button>
                 
@@ -118,7 +117,7 @@ export default function Home() {
               <div className="flex items-center space-x-6 text-sm text-slate-400">
                 <div className="flex items-center space-x-2">
                   <Users className="w-4 h-4" />
-                  <span>Community Driven</span>
+                  <span>Hybrid Public + Pro</span>
                 </div>
                 <div className="flex items-center space-x-2">
                   <Shield className="w-4 h-4" />
@@ -126,7 +125,7 @@ export default function Home() {
                 </div>
                 <div className="flex items-center space-x-2">
                   <Globe className="w-4 h-4" />
-                  <span>Open Source</span>
+                  <span>Open Source Core</span>
                 </div>
               </div>
             </div>
@@ -251,15 +250,14 @@ export default function Home() {
       </section>
 
       {/* Solution Section */}
-      <section id="features" className="py-20 px-4 sm:px-6 lg:px-8">
+      <section id="platform" className="py-20 px-4 sm:px-6 lg:px-8">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-3xl sm:text-4xl font-bold text-white mb-6">
-              Our Solution: Community-Powered Monitoring
+              Current Platform Direction
             </h2>
             <p className="text-xl text-slate-300 max-w-3xl mx-auto">
-              OpenNoiseNet democratizes environmental monitoring through affordable DIY hardware, 
-              open-source software, and privacy-first community data sharing.
+              The repo already contains the first end-to-end slices. The active work now is to close the stabilization gate and harden the platform for pilots and early Pro use.
             </p>
           </div>
 
@@ -269,12 +267,11 @@ export default function Home() {
                 <div className="bg-warn-500 p-3 rounded-lg w-fit">
                   <Zap className="w-6 h-6 text-white" />
                 </div>
-                <CardTitle className="text-white">Affordable Hardware</CardTitle>
+                <CardTitle className="text-white">Smartphone Field Nodes</CardTitle>
               </CardHeader>
               <CardContent>
                 <CardDescription className="text-slate-300">
-                  Build your own noise sensor with ESP32 and MEMS microphones for just €30-45. 
-                  Complete DIY guide and 3D-printable enclosures included.
+                  The mobile stack is being hardened into a long-running, privacy-first field node with local monitoring, queueing, receipts, recovery, and real-device validation.
                 </CardDescription>
               </CardContent>
             </Card>
@@ -284,12 +281,11 @@ export default function Home() {
                 <div className="bg-noise-500 p-3 rounded-lg w-fit">
                   <Globe className="w-6 h-6 text-white" />
                 </div>
-                <CardTitle className="text-white">Open Data Network</CardTitle>
+                <CardTitle className="text-white">Public Visibility Layer</CardTitle>
               </CardHeader>
               <CardContent>
                 <CardDescription className="text-slate-300">
-                  Join a global network of community sensors. All data is open, anonymized, 
-                  and available for research, advocacy, and policy-making.
+                  Live event ingestion and map visibility remain the open layer. Public access stays separate from tenant-bound operator workflows and evidence handling.
                 </CardDescription>
               </CardContent>
             </Card>
@@ -299,12 +295,11 @@ export default function Home() {
                 <div className="bg-green-500 p-3 rounded-lg w-fit">
                   <Shield className="w-6 h-6 text-white" />
                 </div>
-                <CardTitle className="text-white">Privacy by Design</CardTitle>
+                <CardTitle className="text-white">Operator Evidence Workflow</CardTitle>
               </CardHeader>
               <CardContent>
                 <CardDescription className="text-slate-300">
-                  Default operation stores only numeric sound levels. Optional encrypted audio snippets 
-                  for ML analysis are deleted after 7 days. GDPR compliant.
+                  Organizations, sites, zones, episodes, cases, and exports already exist in the repo as pre-release foundations for housing and property operators.
                 </CardDescription>
               </CardContent>
             </Card>
@@ -312,14 +307,14 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Download Section */}
-      <section id="download" className="py-20 px-4 sm:px-6 lg:px-8 bg-slate-900/50">
+      {/* Access Section */}
+      <section id="access" className="py-20 px-4 sm:px-6 lg:px-8 bg-slate-900/50">
         <div className="max-w-4xl mx-auto text-center">
           <h2 className="text-3xl sm:text-4xl font-bold text-white mb-6">
-            Get Started Today
+            Current Access Paths
           </h2>
           <p className="text-xl text-slate-300 mb-12">
-            Download our mobile apps to monitor noise in your area or view community data from around the world.
+            What exists today is source-first and pilot-oriented. We are not claiming App Store readiness or self-serve SaaS yet.
           </p>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 max-w-2xl mx-auto">
@@ -329,13 +324,13 @@ export default function Home() {
               className="h-auto py-6 px-8 border-slate-600 hover:bg-slate-800 group"
               asChild
             >
-              <Link href="#" className="flex flex-col items-center space-y-2">
-                <div className="bg-black rounded-xl p-3 group-hover:scale-110 transition-transform">
+              <Link href="/technology" className="flex flex-col items-center space-y-2">
+                <div className="bg-slate-800 rounded-xl p-3 group-hover:scale-110 transition-transform">
                   <Smartphone className="w-8 h-8 text-white" />
                 </div>
                 <div>
-                  <div className="text-lg font-semibold text-white">Download for iOS</div>
-                  <div className="text-sm text-slate-400">App Store</div>
+                  <div className="text-lg font-semibold text-white">Review the Architecture</div>
+                  <div className="text-sm text-slate-400">Public + Pro platform direction</div>
                 </div>
               </Link>
             </Button>
@@ -346,13 +341,13 @@ export default function Home() {
               className="h-auto py-6 px-8 border-slate-600 hover:bg-slate-800 group"
               asChild
             >
-              <Link href="#" className="flex flex-col items-center space-y-2">
+              <Link href="https://github.com/moinsen-dev/open_noisenet" target="_blank" className="flex flex-col items-center space-y-2">
                 <div className="bg-green-600 rounded-xl p-3 group-hover:scale-110 transition-transform">
-                  <Smartphone className="w-8 h-8 text-white" />
+                  <Github className="w-8 h-8 text-white" />
                 </div>
                 <div>
-                  <div className="text-lg font-semibold text-white">Download for Android</div>
-                  <div className="text-sm text-slate-400">Google Play Store</div>
+                  <div className="text-lg font-semibold text-white">Run From Source</div>
+                  <div className="text-sm text-slate-400">Backend, dashboard, landing, and mobile</div>
                 </div>
               </Link>
             </Button>
@@ -365,11 +360,10 @@ export default function Home() {
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-3xl sm:text-4xl font-bold text-white mb-6">
-              Join Our Community
+              Contribute or Pilot With Us
             </h2>
             <p className="text-xl text-slate-300 max-w-3xl mx-auto">
-              OpenNoiseNet is built by volunteers passionate about environmental justice. 
-              Contribute code, build sensors, or help spread awareness.
+              OpenNoiseNet is still open source and community-aligned, but the active build is now focused on a trustworthy public layer and a pre-release Pro workflow for housing and property teams.
             </p>
           </div>
 
@@ -384,8 +378,7 @@ export default function Home() {
                 </CardHeader>
                 <CardContent>
                   <CardDescription className="text-slate-300 mb-4">
-                    Contribute to firmware, backend APIs, mobile apps, or hardware designs. 
-                    All components are open-source under MIT/Apache 2.0 licenses.
+                    Contribute to backend APIs, mobile field-node reliability, dashboard UX, operator workflows, or deployment hardening. The open-source core remains the fastest way to follow real progress.
                   </CardDescription>
                   <Button variant="outline" className="border-slate-600" asChild>
                     <Link href="https://github.com/moinsen-dev/open_noisenet" target="_blank">
@@ -400,13 +393,12 @@ export default function Home() {
                 <CardHeader>
                   <CardTitle className="text-white flex items-center space-x-3">
                     <Heart className="w-6 h-6 text-red-400" />
-                    <span>Community Support</span>
+                    <span>Pilot Collaboration</span>
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <CardDescription className="text-slate-300">
-                    Help others build sensors, contribute to documentation, report issues, 
-                    or organize local noise awareness campaigns in your community.
+                    Help validate the smartphone node, pressure-test operator workflows, and turn the existing public + Pro slices into a reliable pilot baseline.
                   </CardDescription>
                 </CardContent>
               </Card>
@@ -419,25 +411,25 @@ export default function Home() {
                   <div className="bg-warn-500 rounded-full p-1">
                     <div className="w-2 h-2 bg-white rounded-full"></div>
                   </div>
-                  <span>Build and deploy your own sensor</span>
+                  <span>Validate the smartphone field node in real conditions</span>
                 </div>
                 <div className="flex items-center space-x-3 text-slate-300">
                   <div className="bg-warn-500 rounded-full p-1">
                     <div className="w-2 h-2 bg-white rounded-full"></div>
                   </div>
-                  <span>Contribute code to improve the platform</span>
+                  <span>Harden backend, dashboard, and operator workflows</span>
                 </div>
                 <div className="flex items-center space-x-3 text-slate-300">
                   <div className="bg-warn-500 rounded-full p-1">
                     <div className="w-2 h-2 bg-white rounded-full"></div>
                   </div>
-                  <span>Share noise data from your neighborhood</span>
+                  <span>Keep the public map and privacy model trustworthy</span>
                 </div>
                 <div className="flex items-center space-x-3 text-slate-300">
                   <div className="bg-warn-500 rounded-full p-1">
                     <div className="w-2 h-2 bg-white rounded-full"></div>
                   </div>
-                  <span>Help advocate for quieter communities</span>
+                  <span>Prepare the platform for pilots and early property operators</span>
                 </div>
               </div>
             </div>
@@ -501,8 +493,8 @@ export default function Home() {
                   className="text-lg px-8 py-6 h-auto text-slate-400 hover:text-white"
                   asChild
                 >
-                  <Link href="#features">
-                    See the Solution
+                  <Link href="#platform">
+                    See the Platform
                   </Link>
                 </Button>
               </div>
@@ -571,36 +563,35 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Newsletter Section */}
-      <section id="newsletter" className="py-20 px-4 sm:px-6 lg:px-8 bg-slate-900/50">
+      {/* Progress Section */}
+      <section id="progress" className="py-20 px-4 sm:px-6 lg:px-8 bg-slate-900/50">
         <div className="max-w-4xl mx-auto text-center">
           <h2 className="text-3xl sm:text-4xl font-bold text-white mb-6">
-            Stay Updated
+            Track Progress Honestly
           </h2>
           <p className="text-xl text-slate-300 mb-12">
-            Get the latest updates on hardware releases, software updates, and community initiatives. 
-            We respect your privacy and won&apos;t spam you.
+            The repo has moved far beyond a blank concept, but the stabilization gate is still open. The best way to follow progress right now is through the source, architecture pages, and roadmap work.
           </p>
 
           <Card className="bg-slate-800/50 border-slate-700 max-w-2xl mx-auto">
             <CardContent className="p-8">
-              <form className="space-y-4">
-                <div className="flex flex-col sm:flex-row gap-4">
-                  <Input 
-                    type="email" 
-                    placeholder="Enter your email address"
-                    className="flex-1 bg-slate-900 border-slate-600 text-white placeholder-slate-400"
-                    required
-                  />
-                  <Button type="submit" variant="noise" className="px-8">
-                    <Mail className="w-4 h-4" />
-                    Subscribe
-                  </Button>
-                </div>
-                <p className="text-xs text-slate-400">
-                  By subscribing, you agree to our privacy policy. We use double opt-in and you can unsubscribe at any time.
-                </p>
-              </form>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <Button variant="noise" className="h-auto py-4" asChild>
+                  <Link href="https://github.com/moinsen-dev/open_noisenet" target="_blank">
+                    View GitHub
+                  </Link>
+                </Button>
+                <Button variant="outline" className="h-auto py-4 border-slate-600 hover:bg-slate-800" asChild>
+                  <Link href="/technology">
+                    Read Technology
+                  </Link>
+                </Button>
+                <Button variant="outline" className="h-auto py-4 border-slate-600 hover:bg-slate-800" asChild>
+                  <Link href="/story">
+                    Read the Story
+                  </Link>
+                </Button>
+              </div>
             </CardContent>
           </Card>
         </div>
@@ -616,30 +607,33 @@ export default function Home() {
                 <span className="text-xl font-bold text-white">OpenNoiseNet</span>
               </div>
               <p className="text-slate-400 text-sm">
-                Democratizing environmental noise monitoring through open-source community networks.
+                Privacy-first public + Pro noise monitoring with an open-source core.
               </p>
             </div>
 
             <div>
               <h4 className="text-white font-semibold mb-4">Project</h4>
               <div className="space-y-2 text-sm">
-                <Link href="#features" className="block text-slate-400 hover:text-white transition-colors">
-                  Features
+                <Link href="#platform" className="block text-slate-400 hover:text-white transition-colors">
+                  Platform
                 </Link>
                 <Link href="https://github.com/moinsen-dev/open_noisenet" className="block text-slate-400 hover:text-white transition-colors">
                   GitHub
                 </Link>
-                <Link href="#download" className="block text-slate-400 hover:text-white transition-colors">
-                  Download Apps
+                <Link href="#access" className="block text-slate-400 hover:text-white transition-colors">
+                  Access Paths
                 </Link>
               </div>
             </div>
 
             <div>
-              <h4 className="text-white font-semibold mb-4">Community</h4>
+              <h4 className="text-white font-semibold mb-4">Resources</h4>
               <div className="space-y-2 text-sm">
                 <Link href="#contribute" className="block text-slate-400 hover:text-white transition-colors">
                   Contribute
+                </Link>
+                <Link href="/technology" className="block text-slate-400 hover:text-white transition-colors">
+                  Technology
                 </Link>
                 <Link href="/privacy" className="block text-slate-400 hover:text-white transition-colors">
                   Privacy Policy
@@ -668,7 +662,7 @@ export default function Home() {
 
           <div className="border-t border-slate-800 mt-8 pt-8 text-center text-sm text-slate-400">
             <p>
-              © 2024 OpenNoiseNet Community. Licensed under MIT. Data licensed under ODC-ODbL.
+              © 2026 OpenNoiseNet. Licensed under MIT. Data licensed under ODC-ODbL.
             </p>
           </div>
         </div>

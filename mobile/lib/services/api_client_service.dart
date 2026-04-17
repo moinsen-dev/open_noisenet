@@ -8,6 +8,15 @@ import 'package:talker_flutter/talker_flutter.dart';
 import '../core/models/api_models.dart';
 import 'network_utils.dart';
 
+T? _firstWhereOrNull<T>(Iterable<T> items, bool Function(T item) test) {
+  for (final item in items) {
+    if (test(item)) {
+      return item;
+    }
+  }
+  return null;
+}
+
 class ApiClientService {
   static const String _baseUrlKey = 'api_base_url';
   static const String _accessTokenKey = 'access_token';
@@ -35,6 +44,11 @@ class ApiClientService {
   String? _accessToken;
   String? _refreshToken;
   String? _deviceId;
+  Map<String, dynamic>? _lastDevicePayload;
+  ProDeviceContextSnapshot? _lastProContext;
+  DateTime? _lastProContextRefreshedAt;
+  String? _lastProContextError;
+  bool _proContextRefreshInProgress = false;
   String _baseUrl = _defaultBaseUrl;
 
   ApiClientService({
@@ -147,6 +161,39 @@ class ApiClientService {
   String get baseUrl => _baseUrl;
   String? get deviceId => _deviceId;
   bool get isAuthenticated => _accessToken != null;
+  String? get assignedSiteId => _lastDevicePayload?['site_id']?.toString();
+  String? get assignedZoneId => _lastDevicePayload?['zone_id']?.toString();
+  String? get assignedCalibrationProfileId =>
+      _lastDevicePayload?['calibration_profile_id']?.toString();
+  String? get assignedSiteName => _lastProContext?.siteName;
+  String? get assignedZoneName => _lastProContext?.zoneName;
+  String? get assignedCalibrationProfileName =>
+      _lastProContext?.calibrationProfileName;
+  String? get assignedOrganizationId => _lastProContext?.organizationId;
+  String? get assignedOrganizationName => _lastProContext?.organizationName;
+  String? get assignedOrganizationPlan => _lastProContext?.organizationPlan;
+  String? get effectivePolicyId => _lastProContext?.effectivePolicyId;
+  String? get effectivePolicyName => _lastProContext?.effectivePolicyName;
+  String? get effectivePolicyScope => _lastProContext?.effectivePolicyScope;
+  String? get effectiveEvidenceMode => _lastProContext?.effectiveEvidenceMode;
+  int? get effectivePolicyRetentionDays =>
+      _lastProContext?.effectiveRetentionDays;
+  double? get effectiveDayThresholdDb =>
+      _lastProContext?.effectiveDayThresholdDb;
+  double? get effectiveNightThresholdDb =>
+      _lastProContext?.effectiveNightThresholdDb;
+  DateTime? get lastProContextRefreshedAt => _lastProContextRefreshedAt;
+  String? get lastProContextError => _lastProContextError;
+  ProDeviceContextSnapshot? get lastProContext => _lastProContext;
+  DateTime? get lastHeartbeatAt {
+    final value = _lastDevicePayload?['last_heartbeat'] as String?;
+    return value == null ? null : DateTime.tryParse(value);
+  }
+
+  Map<String, dynamic>? get lastRuntimeStatus =>
+      (_lastDevicePayload?['hardware_info']
+              as Map<String, dynamic>?)?['last_runtime_status']
+          as Map<String, dynamic>?;
 
   Future<String> ensureDeviceId() async {
     if (_deviceId != null && _deviceId!.isNotEmpty) {
@@ -276,8 +323,9 @@ class ApiClientService {
         '/devices/register',
         data: device.toJson(),
       );
-      final registeredDevice =
-          DeviceModel.fromJson(response.data as Map<String, dynamic>);
+      final payload = response.data as Map<String, dynamic>;
+      _lastDevicePayload = payload;
+      final registeredDevice = DeviceModel.fromJson(payload);
 
       // Store device ID for future requests
       await _storeCredentials(deviceId: registeredDevice.deviceId);
@@ -295,7 +343,9 @@ class ApiClientService {
     try {
       final response =
           await _dio.get<Map<String, dynamic>>('/devices/$deviceId');
-      return DeviceModel.fromJson(response.data as Map<String, dynamic>);
+      final payload = response.data as Map<String, dynamic>;
+      _lastDevicePayload = payload;
+      return DeviceModel.fromJson(payload);
     } catch (e) {
       _logger.error('Failed to get device: $deviceId', e);
       rethrow;
@@ -308,8 +358,9 @@ class ApiClientService {
         '/devices/$deviceId',
         data: device.toJson(),
       );
-      final updatedDevice =
-          DeviceModel.fromJson(response.data as Map<String, dynamic>);
+      final payload = response.data as Map<String, dynamic>;
+      _lastDevicePayload = payload;
+      final updatedDevice = DeviceModel.fromJson(payload);
 
       _logger.info('Device updated successfully: $deviceId');
       return updatedDevice;
@@ -319,13 +370,21 @@ class ApiClientService {
     }
   }
 
-  Future<void> sendHeartbeat(HeartbeatRequest heartbeat) async {
+  Future<void> sendHeartbeat(
+    HeartbeatRequest heartbeat, {
+    Map<String, dynamic>? status,
+  }) async {
     try {
+      final payload = <String, dynamic>{
+        ...heartbeat.toJson(),
+        if (status != null && status.isNotEmpty) 'status': status,
+      };
       await _dio.post<Map<String, dynamic>>(
         '/devices/${heartbeat.deviceId}/heartbeat',
-        data: heartbeat.toJson(),
+        data: payload,
       );
       _logger.debug('Heartbeat sent for device: ${heartbeat.deviceId}');
+      await refreshKnownDeviceContext();
     } catch (e) {
       _logger.error('Failed to send heartbeat', e);
       rethrow;
@@ -345,18 +404,341 @@ class ApiClientService {
     }
   }
 
+  Future<Map<String, dynamic>?> refreshKnownDeviceContext() async {
+    final resolvedDeviceId = _deviceId;
+    if (resolvedDeviceId == null || resolvedDeviceId.isEmpty) {
+      return _lastDevicePayload;
+    }
+
+    try {
+      final response =
+          await _dio.get<Map<String, dynamic>>('/devices/$resolvedDeviceId');
+      _lastDevicePayload = response.data as Map<String, dynamic>;
+    } catch (e) {
+      _logger.warning('Failed to refresh known device context', e);
+    }
+
+    return _lastDevicePayload;
+  }
+
+  Future<OrganizationResponse> getOrganization(String organizationId) async {
+    final response = await _dio.get<Map<String, dynamic>>(
+      '/organizations/$organizationId',
+    );
+    return OrganizationResponse.fromJson(response.data as Map<String, dynamic>);
+  }
+
+  Future<SiteResponse> getSite(String siteId) async {
+    final response = await _dio.get<Map<String, dynamic>>('/sites/$siteId');
+    return SiteResponse.fromJson(response.data as Map<String, dynamic>);
+  }
+
+  Future<ZoneResponse> getZone(String zoneId) async {
+    final response = await _dio.get<Map<String, dynamic>>('/zones/$zoneId');
+    return ZoneResponse.fromJson(response.data as Map<String, dynamic>);
+  }
+
+  Future<PolicyResponse> getPolicy(String policyId) async {
+    final response =
+        await _dio.get<Map<String, dynamic>>('/policies/$policyId');
+    return PolicyResponse.fromJson(response.data as Map<String, dynamic>);
+  }
+
+  Future<List<PolicyResponse>> listPolicies({
+    String? organizationId,
+    String? siteId,
+    String? zoneId,
+  }) async {
+    final queryParams = <String, dynamic>{};
+    if (organizationId != null) {
+      queryParams['organization_id'] = organizationId;
+    }
+    if (siteId != null) {
+      queryParams['site_id'] = siteId;
+    }
+    if (zoneId != null) {
+      queryParams['zone_id'] = zoneId;
+    }
+    final response = await _dio.get<List<dynamic>>(
+      '/policies/',
+      queryParameters: queryParams,
+    );
+    final payload = response.data ?? const <dynamic>[];
+    return payload
+        .map((json) => PolicyResponse.fromJson(json as Map<String, dynamic>))
+        .toList();
+  }
+
+  Future<CalibrationProfileResponse> getCalibrationProfile(
+      String profileId) async {
+    final response = await _dio.get<Map<String, dynamic>>(
+      '/calibration-profiles/$profileId',
+    );
+    return CalibrationProfileResponse.fromJson(
+      response.data as Map<String, dynamic>,
+    );
+  }
+
+  Future<List<CalibrationProfileResponse>> listCalibrationProfiles({
+    required String organizationId,
+    String? siteId,
+  }) async {
+    final queryParams = <String, dynamic>{
+      'organization_id': organizationId,
+    };
+    if (siteId != null) {
+      queryParams['site_id'] = siteId;
+    }
+    final response = await _dio.get<List<dynamic>>(
+      '/calibration-profiles/',
+      queryParameters: queryParams,
+    );
+    final payload = response.data ?? const <dynamic>[];
+    return payload
+        .map((json) => CalibrationProfileResponse.fromJson(
+              json as Map<String, dynamic>,
+            ))
+        .toList();
+  }
+
+  Future<DeviceAssignmentResponse> updateDeviceAssignment({
+    required String deviceId,
+    required String siteId,
+    String? zoneId,
+    String? calibrationProfileId,
+  }) async {
+    final response = await _dio.put<Map<String, dynamic>>(
+      '/sites/devices/$deviceId/assignment',
+      data: {
+        'site_id': siteId,
+        if (zoneId != null) 'zone_id': zoneId,
+        if (calibrationProfileId != null)
+          'calibration_profile_id': calibrationProfileId,
+      },
+    );
+    return DeviceAssignmentResponse.fromJson(
+      response.data as Map<String, dynamic>,
+    );
+  }
+
+  Future<List<SiteDeviceResponse>> listSiteDevices(String siteId) async {
+    final response = await _dio.get<List<dynamic>>(
+      '/sites/$siteId/devices',
+    );
+    final payload = response.data ?? const <dynamic>[];
+    return payload
+        .map(
+            (json) => SiteDeviceResponse.fromJson(json as Map<String, dynamic>))
+        .toList();
+  }
+
+  Future<ProDeviceContextSnapshot?> refreshProDeviceContext({
+    bool force = false,
+  }) async {
+    if (_proContextRefreshInProgress) {
+      return _lastProContext;
+    }
+
+    final resolvedDeviceId = _deviceId;
+    if (resolvedDeviceId == null || resolvedDeviceId.isEmpty) {
+      return _lastProContext;
+    }
+
+    final devicePayload =
+        await refreshKnownDeviceContext() ?? _lastDevicePayload;
+    final siteId = devicePayload?['site_id']?.toString();
+    final zoneId = devicePayload?['zone_id']?.toString();
+    final calibrationProfileId =
+        devicePayload?['calibration_profile_id']?.toString();
+    final fingerprint =
+        '$resolvedDeviceId|${siteId ?? ''}|${zoneId ?? ''}|${calibrationProfileId ?? ''}';
+
+    final cached = _lastProContext;
+    final isFresh = _lastProContextRefreshedAt != null &&
+        DateTime.now().difference(_lastProContextRefreshedAt!) <
+            const Duration(minutes: 5);
+    if (!force &&
+        cached != null &&
+        cached.assignmentFingerprint == fingerprint &&
+        isFresh &&
+        cached.accessState != 'pro_context_error' &&
+        _lastProContextError == null) {
+      return cached;
+    }
+
+    if (!isAuthenticated) {
+      final snapshot = _buildMinimalProContext(
+        deviceId: resolvedDeviceId,
+        devicePayload: devicePayload,
+        fingerprint: fingerprint,
+        accessState:
+            siteId == null ? 'anonymous_device_only' : 'anonymous_assigned',
+        sourceNote: 'pro context unavailable without authentication',
+      );
+      _lastProContext = snapshot;
+      _lastProContextRefreshedAt = DateTime.now();
+      _lastProContextError = null;
+      return snapshot;
+    }
+
+    if (siteId == null || siteId.isEmpty) {
+      final snapshot = _buildMinimalProContext(
+        deviceId: resolvedDeviceId,
+        devicePayload: devicePayload,
+        fingerprint: fingerprint,
+        accessState: 'pro_unassigned',
+        sourceNote: 'device has no site assignment yet',
+      );
+      _lastProContext = snapshot;
+      _lastProContextRefreshedAt = DateTime.now();
+      _lastProContextError = null;
+      return snapshot;
+    }
+
+    _proContextRefreshInProgress = true;
+    try {
+      final site = await getSite(siteId);
+      final organization = await getOrganization(site.organizationId);
+      final zone =
+          zoneId == null || zoneId.isEmpty ? null : await getZone(zoneId);
+      final calibrationProfile =
+          calibrationProfileId == null || calibrationProfileId.isEmpty
+              ? null
+              : await getCalibrationProfile(calibrationProfileId);
+
+      final policies = <PolicyResponse>[];
+      policies.addAll(
+        await listPolicies(organizationId: organization.id),
+      );
+      policies.addAll(
+        await listPolicies(siteId: site.id),
+      );
+      if (zone != null) {
+        policies.addAll(
+          await listPolicies(zoneId: zone.id),
+        );
+      }
+
+      final uniquePolicies = <String, PolicyResponse>{};
+      for (final policy in policies) {
+        uniquePolicies[policy.id] = policy;
+      }
+      final orderedPolicies = uniquePolicies.values.toList()
+        ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      final activePolicies =
+          orderedPolicies.where((policy) => policy.isActive).toList();
+      final zonePolicy = zone == null
+          ? null
+          : _firstWhereOrNull(
+              activePolicies, (policy) => policy.zoneId == zone.id);
+      final sitePolicy = _firstWhereOrNull(
+        activePolicies,
+        (policy) => policy.siteId == site.id && policy.zoneId == null,
+      );
+      final orgPolicy = _firstWhereOrNull(
+        activePolicies,
+        (policy) =>
+            policy.organizationId == organization.id &&
+            policy.siteId == null &&
+            policy.zoneId == null,
+      );
+      final effectivePolicy = zonePolicy ?? sitePolicy ?? orgPolicy;
+
+      final snapshot = ProDeviceContextSnapshot(
+        deviceId: resolvedDeviceId,
+        authenticated: true,
+        accessState: effectivePolicy == null ? 'pro_partial' : 'pro_ready',
+        assignmentFingerprint: fingerprint,
+        organization: organization,
+        site: site,
+        zone: zone,
+        calibrationProfile: calibrationProfile,
+        effectivePolicy: effectivePolicy,
+        policies: orderedPolicies,
+        organizationPolicyCount: orderedPolicies
+            .where((policy) => policy.organizationId == organization.id)
+            .length,
+        sitePolicyCount:
+            orderedPolicies.where((policy) => policy.siteId == site.id).length,
+        zonePolicyCount: zone == null
+            ? 0
+            : orderedPolicies
+                .where((policy) => policy.zoneId == zone.id)
+                .length,
+        activePolicyCount: activePolicies.length,
+        deviceUpdatedAt: _lastDevicePayload?['updated_at'] == null
+            ? null
+            : DateTime.tryParse(_lastDevicePayload!['updated_at'].toString()),
+        contextRefreshedAt: DateTime.now(),
+        sourceNote: effectivePolicy == null
+            ? 'device assigned, but no active policy found'
+            : 'resolved via authenticated Pro APIs',
+      );
+
+      _lastProContext = snapshot;
+      _lastProContextRefreshedAt = DateTime.now();
+      _lastProContextError = null;
+      return snapshot;
+    } catch (e) {
+      _lastProContextError = e.toString();
+      _logger.warning('Failed to refresh Pro device context', e);
+      final fallback = _buildMinimalProContext(
+        deviceId: resolvedDeviceId,
+        devicePayload: devicePayload,
+        fingerprint: fingerprint,
+        accessState: 'pro_context_error',
+        sourceNote: 'failed to resolve authenticated Pro context',
+      );
+      _lastProContext = fallback;
+      _lastProContextRefreshedAt = DateTime.now();
+      return fallback;
+    } finally {
+      _proContextRefreshInProgress = false;
+    }
+  }
+
+  ProDeviceContextSnapshot _buildMinimalProContext({
+    required String deviceId,
+    required Map<String, dynamic>? devicePayload,
+    required String fingerprint,
+    required String accessState,
+    required String sourceNote,
+  }) {
+    return ProDeviceContextSnapshot(
+      deviceId: deviceId,
+      authenticated: isAuthenticated,
+      accessState: accessState,
+      assignmentFingerprint: fingerprint,
+      organization: null,
+      site: null,
+      zone: null,
+      calibrationProfile: null,
+      effectivePolicy: null,
+      policies: const [],
+      organizationPolicyCount: 0,
+      sitePolicyCount: 0,
+      zonePolicyCount: 0,
+      activePolicyCount: 0,
+      deviceUpdatedAt: _lastDevicePayload?['updated_at'] == null
+          ? null
+          : DateTime.tryParse(_lastDevicePayload!['updated_at'].toString()),
+      contextRefreshedAt: DateTime.now(),
+      sourceNote: sourceNote,
+    );
+  }
+
   // Event endpoints
-  Future<NoiseEventModel> createEvent(NoiseEventModel event) async {
+  Future<EventReceipt> createEvent(NoiseEventModel event) async {
     try {
       final response = await _dio.post<Map<String, dynamic>>(
         '/events/',
         data: event.toJson(),
       );
-      final createdEvent =
-          NoiseEventModel.fromJson(response.data as Map<String, dynamic>);
+      final receipt =
+          EventReceipt.fromJson(response.data as Map<String, dynamic>);
 
       _logger.info('Event created successfully for device: ${event.deviceId}');
-      return createdEvent;
+      return receipt;
     } catch (e) {
       _logger.error('Failed to create event', e);
       rethrow;
@@ -400,6 +782,17 @@ class ApiClientService {
       return NoiseEventModel.fromJson(response.data as Map<String, dynamic>);
     } catch (e) {
       _logger.error('Failed to get event: $eventId', e);
+      rethrow;
+    }
+  }
+
+  Future<EventStatusModel> getEventStatus(String eventUuid) async {
+    try {
+      final response =
+          await _dio.get<Map<String, dynamic>>('/events/status/$eventUuid');
+      return EventStatusModel.fromJson(response.data as Map<String, dynamic>);
+    } catch (e) {
+      _logger.error('Failed to get event status: $eventUuid', e);
       rethrow;
     }
   }
@@ -524,9 +917,9 @@ class ApiClientService {
   }
 
   // Batch event submission for performance
-  Future<List<NoiseEventModel>> createEventsBatch(
+  Future<List<EventReceipt>> createEventsBatch(
       List<NoiseEventModel> events) async {
-    final createdEvents = <NoiseEventModel>[];
+    final createdEvents = <EventReceipt>[];
 
     for (final event in events) {
       createdEvents.add(await createEvent(event));
@@ -547,16 +940,17 @@ class ApiClientService {
   }
 
   // Anonymous event submission (no authentication required)
-  Future<bool> submitAnonymousEvent(NoiseEventModel event) async {
+  Future<EventReceipt?> submitAnonymousEvent(NoiseEventModel event) async {
     try {
       // Use the regular /events/ endpoint which handles anonymous submissions by auto-creating devices
-      await _dio.post<Map<String, dynamic>>('/events/', data: event.toJson());
+      final response = await _dio.post<Map<String, dynamic>>('/events/',
+          data: event.toJson());
 
       _logger.info('Anonymous event submitted successfully');
-      return true;
+      return EventReceipt.fromJson(response.data as Map<String, dynamic>);
     } catch (e) {
       _logger.warning('Anonymous event submission failed', e);
-      return false;
+      return null;
     }
   }
 
@@ -616,7 +1010,7 @@ class ApiClientService {
     }
 
     // Fallback to anonymous submission
-    return await submitAnonymousEvent(event);
+    return await submitAnonymousEvent(event) != null;
   }
 
   String _generateDeviceId() {

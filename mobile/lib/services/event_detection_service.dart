@@ -4,6 +4,7 @@ import 'dart:math';
 import 'dart:io';
 
 import 'package:get_it/get_it.dart';
+import 'api_client_service.dart';
 import 'location_service.dart';
 import 'backend_sync_service.dart';
 import 'recording_service.dart';
@@ -58,6 +59,7 @@ class EventDetectionService {
   // Services
   final LocationService _locationService = LocationService();
   BackendSyncService get _backendSync => GetIt.instance<BackendSyncService>();
+  ApiClientService get _apiClient => GetIt.instance<ApiClientService>();
   final RecordingService _recordingService = RecordingService();
   final AudioRecordingDao _audioRecordingDao = AudioRecordingDao();
   final Uuid _uuid = const Uuid();
@@ -68,8 +70,10 @@ class EventDetectionService {
   Duration _windowDuration = const Duration(minutes: 10);
 
   // Event merging configuration
-  Duration _gracePeriod = const Duration(seconds: 30); // Grace period before ending event
-  Duration _mergeWindow = const Duration(seconds: 30); // Window for merging nearby events
+  Duration _gracePeriod =
+      const Duration(seconds: 30); // Grace period before ending event
+  Duration _mergeWindow =
+      const Duration(seconds: 30); // Window for merging nearby events
 
   // Event state tracking
   DateTime? _lastThresholdExceedance;
@@ -87,6 +91,8 @@ class EventDetectionService {
   NoiseEvent? _currentEvent;
   bool _isMonitoring = false;
   Timer? _cleanupTimer;
+  StreamSubscription<double>? _splSubscription;
+  bool _isFinalizingEvent = false;
 
   // Stream controllers
   final StreamController<NoiseEvent> _eventController =
@@ -112,7 +118,8 @@ class EventDetectionService {
     _lastMinuteProcessed = null;
 
     // Subscribe to SPL stream
-    splStream.listen((splValue) {
+    await _splSubscription?.cancel();
+    _splSubscription = splStream.listen((splValue) {
       addSample(splValue);
     });
 
@@ -121,16 +128,17 @@ class EventDetectionService {
         const Duration(seconds: 30), (_) => _cleanupOldSamples());
 
     // Start minute aggregation timer
-    _minuteAggregationTimer = Timer.periodic(
-        const Duration(seconds: 10), (_) => _processMinuteAggregation());
+    _minuteAggregationTimer = Timer.periodic(const Duration(seconds: 10), (_) {
+      unawaited(_processMinuteAggregation());
+    });
 
     AppLogger.event(
         'EventDetectionService: Started monitoring with threshold $_thresholdDb dB');
   }
 
   /// Stop monitoring
-  void stopMonitoring() {
-    if (!_isMonitoring) return;
+  Future<void> stopMonitoring() async {
+    if (!_isMonitoring && _splSubscription == null) return;
 
     _isMonitoring = false;
     _cleanupTimer?.cancel();
@@ -140,12 +148,15 @@ class EventDetectionService {
     _graceTimer?.cancel();
     _graceTimer = null;
 
+    await _splSubscription?.cancel();
+    _splSubscription = null;
+
     // Process any remaining minute data
-    _processMinuteAggregation();
+    await _processMinuteAggregation();
 
     // Finalize any current event
     if (_currentEvent != null) {
-      _finalizeCurrentEvent();
+      await _finalizeCurrentEvent();
     }
 
     _rollingWindow.clear();
@@ -257,11 +268,10 @@ class EventDetectionService {
           startTime: _currentEvent!.startTime,
           endTime: timestamp,
           averageLeqDb: _calculateWeightedAverage(
-            _currentEvent!.averageLeqDb,
-            stats.averageLeq,
-            _currentEvent!.duration.inSeconds,
-            stats.sampleCount
-          ),
+              _currentEvent!.averageLeqDb,
+              stats.averageLeq,
+              _currentEvent!.duration.inSeconds,
+              stats.sampleCount),
           maxLevelDb: max(_currentEvent!.maxLevelDb, stats.maxLevel),
           minLevelDb: min(_currentEvent!.minLevelDb, stats.minLevel),
           samples: _mergeRecentSamples(_currentEvent!.samples, stats.samples),
@@ -275,7 +285,7 @@ class EventDetectionService {
           // Grace period expired, finalize event
           AppLogger.event(
               'Event ended after grace period: ${_currentEvent!.averageLeqDb.toStringAsFixed(1)} dB');
-          _finalizeCurrentEvent();
+          unawaited(_finalizeCurrentEvent());
           _graceTimer = null;
         });
 
@@ -286,55 +296,70 @@ class EventDetectionService {
   }
 
   /// Finalize and emit the current event with classification
-  void _finalizeCurrentEvent() async {
-    if (_currentEvent == null) return;
+  Future<void> _finalizeCurrentEvent() async {
+    if (_currentEvent == null || _isFinalizingEvent) return;
+
+    final eventToFinalize = _currentEvent!;
+    _currentEvent = null;
+    _isFinalizingEvent = true;
 
     // Classify event based on duration and characteristics
-    final eventType = _classifyEvent(_currentEvent!);
+    final eventType = _classifyEvent(eventToFinalize);
 
     // Only emit events that meet minimum criteria
-    if (_shouldEmitEvent(_currentEvent!, eventType)) {
-      // Get current location for the event
-      final location = await _locationService.getCurrentLocation();
+    try {
+      if (_shouldEmitEvent(eventToFinalize, eventType)) {
+        // Get current location for the event
+        final location = await _locationService.getCurrentLocation();
 
-      // Create a NoiseEventModel for storage/submission with enhanced metadata
-      final eventModel = await _createNoiseEventModel(_currentEvent!, location, eventType);
+        // Create a NoiseEventModel for storage/submission with enhanced metadata
+        final eventModel =
+            await _createNoiseEventModel(eventToFinalize, location, eventType);
 
-      // Store the event in the database
-      await _storeEvent(eventModel);
+        // Store the event in the database
+        await _storeEvent(eventModel);
 
-      _eventController.add(_currentEvent!);
-      AppLogger.event('Event emitted [${eventType.type}]: ${_currentEvent!} with location');
-    } else {
-      AppLogger.event('Event discarded (too short): ${_currentEvent!}');
+        _eventController.add(eventToFinalize);
+        AppLogger.event(
+            'Event emitted [${eventType.type}]: $eventToFinalize with location');
+      } else {
+        AppLogger.event('Event discarded (too short): $eventToFinalize');
+      }
+    } finally {
+      _isFinalizingEvent = false;
     }
-
-    _currentEvent = null;
   }
 
   /// Create a NoiseEventModel from a NoiseEvent with location data and classification
-  Future<NoiseEventModel> _createNoiseEventModel(
-      NoiseEvent event, LocationData? location, EventClassification classification) async {
-    final deviceId = Platform.isAndroid
-        ? 'android-${_uuid.v4().substring(0, 8)}'
-        : 'ios-${_uuid.v4().substring(0, 8)}';
+  Future<NoiseEventModel> _createNoiseEventModel(NoiseEvent event,
+      LocationData? location, EventClassification classification) async {
+    final deviceId = await _apiClient.ensureDeviceId();
+    final eventUuid = _uuid.v4();
 
     // Find the continuous recording file that contains this event
     final recordingRef = await _findContinuousRecordingForEvent(event);
 
     return NoiseEventModel.fromDetectedEvent(
       event,
+      eventUuid: eventUuid,
       deviceId: deviceId,
       location: location,
       metadata: {
         'detection_service_version': '2.0',
         'platform': Platform.operatingSystem,
-        'event_uuid': _uuid.v4(),
+        'event_uuid': eventUuid,
         'event_type': classification.type,
         'confidence': classification.confidence,
         'duration_classification': classification.durationClass,
         'intensity_classification': classification.intensityClass,
-        'continuous_recording_ref': recordingRef != null ? 'linked' : 'not_found',
+        'segment_type': classification.segmentType,
+        'reportability_score': classification.reportabilityScore,
+        'reportability_reason': classification.reportabilityReason,
+        'peak_to_average_delta_db': classification.peakToAverageDeltaDb,
+        'variability_db': classification.variabilityDb,
+        'threshold_exceedance_ratio': classification.thresholdExceedanceRatio,
+        'continuous_recording_ref':
+            recordingRef != null ? 'linked' : 'not_found',
         'grace_period_used': _gracePeriod.inSeconds,
         'merge_window_used': _mergeWindow.inSeconds,
       },
@@ -347,6 +372,17 @@ class EventDetectionService {
       eventConfidence: classification.confidence,
       durationClass: classification.durationClass,
       intensityClass: classification.intensityClass,
+      analysisState: EventAnalysisState.classifiedOnDevice,
+      classificationLabel: classification.type,
+      classificationConfidence: classification.confidence,
+      classificationSource: 'device_rule_engine',
+      segmentType: classification.segmentType,
+      reportabilityScore: classification.reportabilityScore,
+      reportabilityReason: classification.reportabilityReason,
+      peakToAverageDeltaDb: classification.peakToAverageDeltaDb,
+      variabilityDb: classification.variabilityDb,
+      thresholdExceedanceRatio: classification.thresholdExceedanceRatio,
+      analysisUpdatedAt: DateTime.now(),
     );
   }
 
@@ -368,7 +404,8 @@ class EventDetectionService {
   /// Submit event to backend via BackendSyncService
   Future<void> _submitEventToBackend(NoiseEventModel event) async {
     try {
-      final success = await _backendSync.submitNoiseEvent(
+      final result = await _backendSync.submitNoiseEvent(
+        eventUuid: event.eventUuid,
         timestampStart: event.timestampStart,
         timestampEnd: event.timestampEnd,
         leqDb: event.leqDb,
@@ -380,13 +417,32 @@ class EventDetectionService {
         ruleTriggered: event.ruleTriggered,
         locationLat: event.locationLat,
         locationLng: event.locationLng,
+        weatherConditions: null,
         eventMetadata: event.eventMetadata,
+        classificationLabel: event.classificationLabel,
+        classificationConfidence: event.classificationConfidence,
+        classificationSource: event.classificationSource,
+        segmentType: event.segmentType,
+        reportabilityScore: event.reportabilityScore,
+        reportabilityReason: event.reportabilityReason,
+        peakToAverageDeltaDb: event.peakToAverageDeltaDb,
+        variabilityDb: event.variabilityDb,
+        thresholdExceedanceRatio: event.thresholdExceedanceRatio,
+        analysisState: event.analysisState,
+        analysisUpdatedAt: event.analysisUpdatedAt,
       );
 
-      if (success) {
-        AppLogger.event('Event successfully submitted to backend');
+      if (result.acknowledged) {
+        AppLogger.event(
+          'Event acknowledged by backend: ${result.eventUuid} -> ${result.serverEventId}',
+        );
+      } else if (result.queued) {
+        AppLogger.event(
+            'Event queued for later submission: ${result.eventUuid}');
       } else {
-        AppLogger.event('Event queued for later submission');
+        AppLogger.event(
+          'Event kept local without backend submission: ${result.eventUuid}',
+        );
       }
     } catch (e) {
       AppLogger.event('Failed to submit event to backend: $e');
@@ -404,7 +460,7 @@ class EventDetectionService {
   }
 
   /// Process minute-level aggregation of samples
-  void _processMinuteAggregation() async {
+  Future<void> _processMinuteAggregation() async {
     if (_minuteBuffer.isEmpty) return;
 
     final now = DateTime.now();
@@ -518,7 +574,8 @@ class EventDetectionService {
   }
 
   /// Calculate weighted average for merging events
-  double _calculateWeightedAverage(double avg1, double avg2, int duration1, int samples2) {
+  double _calculateWeightedAverage(
+      double avg1, double avg2, int duration1, int samples2) {
     // Convert dB to energy for proper averaging
     final energy1 = pow(10, avg1 / 10) * duration1;
     final energy2 = pow(10, avg2 / 10) * samples2;
@@ -528,7 +585,8 @@ class EventDetectionService {
   }
 
   /// Merge recent samples for ongoing events (keep last N samples)
-  List<double> _mergeRecentSamples(List<double> existing, List<double> newSamples) {
+  List<double> _mergeRecentSamples(
+      List<double> existing, List<double> newSamples) {
     final merged = List<double>.from(existing);
     merged.addAll(newSamples);
     // Keep only last 1000 samples to prevent memory issues
@@ -543,28 +601,27 @@ class EventDetectionService {
     final duration = event.duration;
     final averageDb = event.averageLeqDb;
     final maxDb = event.maxLevelDb;
-    final variability = maxDb - event.minLevelDb;
+    final minDb = event.minLevelDb;
+    final variability = (maxDb - minDb).clamp(0, 200).toDouble();
+    final peakToAverageDelta = (maxDb - averageDb).clamp(0, 200).toDouble();
+    final thresholdExceedanceRatio =
+        event.getExceedancePercentage(_thresholdDb) / 100.0;
 
     String type;
     String durationClass;
     String intensityClass;
-    double confidence = 0.8; // Base confidence
+    String segmentType;
+    String reportabilityReason;
 
     // Classify by duration
-    if (duration.inSeconds < 60) {
+    if (duration.inSeconds < 20) {
       durationClass = 'brief';
-      type = 'brief_disturbance';
-    } else if (duration.inMinutes < 15) {
+    } else if (duration.inMinutes < 5) {
       durationClass = 'short';
-      type = variability > 10 ? 'intermittent_activity' : 'sustained_noise';
-    } else if (duration.inMinutes < 60) {
+    } else if (duration.inMinutes < 20) {
       durationClass = 'medium';
-      type = variability > 15 ? 'complex_event' : 'continuous_activity';
-      confidence = 0.9; // Higher confidence for longer events
     } else {
       durationClass = 'extended';
-      type = 'long_term_activity';
-      confidence = 0.95; // Very high confidence for very long events
     }
 
     // Classify by intensity
@@ -572,28 +629,84 @@ class EventDetectionService {
       intensityClass = 'moderate';
     } else if (averageDb < 80) {
       intensityClass = 'loud';
-      confidence += 0.05; // Slightly more confident about loud events
     } else {
       intensityClass = 'very_loud';
-      confidence += 0.1; // Much more confident about very loud events
     }
+
+    if (duration.inSeconds <= 20 &&
+        peakToAverageDelta >= 10 &&
+        thresholdExceedanceRatio < 0.65) {
+      type = 'impulsive_noise';
+      segmentType = 'impulsive';
+      reportabilityReason =
+          'Short event with a strong peak compared with its average level.';
+    } else if (duration.inSeconds >= 60 && thresholdExceedanceRatio >= 0.65) {
+      type = 'sustained_noise';
+      segmentType = 'sustained';
+      reportabilityReason =
+          'Most of the event remained above threshold for a sustained period.';
+    } else if (variability >= 15 || thresholdExceedanceRatio >= 0.45) {
+      type = 'mixed_noise_event';
+      segmentType = 'fluctuating';
+      reportabilityReason =
+          'Event showed repeated threshold crossings or high level variability.';
+    } else {
+      type = 'boundary_noise_event';
+      segmentType = 'boundary';
+      reportabilityReason =
+          'Event crossed detection thresholds but remained close to the boundary.';
+    }
+
+    final intensityScore = ((averageDb - _thresholdDb) / 20).clamp(0.0, 1.0);
+    final durationScore = (duration.inSeconds / 180).clamp(0.0, 1.0);
+    final peakScore = ((peakToAverageDelta - 3) / 12).clamp(0.0, 1.0);
+    final reportabilityScore = double.parse(
+      (0.35 * durationScore +
+              0.30 * thresholdExceedanceRatio.clamp(0.0, 1.0) +
+              0.20 * intensityScore +
+              0.15 * peakScore)
+          .clamp(0.0, 1.0)
+          .toStringAsFixed(3),
+    );
+    final confidence = double.parse(
+      (0.50 +
+              (0.20 * durationScore) +
+              (0.20 * peakScore) +
+              (0.10 * thresholdExceedanceRatio.clamp(0.0, 1.0)))
+          .clamp(0.0, 0.98)
+          .toStringAsFixed(3),
+    );
 
     return EventClassification(
       type: type,
-      confidence: confidence.clamp(0.0, 1.0),
+      confidence: confidence,
       durationClass: durationClass,
       intensityClass: intensityClass,
+      segmentType: segmentType,
+      reportabilityScore: reportabilityScore,
+      reportabilityReason: reportabilityReason,
+      peakToAverageDeltaDb: peakToAverageDelta,
+      variabilityDb: variability,
+      thresholdExceedanceRatio: thresholdExceedanceRatio,
     );
   }
 
   /// Determine if event should be emitted based on classification
   bool _shouldEmitEvent(NoiseEvent event, EventClassification classification) {
-    // Minimum duration: 30 seconds for brief events, 10 seconds for very loud events
-    final minDuration = classification.intensityClass == 'very_loud'
-        ? const Duration(seconds: 10)
-        : const Duration(seconds: 30);
+    final minDuration = classification.segmentType == 'impulsive'
+        ? const Duration(seconds: 8)
+        : const Duration(seconds: 20);
+    final strongImpulse = classification.segmentType == 'impulsive' &&
+        classification.peakToAverageDeltaDb >= 12 &&
+        event.duration >= const Duration(seconds: 5);
+    final sufficientlyReportable = classification.reportabilityScore >= 0.45;
+    final meaningfulThresholdPresence =
+        classification.thresholdExceedanceRatio >= 0.25;
 
-    return event.duration >= minDuration;
+    return (event.duration >= minDuration &&
+            sufficientlyReportable &&
+            meaningfulThresholdPresence) ||
+        strongImpulse;
   }
 
   /// Update grace period configuration
@@ -615,33 +728,44 @@ class EventDetectionService {
   }
 
   /// Find the continuous recording file that contains this event
-  Future<Map<String, dynamic>?> _findContinuousRecordingForEvent(NoiseEvent event) async {
+  Future<Map<String, dynamic>?> _findContinuousRecordingForEvent(
+      NoiseEvent event) async {
     try {
       // Query the database for recordings that overlap with the event time
       final recordings = await _audioRecordingDao.getByTimeRange(
-        startTimestamp: event.startTime.millisecondsSinceEpoch ~/ 1000 - 3600, // 1 hour buffer before
-        endTimestamp: event.endTime.millisecondsSinceEpoch ~/ 1000 + 3600, // 1 hour buffer after
+        startTimestamp: event.startTime.millisecondsSinceEpoch ~/ 1000 -
+            3600, // 1 hour buffer before
+        endTimestamp: event.endTime.millisecondsSinceEpoch ~/ 1000 +
+            3600, // 1 hour buffer after
       );
 
       // Filter for continuous recordings only
-      final continuousRecordings = recordings.where((r) => r.triggerType == 'continuous').toList();
+      final continuousRecordings =
+          recordings.where((r) => r.triggerType == 'continuous').toList();
 
       // Find the recording that contains the event
       for (final recording in continuousRecordings) {
-        final recordingStart = DateTime.fromMillisecondsSinceEpoch(recording.timestampStart * 1000);
-        final recordingEnd = DateTime.fromMillisecondsSinceEpoch(recording.timestampEnd * 1000);
+        final recordingStart = DateTime.fromMillisecondsSinceEpoch(
+            recording.timestampStart * 1000);
+        final recordingEnd =
+            DateTime.fromMillisecondsSinceEpoch(recording.timestampEnd * 1000);
 
         // Check if the event overlaps with this recording
-        if (event.startTime.isAfter(recordingStart.subtract(const Duration(minutes: 1))) &&
-            event.startTime.isBefore(recordingEnd.add(const Duration(minutes: 1)))) {
-
+        if (event.startTime
+                .isAfter(recordingStart.subtract(const Duration(minutes: 1))) &&
+            event.startTime
+                .isBefore(recordingEnd.add(const Duration(minutes: 1)))) {
           // Calculate offsets in milliseconds from the start of the recording
-          final startOffsetMs = event.startTime.difference(recordingStart).inMilliseconds;
-          final endOffsetMs = event.endTime.difference(recordingStart).inMilliseconds;
+          final startOffsetMs =
+              event.startTime.difference(recordingStart).inMilliseconds;
+          final endOffsetMs =
+              event.endTime.difference(recordingStart).inMilliseconds;
 
           // Ensure offsets are within valid range
-          final clampedStartOffsetMs = startOffsetMs.clamp(0, recording.durationSeconds * 1000);
-          final clampedEndOffsetMs = endOffsetMs.clamp(0, recording.durationSeconds * 1000);
+          final clampedStartOffsetMs =
+              startOffsetMs.clamp(0, recording.durationSeconds * 1000);
+          final clampedEndOffsetMs =
+              endOffsetMs.clamp(0, recording.durationSeconds * 1000);
 
           return {
             'fileId': recording.id,
@@ -670,7 +794,7 @@ class EventDetectionService {
 
   /// Dispose of resources
   void dispose() {
-    stopMonitoring();
+    unawaited(stopMonitoring());
     _eventController.close();
     _averageLeqController.close();
   }
@@ -704,17 +828,30 @@ class EventClassification {
   final double confidence;
   final String durationClass;
   final String intensityClass;
+  final String segmentType;
+  final double reportabilityScore;
+  final String reportabilityReason;
+  final double peakToAverageDeltaDb;
+  final double variabilityDb;
+  final double thresholdExceedanceRatio;
 
   const EventClassification({
     required this.type,
     required this.confidence,
     required this.durationClass,
     required this.intensityClass,
+    required this.segmentType,
+    required this.reportabilityScore,
+    required this.reportabilityReason,
+    required this.peakToAverageDeltaDb,
+    required this.variabilityDb,
+    required this.thresholdExceedanceRatio,
   });
 
   @override
   String toString() {
     return 'EventClassification(type: $type, confidence: ${confidence.toStringAsFixed(2)}, '
-        'duration: $durationClass, intensity: $intensityClass)';
+        'duration: $durationClass, intensity: $intensityClass, '
+        'segment: $segmentType, reportability: ${reportabilityScore.toStringAsFixed(2)})';
   }
 }

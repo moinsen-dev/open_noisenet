@@ -253,7 +253,7 @@ export default function CookiePreferencesPage() {
                 <div className="flex items-start gap-2">
                   <Info className="h-4 w-4 mt-0.5 flex-shrink-0" />
                   <div>
-                    <strong>Newsletter:</strong> Track newsletter signups and email campaign effectiveness
+                    <strong>Outreach:</strong> Measure which referral channels help people discover the project
                   </div>
                 </div>
                 <div className="flex items-start gap-2">

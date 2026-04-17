@@ -1,16 +1,39 @@
 import 'package:json_annotation/json_annotation.dart';
+import 'package:uuid/uuid.dart';
 
 import '../../../../services/event_detection_service.dart';
 import '../../../../services/location_service.dart';
 
 part 'noise_event_model.g.dart';
 
+class EventLifecycleState {
+  static const String detectedLocal = 'detected_local';
+  static const String segmentedLocal = 'segmented_local';
+  static const String uploading = 'uploading';
+  static const String queuedForUpload = 'queued_for_upload';
+  static const String uploaded = 'uploaded';
+  static const String acknowledgedByServer = 'acknowledged_by_server';
+  static const String failed = 'failed';
+}
+
+class EventAnalysisState {
+  static const String notStarted = 'not_started';
+  static const String classifiedOnDevice = 'classified_on_device';
+  static const String queuedForServerAnalysis = 'queued_for_server_analysis';
+  static const String serverClassified = 'server_classified';
+  static const String failed = 'failed';
+}
+
 @JsonSerializable()
 class NoiseEventModel {
   /// Unique identifier for the event (UUID)
   final String? id;
 
+  @JsonKey(name: 'event_uuid')
+  final String? eventUuid;
+
   /// Device ID that recorded the event
+  @JsonKey(name: 'device_id')
   final String deviceId;
 
   /// Event timing
@@ -62,15 +85,50 @@ class NoiseEventModel {
   @JsonKey(name: 'event_metadata')
   final Map<String, dynamic>? eventMetadata;
 
+  @JsonKey(name: 'analysis_state')
+  final String analysisState;
+
+  @JsonKey(name: 'classification_label')
+  final String? classificationLabel;
+
+  @JsonKey(name: 'classification_confidence')
+  final double? classificationConfidence;
+
+  @JsonKey(name: 'classification_source')
+  final String? classificationSource;
+
+  @JsonKey(name: 'segment_type')
+  final String? segmentType;
+
+  @JsonKey(name: 'reportability_score')
+  final double? reportabilityScore;
+
+  @JsonKey(name: 'reportability_reason')
+  final String? reportabilityReason;
+
+  @JsonKey(name: 'peak_to_average_delta_db')
+  final double? peakToAverageDeltaDb;
+
+  @JsonKey(name: 'variability_db')
+  final double? variabilityDb;
+
+  @JsonKey(name: 'threshold_exceedance_ratio')
+  final double? thresholdExceedanceRatio;
+
+  @JsonKey(name: 'analysis_updated_at')
+  final DateTime? analysisUpdatedAt;
+
   /// Continuous recording references (new fields for Phase 3)
   @JsonKey(name: 'recording_file_id')
   final String? recordingFileId; // Reference to continuous recording file
 
   @JsonKey(name: 'recording_start_offset_ms')
-  final int? recordingStartOffsetMs; // Millisecond offset in recording when event started
+  final int?
+      recordingStartOffsetMs; // Millisecond offset in recording when event started
 
   @JsonKey(name: 'recording_end_offset_ms')
-  final int? recordingEndOffsetMs; // Millisecond offset in recording when event ended
+  final int?
+      recordingEndOffsetMs; // Millisecond offset in recording when event ended
 
   /// Event classification fields (from Phase 2)
   @JsonKey(name: 'event_type')
@@ -93,13 +151,38 @@ class NoiseEventModel {
   final bool isSubmitted;
 
   @JsonKey(includeFromJson: false, includeToJson: false)
+  final String lifecycleState;
+
+  @JsonKey(includeFromJson: false, includeToJson: false)
   final DateTime? localTimestamp;
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   final int? retryCount;
 
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  final int uploadAttemptCount;
+
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  final DateTime? lastUploadAttemptAt;
+
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  final DateTime? lastUploadedAt;
+
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  final DateTime? serverAcknowledgedAt;
+
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  final String? serverEventId;
+
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  final String? lastErrorCode;
+
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  final String? lastErrorMessage;
+
   const NoiseEventModel({
     this.id,
+    this.eventUuid,
     required this.deviceId,
     required this.timestampStart,
     required this.timestampEnd,
@@ -115,10 +198,29 @@ class NoiseEventModel {
     this.locationSource,
     this.locationAccuracy,
     this.eventMetadata,
+    this.analysisState = EventAnalysisState.notStarted,
+    this.classificationLabel,
+    this.classificationConfidence,
+    this.classificationSource,
+    this.segmentType,
+    this.reportabilityScore,
+    this.reportabilityReason,
+    this.peakToAverageDeltaDb,
+    this.variabilityDb,
+    this.thresholdExceedanceRatio,
+    this.analysisUpdatedAt,
     this.status = 'pending',
     this.isSubmitted = false,
+    this.lifecycleState = EventLifecycleState.segmentedLocal,
     this.localTimestamp,
     this.retryCount = 0,
+    this.uploadAttemptCount = 0,
+    this.lastUploadAttemptAt,
+    this.lastUploadedAt,
+    this.serverAcknowledgedAt,
+    this.serverEventId,
+    this.lastErrorCode,
+    this.lastErrorMessage,
     // New continuous recording fields
     this.recordingFileId,
     this.recordingStartOffsetMs,
@@ -132,11 +234,13 @@ class NoiseEventModel {
   /// Create from detection service event
   factory NoiseEventModel.fromDetectedEvent(
     NoiseEvent event, {
+    String? eventUuid,
     required String deviceId,
     LocationData? location,
     Map<String, dynamic>? metadata,
   }) {
     return NoiseEventModel(
+      eventUuid: eventUuid ?? const Uuid().v4(),
       deviceId: deviceId,
       timestampStart: event.startTime,
       timestampEnd: event.endTime,
@@ -157,6 +261,8 @@ class NoiseEventModel {
         'detection_version': '1.0.0',
         ...?metadata,
       },
+      analysisState: EventAnalysisState.notStarted,
+      lifecycleState: EventLifecycleState.segmentedLocal,
       localTimestamp: DateTime.now(),
     );
   }
@@ -164,6 +270,7 @@ class NoiseEventModel {
   /// Create copy with updated fields
   NoiseEventModel copyWith({
     String? id,
+    String? eventUuid,
     String? deviceId,
     DateTime? timestampStart,
     DateTime? timestampEnd,
@@ -179,10 +286,29 @@ class NoiseEventModel {
     String? locationSource,
     double? locationAccuracy,
     Map<String, dynamic>? eventMetadata,
+    String? analysisState,
+    String? classificationLabel,
+    double? classificationConfidence,
+    String? classificationSource,
+    String? segmentType,
+    double? reportabilityScore,
+    String? reportabilityReason,
+    double? peakToAverageDeltaDb,
+    double? variabilityDb,
+    double? thresholdExceedanceRatio,
+    DateTime? analysisUpdatedAt,
     String? status,
     bool? isSubmitted,
+    String? lifecycleState,
     DateTime? localTimestamp,
     int? retryCount,
+    int? uploadAttemptCount,
+    DateTime? lastUploadAttemptAt,
+    DateTime? lastUploadedAt,
+    DateTime? serverAcknowledgedAt,
+    String? serverEventId,
+    String? lastErrorCode,
+    String? lastErrorMessage,
     // New continuous recording fields
     String? recordingFileId,
     int? recordingStartOffsetMs,
@@ -194,6 +320,7 @@ class NoiseEventModel {
   }) {
     return NoiseEventModel(
       id: id ?? this.id,
+      eventUuid: eventUuid ?? this.eventUuid,
       deviceId: deviceId ?? this.deviceId,
       timestampStart: timestampStart ?? this.timestampStart,
       timestampEnd: timestampEnd ?? this.timestampEnd,
@@ -209,13 +336,35 @@ class NoiseEventModel {
       locationSource: locationSource ?? this.locationSource,
       locationAccuracy: locationAccuracy ?? this.locationAccuracy,
       eventMetadata: eventMetadata ?? this.eventMetadata,
+      analysisState: analysisState ?? this.analysisState,
+      classificationLabel: classificationLabel ?? this.classificationLabel,
+      classificationConfidence:
+          classificationConfidence ?? this.classificationConfidence,
+      classificationSource: classificationSource ?? this.classificationSource,
+      segmentType: segmentType ?? this.segmentType,
+      reportabilityScore: reportabilityScore ?? this.reportabilityScore,
+      reportabilityReason: reportabilityReason ?? this.reportabilityReason,
+      peakToAverageDeltaDb: peakToAverageDeltaDb ?? this.peakToAverageDeltaDb,
+      variabilityDb: variabilityDb ?? this.variabilityDb,
+      thresholdExceedanceRatio:
+          thresholdExceedanceRatio ?? this.thresholdExceedanceRatio,
+      analysisUpdatedAt: analysisUpdatedAt ?? this.analysisUpdatedAt,
       status: status ?? this.status,
       isSubmitted: isSubmitted ?? this.isSubmitted,
+      lifecycleState: lifecycleState ?? this.lifecycleState,
       localTimestamp: localTimestamp ?? this.localTimestamp,
       retryCount: retryCount ?? this.retryCount,
+      uploadAttemptCount: uploadAttemptCount ?? this.uploadAttemptCount,
+      lastUploadAttemptAt: lastUploadAttemptAt ?? this.lastUploadAttemptAt,
+      lastUploadedAt: lastUploadedAt ?? this.lastUploadedAt,
+      serverAcknowledgedAt: serverAcknowledgedAt ?? this.serverAcknowledgedAt,
+      serverEventId: serverEventId ?? this.serverEventId,
+      lastErrorCode: lastErrorCode ?? this.lastErrorCode,
+      lastErrorMessage: lastErrorMessage ?? this.lastErrorMessage,
       // New continuous recording fields
       recordingFileId: recordingFileId ?? this.recordingFileId,
-      recordingStartOffsetMs: recordingStartOffsetMs ?? this.recordingStartOffsetMs,
+      recordingStartOffsetMs:
+          recordingStartOffsetMs ?? this.recordingStartOffsetMs,
       recordingEndOffsetMs: recordingEndOffsetMs ?? this.recordingEndOffsetMs,
       eventType: eventType ?? this.eventType,
       eventConfidence: eventConfidence ?? this.eventConfidence,
@@ -250,37 +399,69 @@ class NoiseEventModel {
   Map<String, dynamic> toLocalJson() {
     final json = toJson();
     json['isSubmitted'] = isSubmitted;
+    json['lifecycleState'] = lifecycleState;
     json['localTimestamp'] = localTimestamp?.toIso8601String();
     json['retryCount'] = retryCount;
+    json['uploadAttemptCount'] = uploadAttemptCount;
+    json['lastUploadAttemptAt'] = lastUploadAttemptAt?.toIso8601String();
+    json['lastUploadedAt'] = lastUploadedAt?.toIso8601String();
+    json['serverAcknowledgedAt'] = serverAcknowledgedAt?.toIso8601String();
+    json['serverEventId'] = serverEventId;
+    json['lastErrorCode'] = lastErrorCode;
+    json['lastErrorMessage'] = lastErrorMessage;
     return json;
   }
 
   /// Create from local storage JSON
   factory NoiseEventModel.fromLocalJson(Map<String, dynamic> json) {
     final event = NoiseEventModel.fromJson(json);
+    final derivedEventUuid = event.eventUuid ??
+        event.id ??
+        '${event.deviceId}-${event.timestampStart.millisecondsSinceEpoch}';
     return event.copyWith(
+      eventUuid: derivedEventUuid,
       isSubmitted: json['isSubmitted'] as bool? ?? false,
+      analysisState: json['analysis_state'] as String? ??
+          json['analysisState'] as String? ??
+          event.analysisState,
+      lifecycleState: json['lifecycleState'] as String? ??
+          (json['isSubmitted'] as bool? ?? false
+              ? EventLifecycleState.acknowledgedByServer
+              : EventLifecycleState.segmentedLocal),
       localTimestamp: json['localTimestamp'] != null
           ? DateTime.parse(json['localTimestamp'] as String)
           : null,
       retryCount: json['retryCount'] as int? ?? 0,
+      uploadAttemptCount: json['uploadAttemptCount'] as int? ?? 0,
+      lastUploadAttemptAt: json['lastUploadAttemptAt'] != null
+          ? DateTime.parse(json['lastUploadAttemptAt'] as String)
+          : null,
+      lastUploadedAt: json['lastUploadedAt'] != null
+          ? DateTime.parse(json['lastUploadedAt'] as String)
+          : null,
+      serverAcknowledgedAt: json['serverAcknowledgedAt'] != null
+          ? DateTime.parse(json['serverAcknowledgedAt'] as String)
+          : null,
+      serverEventId: json['serverEventId'] as String?,
+      lastErrorCode: json['lastErrorCode'] as String?,
+      lastErrorMessage: json['lastErrorMessage'] as String?,
     );
   }
 
   @override
   String toString() {
-    return 'NoiseEventModel(${timestampStart.toIso8601String()}, ${leqDb.toStringAsFixed(1)} dB, ${duration.inSeconds}s, submitted: $isSubmitted)';
+    return 'NoiseEventModel(${eventUuid ?? 'no-uuid'}, ${timestampStart.toIso8601String()}, ${leqDb.toStringAsFixed(1)} dB, ${duration.inSeconds}s, lifecycle: $lifecycleState, analysis: $analysisState)';
   }
 
   @override
   bool operator ==(Object other) {
     if (identical(this, other)) return true;
     return other is NoiseEventModel &&
-        other.id == id &&
+        other.eventUuid == eventUuid &&
         other.deviceId == deviceId &&
         other.timestampStart == timestampStart;
   }
 
   @override
-  int get hashCode => Object.hash(id, deviceId, timestampStart);
+  int get hashCode => Object.hash(eventUuid, deviceId, timestampStart);
 }

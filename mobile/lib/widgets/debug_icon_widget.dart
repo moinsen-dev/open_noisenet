@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:talker_flutter/talker_flutter.dart';
 
 import '../core/logging/app_logger.dart';
@@ -23,7 +24,7 @@ class _DebugIconWidgetState extends State<DebugIconWidget>
   late AnimationController _flashController;
   late Animation<Color?> _flashAnimation;
   late StreamSubscription<TalkerData> _talkerSubscription;
-  
+
   int _errorCount = 0;
   int _warningCount = 0;
   bool _hasRecentError = false;
@@ -31,13 +32,13 @@ class _DebugIconWidgetState extends State<DebugIconWidget>
   @override
   void initState() {
     super.initState();
-    
+
     // Initialize flash animation controller
     _flashController = AnimationController(
       duration: const Duration(milliseconds: 500),
       vsync: this,
     );
-    
+
     _flashAnimation = ColorTween(
       begin: Colors.transparent,
       end: Colors.red.withValues(alpha: 0.8),
@@ -48,7 +49,7 @@ class _DebugIconWidgetState extends State<DebugIconWidget>
 
     // Initialize error counts from existing history
     _updateErrorCounts();
-    
+
     // Listen to new Talker events
     _startListeningToTalkerEvents();
   }
@@ -63,17 +64,17 @@ class _DebugIconWidgetState extends State<DebugIconWidget>
   /// Initialize error and warning counts from Talker history
   void _updateErrorCounts() {
     final history = AppLogger.getHistory();
-    
-    _errorCount = history.where((log) => 
-      log.logLevel == LogLevel.error ||
-      log.logLevel == LogLevel.critical ||
-      log is TalkerException
-    ).length;
-    
-    _warningCount = history.where((log) => 
-      log.logLevel == LogLevel.warning
-    ).length;
-    
+
+    _errorCount = history
+        .where((log) =>
+            log.logLevel == LogLevel.error ||
+            log.logLevel == LogLevel.critical ||
+            log is TalkerException)
+        .length;
+
+    _warningCount =
+        history.where((log) => log.logLevel == LogLevel.warning).length;
+
     if (mounted) {
       setState(() {});
     }
@@ -85,16 +86,16 @@ class _DebugIconWidgetState extends State<DebugIconWidget>
       final isError = data.logLevel == LogLevel.error ||
           data.logLevel == LogLevel.critical ||
           data is TalkerException;
-      
+
       final isWarning = data.logLevel == LogLevel.warning;
-      
+
       if (isError) {
         _errorCount++;
         _triggerErrorFlash();
       } else if (isWarning) {
         _warningCount++;
       }
-      
+
       if (mounted && (isError || isWarning)) {
         setState(() {});
       }
@@ -154,12 +155,13 @@ class _DebugIconWidgetState extends State<DebugIconWidget>
                     )
                   : null,
               child: IconButton(
-                onPressed: widget.onPressed ?? _openTalkerScreen,
+                onPressed: widget.onPressed ?? _openDebugMenu,
                 icon: Icon(_getIconData()),
-                tooltip: 'Debug Logs${_totalIssuesCount > 0 ? ' ($_totalIssuesCount issues)' : ''}',
+                tooltip:
+                    'Debug Logs${_totalIssuesCount > 0 ? ' ($_totalIssuesCount issues)' : ''}',
               ),
             ),
-            
+
             // Error/Warning count badge
             if (_totalIssuesCount > 0)
               Positioned(
@@ -183,7 +185,9 @@ class _DebugIconWidgetState extends State<DebugIconWidget>
                     minHeight: 18,
                   ),
                   child: Text(
-                    _totalIssuesCount > 99 ? '99+' : _totalIssuesCount.toString(),
+                    _totalIssuesCount > 99
+                        ? '99+'
+                        : _totalIssuesCount.toString(),
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 11,
@@ -208,20 +212,53 @@ class _DebugIconWidgetState extends State<DebugIconWidget>
     });
   }
 
+  Future<void> _openDebugMenu() async {
+    AppLogger.ui('Opening debug tools menu');
+    await showModalBottomSheet<void>(
+      context: context,
+      builder: (context) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.developer_mode),
+                title: const Text('Open Debug Logs'),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  _openTalkerScreen();
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.sync_alt),
+                title: const Text('Open Event Sync'),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  this.context.push('/event-sync-debug');
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   /// Open Talker debug screen
   void _openTalkerScreen() {
     AppLogger.ui('Opening Talker logs viewer');
-    Navigator.of(context).push(
+    Navigator.of(context)
+        .push(
       MaterialPageRoute<void>(
         builder: (context) => TalkerScreen(
           talker: AppLogger.instance,
           appBarTitle: 'OpenNoiseNet Debug Logs',
         ),
       ),
-    ).then((_) {
+    )
+        .then((_) {
       // When user returns from TalkerScreen, update counts in case history was cleared
       _updateErrorCounts();
     });
   }
-
 }

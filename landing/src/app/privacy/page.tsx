@@ -26,7 +26,7 @@ export default function PrivacyPolicy() {
           <div className="prose prose-invert prose-slate max-w-none space-y-8">
             <div className="bg-slate-800/50 rounded-xl p-8 border border-slate-700">
               <p className="text-slate-300 text-sm mb-4">
-                <strong>Last updated:</strong> December 2024
+                <strong>Last updated:</strong> April 2026
               </p>
               
               <h2 className="text-2xl font-bold text-white mb-4">English Version</h2>
@@ -47,18 +47,17 @@ export default function PrivacyPolicy() {
                   <h4 className="text-lg font-medium text-warn-400 mb-2">Website Data:</h4>
                   <ul className="list-disc list-inside space-y-1 mb-4">
                     <li>Server log files (IP address, browser type, access time)</li>
-                    <li>Newsletter email addresses (with explicit consent)</li>
                     <li>Cookie preferences and consent choices</li>
                     <li>Analytics data (only with your consent)</li>
                   </ul>
                   
                   <h4 className="text-lg font-medium text-warn-400 mb-2">Cookies and Tracking:</h4>
-                  <ul className="list-disc list-inside space-y-1 mb-4">
-                    <li><strong>Essential Cookies:</strong> Required for security, consent management, and core functionality</li>
-                    <li><strong>Functional Cookies:</strong> Remember your preferences (story settings, theme choices)</li>
-                    <li><strong>Analytics Cookies:</strong> Google Analytics (anonymized, with consent only)</li>
-                    <li><strong>Marketing Cookies:</strong> Newsletter tracking, social media metrics (with consent only)</li>
-                  </ul>
+                    <ul className="list-disc list-inside space-y-1 mb-4">
+                      <li><strong>Essential Cookies:</strong> Required for security, consent management, and core functionality</li>
+                      <li><strong>Functional Cookies:</strong> Remember your preferences (story settings, theme choices)</li>
+                      <li><strong>Analytics Cookies:</strong> Google Analytics (anonymized, with consent only)</li>
+                      <li><strong>Marketing Cookies:</strong> Referral and outreach measurement (with consent only)</li>
+                    </ul>
                   
                   <h4 className="text-lg font-medium text-warn-400 mb-2">Sensor Network Data:</h4>
                   <ul className="list-disc list-inside space-y-1">
@@ -76,7 +75,7 @@ export default function PrivacyPolicy() {
                   </p>
                   <ul className="list-disc list-inside space-y-1 mt-2">
                     <li><strong>Legitimate interest (Art. 6(1)(f) GDPR):</strong> Operating the website and sensor network</li>
-                    <li><strong>Consent (Art. 6(1)(a) GDPR):</strong> Newsletter subscription and optional audio data</li>
+                    <li><strong>Consent (Art. 6(1)(a) GDPR):</strong> Analytics cookies, marketing cookies, and optional audio data</li>
                     <li><strong>Public task (Art. 6(1)(e) GDPR):</strong> Environmental research and public health</li>
                   </ul>
                 </div>
@@ -85,7 +84,6 @@ export default function PrivacyPolicy() {
                   <h3 className="text-xl font-semibold text-white mb-3">4. Data Retention</h3>
                   <ul className="list-disc list-inside space-y-1">
                     <li>Server logs: 30 days</li>
-                    <li>Newsletter data: Until unsubscription</li>
                     <li>Noise measurements: 2 years (anonymized)</li>
                     <li>Audio snippets: 7 days (encrypted, for ML processing only)</li>
                   </ul>
@@ -103,7 +101,7 @@ export default function PrivacyPolicy() {
                       <li><strong>Essential:</strong> Cannot be disabled. Required for security and basic functionality.</li>
                       <li><strong>Functional:</strong> Remember your preferences and settings. Enabled by default.</li>
                       <li><strong>Analytics:</strong> Help us understand site usage. Google Analytics with IP anonymization.</li>
-                      <li><strong>Marketing:</strong> Track newsletter signups and social media engagement.</li>
+                      <li><strong>Marketing:</strong> Measure outreach and referral effectiveness.</li>
                     </ul>
                   </div>
                   <p className="text-sm">
@@ -147,7 +145,6 @@ export default function PrivacyPolicy() {
                     <h4 className="text-lg font-medium text-warn-400 mb-2">Website-Daten:</h4>
                     <ul className="list-disc list-inside space-y-1 mb-4">
                       <li>Server-Logfiles (IP-Adresse, Browser-Typ, Zugriffszeitpunkt)</li>
-                      <li>Newsletter-E-Mail-Adressen (mit ausdrücklicher Einwilligung)</li>
                       <li>Cookie-Präferenzen und Einwilligungsentscheidungen</li>
                       <li>Analytics-Daten (nur mit Ihrer Einwilligung)</li>
                     </ul>
@@ -157,7 +154,7 @@ export default function PrivacyPolicy() {
                       <li><strong>Essentielle Cookies:</strong> Erforderlich für Sicherheit, Consent-Management und Kernfunktionalität</li>
                       <li><strong>Funktionale Cookies:</strong> Speichern Ihre Präferenzen (Story-Einstellungen, Theme-Auswahl)</li>
                       <li><strong>Analytics Cookies:</strong> Google Analytics (anonymisiert, nur mit Einwilligung)</li>
-                      <li><strong>Marketing Cookies:</strong> Newsletter-Tracking, Social-Media-Metriken (nur mit Einwilligung)</li>
+                      <li><strong>Marketing Cookies:</strong> Messung von Verweisen und Outreach-Aktivitäten (nur mit Einwilligung)</li>
                     </ul>
                     
                     <h4 className="text-lg font-medium text-warn-400 mb-2">Sensornetzwerk-Daten:</h4>
@@ -176,7 +173,7 @@ export default function PrivacyPolicy() {
                     </p>
                     <ul className="list-disc list-inside space-y-1 mt-2">
                       <li><strong>Berechtigtes Interesse (Art. 6 Abs. 1 lit. f DSGVO):</strong> Betrieb der Website und des Sensornetzwerks</li>
-                      <li><strong>Einwilligung (Art. 6 Abs. 1 lit. a DSGVO):</strong> Newsletter-Abonnement und optionale Audio-Daten</li>
+                      <li><strong>Einwilligung (Art. 6 Abs. 1 lit. a DSGVO):</strong> Analytics-Cookies, Marketing-Cookies und optionale Audio-Daten</li>
                       <li><strong>Öffentliche Aufgabe (Art. 6 Abs. 1 lit. e DSGVO):</strong> Umweltforschung und öffentliche Gesundheit</li>
                     </ul>
                   </div>
@@ -185,7 +182,6 @@ export default function PrivacyPolicy() {
                     <h3 className="text-xl font-semibold text-white mb-3">4. Speicherdauer</h3>
                     <ul className="list-disc list-inside space-y-1">
                       <li>Server-Logs: 30 Tage</li>
-                      <li>Newsletter-Daten: Bis zur Abmeldung</li>
                       <li>Lärmmessungen: 2 Jahre (anonymisiert)</li>
                       <li>Audio-Schnipsel: 7 Tage (verschlüsselt, nur für ML-Verarbeitung)</li>
                     </ul>
@@ -203,7 +199,7 @@ export default function PrivacyPolicy() {
                         <li><strong>Essenziell:</strong> Können nicht deaktiviert werden. Erforderlich für Sicherheit und Grundfunktionen.</li>
                         <li><strong>Funktional:</strong> Speichern Ihre Präferenzen und Einstellungen. Standardmäßig aktiviert.</li>
                         <li><strong>Analytics:</strong> Helfen uns, die Website-Nutzung zu verstehen. Google Analytics mit IP-Anonymisierung.</li>
-                        <li><strong>Marketing:</strong> Verfolgen Newsletter-Anmeldungen und Social-Media-Engagement.</li>
+                        <li><strong>Marketing:</strong> Messen Outreach- und Referral-Wirkung.</li>
                       </ul>
                     </div>
                     <p className="text-sm">

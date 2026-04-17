@@ -6,6 +6,8 @@ Read [docs/current-status.md](/Users/udi/work/moinsen/ideas/open_noisenet/docs/c
 
 The commercialization direction is documented in [docs/opennoisenet-pro-roadmap.md](/Users/udi/work/moinsen/ideas/open_noisenet/docs/opennoisenet-pro-roadmap.md). That roadmap does **not** change current repo truth, but it does define what the stabilization phase is preparing for: a Hybrid Public + Pro platform with a tenant-bound Pro layer for housing and property workflows.
 
+The repo now also contains initial pre-release Pro slices. They still need hardening and do **not** mean the stabilization gate is closed.
+
 ## What We Need Right Now
 
 The immediate audience for this phase is maintainers and contributors who can help make the current software stack reliable:
@@ -28,9 +30,10 @@ Not part of the current milestone:
 
 - `docs/current-status.md` tells you what exists and is supported today.
 - `ImplementationPlan.md` tells you what the repository is actively executing now.
+- `docs/execution-backlog.md` tells you the ordered remaining work from gate closure to commercial readiness.
 - `docs/opennoisenet-pro-roadmap.md` tells you the ordered next phases after stabilization.
 
-Contributors should treat **Phase 0: Stabilization Exit and Commercial Baseline** as the active gate. Do not implement Pro-layer behavior as if it were already shipped unless the current implementation phase has explicitly moved there.
+Contributors should treat **Phase 0: Stabilization Exit and Commercial Baseline** as the active gate. Work on existing Pro slices is allowed and expected, but those slices must be treated as **pre-release** until the gate is explicitly closed.
 
 ## Working Rules
 

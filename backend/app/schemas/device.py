@@ -57,6 +57,10 @@ class DeviceResponse(BaseModel):
     )
     is_active: bool = Field(..., description="Whether device is active")
     is_public: bool = Field(..., description="Whether device data is public")
+    last_seen: Optional[datetime] = Field(None, description="Last activity timestamp")
+    last_heartbeat: Optional[datetime] = Field(
+        None, description="Last heartbeat timestamp"
+    )
     created_at: datetime = Field(..., description="Device creation timestamp")
     updated_at: datetime = Field(..., description="Device last update timestamp")
 

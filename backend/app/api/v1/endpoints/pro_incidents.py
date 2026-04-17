@@ -6,6 +6,7 @@ import base64
 import csv
 import io
 import json
+from collections import Counter
 from datetime import datetime, timezone
 from typing import List, Optional
 from uuid import UUID
@@ -20,6 +21,7 @@ from app.db.models.device import Device
 from app.db.models.pro_domain import (
     Case,
     CaseEpisodeLink,
+    CaseStatus,
     Episode,
     EpisodeLifecycleState,
     EpisodeReviewState,
@@ -29,8 +31,10 @@ from app.db.models.pro_domain import (
 from app.db.models.user import User
 from app.db.session import get_session
 from app.schemas.pro import (
+    CaseAuditEntry,
     CaseCreate,
     CaseResponse,
+    CaseUpdateRequest,
     EpisodeListResponse,
     EpisodeResponse,
     EpisodeReviewRequest,
@@ -102,6 +106,7 @@ def _serialize_episode(episode: Episode, device_public_id: str) -> EpisodeRespon
         ended_at=episode.ended_at,
         event_count=episode.event_count,
         review_notes=episode.review_notes,
+        review_metadata=episode.review_metadata,
         model_bundle_id=episode.model_bundle_id,
         reviewed_by_id=episode.reviewed_by_id,
         reviewed_at=episode.reviewed_at,
@@ -109,6 +114,36 @@ def _serialize_episode(episode: Episode, device_public_id: str) -> EpisodeRespon
         created_at=episode.created_at,
         updated_at=episode.updated_at,
     )
+
+
+def _case_history_entry(
+    *,
+    event_type: str,
+    actor: User,
+    at: datetime,
+    note: Optional[str] = None,
+    from_status: Optional[str] = None,
+    to_status: Optional[str] = None,
+    changed_fields: Optional[list[str]] = None,
+    metadata: Optional[dict] = None,
+) -> dict:
+    return {
+        "event_type": event_type,
+        "at": at.isoformat(),
+        "actor_id": str(actor.id),
+        "actor_email": actor.email,
+        "note": note,
+        "from_status": from_status,
+        "to_status": to_status,
+        "changed_fields": changed_fields or None,
+        "metadata": metadata or None,
+    }
+
+
+def _append_case_history(case: Case, entry: dict) -> None:
+    history = list(case.audit_history or [])
+    history.append(entry)
+    case.audit_history = history
 
 
 async def _serialize_case(db: AsyncSession, case: Case) -> CaseResponse:
@@ -122,9 +157,13 @@ async def _serialize_case(db: AsyncSession, case: Case) -> CaseResponse:
         site_id=case.site_id,
         zone_id=case.zone_id,
         opened_by_id=case.opened_by_id,
+        closed_by_id=case.closed_by_id,
+        last_status_changed_by_id=case.last_status_changed_by_id,
+        last_status_changed_at=case.last_status_changed_at,
         status=case.status,
         title=case.title,
         summary=case.summary,
+        audit_history=[CaseAuditEntry.model_validate(entry) for entry in (case.audit_history or [])],
         opened_at=case.opened_at,
         closed_at=case.closed_at,
         episode_ids=episode_ids,
@@ -156,6 +195,44 @@ def _serialize_export(export_job: ExportJob) -> ExportResponse:
         created_at=export_job.created_at,
         updated_at=export_job.updated_at,
     )
+
+
+def _build_case_export_summary(case: Case, episodes: List[Episode]) -> dict:
+    if not episodes:
+        return {
+            "episode_count": 0,
+            "total_event_count": 0,
+            "quiet_hours_episode_count": 0,
+            "time_window_start": None,
+            "time_window_end": None,
+            "severity_counts": {},
+            "review_state_counts": {},
+            "effective_labels": {},
+            "generated_from_case_status": case.status,
+        }
+
+    severity_counts = Counter()
+    review_state_counts = Counter()
+    effective_labels = Counter()
+
+    for episode in episodes:
+        severity_counts[episode.reviewed_severity or episode.severity] += 1
+        review_state_counts[episode.review_state] += 1
+        effective_labels[episode.review_label or episode.primary_class] += 1
+
+    return {
+        "episode_count": len(episodes),
+        "total_event_count": sum(episode.event_count for episode in episodes),
+        "quiet_hours_episode_count": sum(
+            1 for episode in episodes if episode.quiet_hours_triggered
+        ),
+        "time_window_start": min(episode.started_at for episode in episodes).isoformat(),
+        "time_window_end": max(episode.ended_at for episode in episodes).isoformat(),
+        "severity_counts": dict(severity_counts),
+        "review_state_counts": dict(review_state_counts),
+        "effective_labels": dict(effective_labels),
+        "generated_from_case_status": case.status,
+    }
 
 
 @episodes_router.get("/", response_model=EpisodeListResponse)
@@ -219,6 +296,11 @@ async def review_episode(
     episode = await _get_episode_or_404(db, episode_id)
     await _require_org_membership(db, episode.organization_id, user)
 
+    previous_review_state = episode.review_state
+    previous_review_label = episode.review_label
+    previous_reviewed_severity = episode.reviewed_severity
+    reviewed_at = datetime.now(timezone.utc)
+
     episode.review_state = payload.review_state.value
     if payload.review_label:
         episode.review_label = payload.review_label.strip().lower().replace(" ", "_")
@@ -227,7 +309,24 @@ async def review_episode(
     if payload.notes:
         episode.review_notes = payload.notes
     episode.reviewed_by_id = user.id
-    episode.reviewed_at = datetime.now(timezone.utc)
+    episode.reviewed_at = reviewed_at
+    episode.review_metadata = {
+        "reviewed_by_id": str(user.id),
+        "reviewed_by_email": user.email,
+        "reviewed_at": reviewed_at.isoformat(),
+        "previous_review_state": previous_review_state,
+        "new_review_state": episode.review_state,
+        "previous_review_label": previous_review_label,
+        "new_review_label": episode.review_label,
+        "previous_reviewed_severity": previous_reviewed_severity,
+        "new_reviewed_severity": episode.reviewed_severity,
+        "review_notes_present": bool(payload.notes),
+        "closed_by_review": payload.review_state
+        in {
+            EpisodeReviewState.CONFIRMED,
+            EpisodeReviewState.OVERRIDDEN,
+        },
+    }
     if payload.review_state in {
         EpisodeReviewState.CONFIRMED,
         EpisodeReviewState.OVERRIDDEN,
@@ -263,14 +362,28 @@ async def create_case(
                 detail="All episodes must belong to the same organization and site",
             )
 
+    opened_at = datetime.now(timezone.utc)
     new_case = Case(
         organization_id=payload.organization_id,
         site_id=payload.site_id,
         zone_id=payload.zone_id,
         opened_by_id=user.id,
+        last_status_changed_by_id=user.id,
+        last_status_changed_at=opened_at,
         title=payload.title,
         summary=payload.summary,
-        opened_at=datetime.now(timezone.utc),
+        audit_history=[
+            _case_history_entry(
+                event_type="case_created",
+                actor=user,
+                at=opened_at,
+                note=payload.summary,
+                to_status=CaseStatus.OPEN.value,
+                changed_fields=["title"] + (["summary"] if payload.summary else []),
+                metadata={"episode_count": len(payload.episode_ids)},
+            )
+        ],
+        opened_at=opened_at,
     )
     db.add(new_case)
     await db.flush()
@@ -312,6 +425,86 @@ async def get_case(
 ):
     case = await _get_case_or_404(db, case_id)
     await _require_org_membership(db, case.organization_id, user)
+    return await _serialize_case(db, case)
+
+
+@cases_router.patch("/{case_id}", response_model=CaseResponse)
+async def update_case(
+    case_id: UUID,
+    payload: CaseUpdateRequest,
+    db: AsyncSession = Depends(get_session),
+    user: User = Depends(require_user),
+):
+    case = await _get_case_or_404(db, case_id)
+    await _require_org_membership(db, case.organization_id, user)
+
+    if (
+        payload.status is None
+        and payload.title is None
+        and payload.summary is None
+        and payload.note is None
+    ):
+        raise HTTPException(status_code=400, detail="No case updates requested")
+
+    now = datetime.now(timezone.utc)
+    changed_fields: list[str] = []
+
+    if payload.title is not None and payload.title != case.title:
+        case.title = payload.title
+        changed_fields.append("title")
+
+    if payload.summary is not None and payload.summary != case.summary:
+        case.summary = payload.summary
+        changed_fields.append("summary")
+
+    if changed_fields:
+        _append_case_history(
+            case,
+            _case_history_entry(
+                event_type="case_updated",
+                actor=user,
+                at=now,
+                note=payload.note,
+                changed_fields=changed_fields,
+            ),
+        )
+
+    if payload.status is not None and payload.status.value != case.status:
+        previous_status = case.status
+        case.status = payload.status.value
+        case.last_status_changed_by_id = user.id
+        case.last_status_changed_at = now
+        if payload.status == CaseStatus.CLOSED:
+            case.closed_at = now
+            case.closed_by_id = user.id
+        else:
+            case.closed_at = None
+            case.closed_by_id = None
+        _append_case_history(
+            case,
+            _case_history_entry(
+                event_type="status_changed",
+                actor=user,
+                at=now,
+                note=payload.note,
+                from_status=previous_status,
+                to_status=case.status,
+                changed_fields=["status"],
+            ),
+        )
+    elif payload.note and not changed_fields:
+        _append_case_history(
+            case,
+            _case_history_entry(
+                event_type="note_added",
+                actor=user,
+                at=now,
+                note=payload.note,
+            ),
+        )
+
+    await db.flush()
+    await db.refresh(case)
     return await _serialize_case(db, case)
 
 
@@ -358,11 +551,13 @@ async def create_export(
         raise HTTPException(status_code=400, detail="Case has no episodes to export")
 
     device_map = await _device_public_id_map(db, [episode.device_id for episode in episodes])
+    case_summary = _build_case_export_summary(case, episodes)
     export_body, content_type, encoding = _render_export(
         export_format=payload.format.value,
         case=case,
         episodes=episodes,
         device_map=device_map,
+        case_summary=case_summary,
     )
 
     now = datetime.now(timezone.utc)
@@ -382,6 +577,20 @@ async def create_export(
     for episode in episodes:
         episode.exported_at = now
         episode.lifecycle_state = EpisodeLifecycleState.EXPORTED.value
+
+    _append_case_history(
+        case,
+        _case_history_entry(
+            event_type="export_generated",
+            actor=user,
+            at=now,
+            note=f"Generated {payload.format.value.upper()} export",
+            metadata={
+                "format": payload.format.value,
+                "episode_count": len(episodes),
+            },
+        ),
+    )
 
     await db.flush()
     return _serialize_export(export_job)
@@ -446,17 +655,28 @@ async def get_export_content(
     )
 
 
-def _render_export(*, export_format: str, case: Case, episodes: List[Episode], device_map: dict[UUID, str]):
+def _render_export(
+    *,
+    export_format: str,
+    case: Case,
+    episodes: List[Episode],
+    device_map: dict[UUID, str],
+    case_summary: dict,
+):
     if export_format == ExportFormat.JSON.value:
         body = json.dumps(
             {
+                "generated_at": datetime.now(timezone.utc).isoformat(),
                 "case": {
                     "id": str(case.id),
                     "title": case.title,
                     "summary": case.summary,
                     "status": case.status,
                     "opened_at": case.opened_at.isoformat(),
+                    "closed_at": case.closed_at.isoformat() if case.closed_at else None,
+                    "audit_history": case.audit_history or [],
                 },
+                "summary": case_summary,
                 "episodes": [
                     {
                         "id": str(episode.id),
@@ -471,6 +691,7 @@ def _render_export(*, export_format: str, case: Case, episodes: List[Episode], d
                         "event_count": episode.event_count,
                         "evidence_mode": episode.evidence_mode,
                         "review_notes": episode.review_notes,
+                        "review_metadata": episode.review_metadata,
                     }
                     for episode in episodes
                 ],
@@ -484,6 +705,10 @@ def _render_export(*, export_format: str, case: Case, episodes: List[Episode], d
         writer = csv.writer(buffer)
         writer.writerow(
             [
+                "case_id",
+                "case_title",
+                "case_status",
+                "case_opened_at",
                 "episode_id",
                 "device_id",
                 "primary_class",
@@ -491,15 +716,22 @@ def _render_export(*, export_format: str, case: Case, episodes: List[Episode], d
                 "severity",
                 "nuisance_score",
                 "review_state",
+                "quiet_hours_triggered",
                 "started_at",
                 "ended_at",
                 "event_count",
                 "evidence_mode",
+                "review_notes",
+                "reviewed_at",
             ]
         )
         for episode in episodes:
             writer.writerow(
                 [
+                    str(case.id),
+                    case.title,
+                    case.status,
+                    case.opened_at.isoformat(),
                     str(episode.id),
                     device_map.get(episode.device_id, str(episode.device_id)),
                     episode.primary_class,
@@ -507,10 +739,13 @@ def _render_export(*, export_format: str, case: Case, episodes: List[Episode], d
                     episode.reviewed_severity or episode.severity,
                     episode.nuisance_score,
                     episode.review_state,
+                    episode.quiet_hours_triggered,
                     episode.started_at.isoformat(),
                     episode.ended_at.isoformat(),
                     episode.event_count,
                     episode.evidence_mode,
+                    episode.review_notes,
+                    episode.reviewed_at.isoformat() if episode.reviewed_at else None,
                 ]
             )
         return buffer.getvalue(), "text/csv", "utf-8"
@@ -520,8 +755,32 @@ def _render_export(*, export_format: str, case: Case, episodes: List[Episode], d
         f"Case: {case.title}",
         f"Status: {case.status}",
         f"Opened at: {case.opened_at.isoformat()}",
+        f"Closed at: {case.closed_at.isoformat() if case.closed_at else '—'}",
+        f"Episode count: {case_summary['episode_count']}",
+        f"Total raw events: {case_summary['total_event_count']}",
+        f"Quiet-hours episodes: {case_summary['quiet_hours_episode_count']}",
+        f"Window: {case_summary['time_window_start']} -> {case_summary['time_window_end']}",
+        f"Severity counts: {json.dumps(case_summary['severity_counts'])}",
+        f"Review states: {json.dumps(case_summary['review_state_counts'])}",
+        f"Effective labels: {json.dumps(case_summary['effective_labels'])}",
         "",
     ]
+    if case.summary:
+        lines.extend([f"Summary: {case.summary}", ""])
+    if case.audit_history:
+        lines.append("Audit history:")
+        for entry in case.audit_history:
+            lines.append(
+                f"- {entry.get('at', '—')} {entry.get('event_type', 'event')} by "
+                f"{entry.get('actor_email', entry.get('actor_id', 'unknown'))}"
+            )
+            if entry.get("from_status") or entry.get("to_status"):
+                lines.append(
+                    f"  status: {entry.get('from_status', '—')} -> {entry.get('to_status', '—')}"
+                )
+            if entry.get("note"):
+                lines.append(f"  note: {entry['note']}")
+        lines.append("")
     for episode in episodes:
         lines.extend(
             [

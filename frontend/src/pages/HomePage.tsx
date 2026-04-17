@@ -130,8 +130,9 @@ export default function HomePage() {
         Dashboard Overview
       </Typography>
       <Typography variant="body1" color="textSecondary" paragraph>
-        Current MVP status across the supported backend surfaces: auth, devices,
-        events, and map data.
+        Current public MVP status across the release-supported backend surfaces:
+        auth, devices, events, and map data. Initial Pro foundations exist in
+        the repo, but they are still pre-release and being hardened.
       </Typography>
 
       {state.error ? (
@@ -213,12 +214,13 @@ export default function HomePage() {
           <Card sx={{ minHeight: 280 }}>
             <CardContent>
               <Typography variant="h6" gutterBottom>
-                System Status
+                System Status & Scope
               </Typography>
               <Typography variant="body2" color="textSecondary" paragraph>
-                This dashboard is wired to the current software MVP only.
-                Admin tools, snippets, AI processing, and firmware workflows are
-                intentionally excluded from this surface.
+                This dashboard is wired to the current public MVP surface.
+                Pro-domain objects, operator inbox flows, and exports now exist
+                in the repo, but they remain pre-release while the stabilization
+                gate is still open.
               </Typography>
               <Typography variant="body2">
                 API: {state.backendHealthy ? 'Healthy' : 'Unavailable'}
@@ -228,6 +230,9 @@ export default function HomePage() {
               </Typography>
               <Typography variant="body2">
                 Supported Surfaces: Auth, Devices, Events, Map
+              </Typography>
+              <Typography variant="body2">
+                Pre-release Pro: Organizations, Episodes, Cases, Exports
               </Typography>
             </CardContent>
           </Card>

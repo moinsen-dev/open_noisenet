@@ -2,7 +2,9 @@
 
 OpenNoiseNet is an open-source environmental noise monitoring platform for community-operated sensors, public event ingestion, and map-based visibility into noise pollution.
 
-This repository is currently in a software stabilization milestone. The codebase is real and substantial, but it is not yet a polished public MVP. The current goal is to make the existing backend, dashboard, landing site, and mobile app contributor-ready and internally consistent before new feature work starts.
+This repository is currently in a software stabilization gate. The codebase is real and substantial, and it already contains the first Pro-domain slices, but it is not yet a polished public MVP or a release-ready commercial product.
+
+The current goal is to close the stabilization gate while hardening the newly implemented Pro foundations.
 
 The next product direction is documented as **OpenNoiseNet Pro**: a **Hybrid Public + Pro** system that keeps the open/public map layer while adding a commercial tenant-bound layer for housing and property workflows.
 
@@ -117,5 +119,6 @@ Use these planning documents in this order:
 
 - [docs/current-status.md](/Users/udi/work/moinsen/ideas/open_noisenet/docs/current-status.md) for current repo truth
 - [ImplementationPlan.md](/Users/udi/work/moinsen/ideas/open_noisenet/ImplementationPlan.md) for the active execution focus
+- [docs/execution-backlog.md](/Users/udi/work/moinsen/ideas/open_noisenet/docs/execution-backlog.md) for the ordered remaining work
 - [docs/opennoisenet-pro-roadmap.md](/Users/udi/work/moinsen/ideas/open_noisenet/docs/opennoisenet-pro-roadmap.md) for the commercialization roadmap
 - `docs/plans/` for supporting design notes and historical planning context

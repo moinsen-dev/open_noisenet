@@ -38,8 +38,23 @@ async def test_device_heartbeat(client: AsyncClient):
         "device_id": "heartbeat-001",
         "timestamp": "2026-03-11T10:00:00Z",
         "battery_level": 85.5,
+        "signal_strength": -67,
+        "status": {
+            "sensor_mode_active": True,
+            "queued_events": 2,
+            "last_sample_at": "2026-03-11T09:59:58Z",
+        },
     })
     assert response.status_code == 200
+
+    device_response = await client.get("/api/v1/devices/heartbeat-001")
+    assert device_response.status_code == 200
+    device = device_response.json()
+    assert device["last_heartbeat"].startswith("2026-03-11T10:00:00")
+    assert device["last_seen"].startswith("2026-03-11T10:00:00")
+    assert device["hardware_info"]["battery_level"] == 85.5
+    assert device["hardware_info"]["signal_strength"] == -67
+    assert device["hardware_info"]["last_runtime_status"]["queued_events"] == 2
 
 
 @pytest.mark.asyncio

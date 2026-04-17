@@ -29,6 +29,19 @@ class UpdateNoiseLevel extends MonitoringEvent {
   List<Object?> get props => [level];
 }
 
+class MonitoringFailureOccurred extends MonitoringEvent {
+  const MonitoringFailureOccurred(this.message);
+
+  final String message;
+
+  @override
+  List<Object?> get props => [message];
+}
+
+class MonitoringWatchdogTick extends MonitoringEvent {
+  const MonitoringWatchdogTick();
+}
+
 class StartBackgroundMonitoring extends MonitoringEvent {
   const StartBackgroundMonitoring({
     this.context,
@@ -58,4 +71,13 @@ class UpdateBackgroundStatus extends MonitoringEvent {
 
   @override
   List<Object?> get props => [status];
+}
+
+class BackgroundStateChanged extends MonitoringEvent {
+  const BackgroundStateChanged(this.backgroundState);
+
+  final BackgroundMonitoringState backgroundState;
+
+  @override
+  List<Object?> get props => [backgroundState];
 }

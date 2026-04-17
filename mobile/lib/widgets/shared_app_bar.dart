@@ -30,7 +30,8 @@ class _SharedAppBarState extends State<SharedAppBar>
     with TickerProviderStateMixin {
   late AnimationController _pulseController;
   late Animation<double> _pulseAnimation;
-  final BackendSyncService _backendService = GetIt.instance<BackendSyncService>();
+  final BackendSyncService _backendService =
+      GetIt.instance<BackendSyncService>();
 
   Map<String, dynamic>? _lastConnectionStatus;
   Timer? _statusUpdateTimer;
@@ -50,10 +51,10 @@ class _SharedAppBarState extends State<SharedAppBar>
       curve: Curves.easeInOut,
     ));
     _pulseController.repeat(reverse: true);
-    
+
     // Initial status check
     _updateConnectionStatus();
-    
+
     // Periodic status updates every 30 seconds
     _statusUpdateTimer = Timer.periodic(
       const Duration(seconds: 30),
@@ -136,7 +137,7 @@ class _SharedAppBarState extends State<SharedAppBar>
                       .add(StartMonitoring(context: context));
                 },
                 icon: const Icon(Icons.play_arrow),
-                tooltip: 'Start Monitoring',
+                tooltip: 'Start Sensor Mode',
                 style: IconButton.styleFrom(
                   foregroundColor: Colors.green,
                 ),
@@ -147,7 +148,7 @@ class _SharedAppBarState extends State<SharedAppBar>
                   context.read<MonitoringBloc>().add(const StopMonitoring());
                 },
                 icon: const Icon(Icons.stop),
-                tooltip: 'Stop Monitoring',
+                tooltip: 'Stop Sensor Mode',
                 style: IconButton.styleFrom(
                   foregroundColor: Colors.red,
                 ),
@@ -226,16 +227,35 @@ class _SharedAppBarState extends State<SharedAppBar>
 
     final mode = _lastConnectionStatus!['mode'] as String;
     final queuedEvents = (_lastConnectionStatus!['queued_events'] as int?) ?? 0;
-    
+    final lastHeartbeat =
+        _lastConnectionStatus!['last_heartbeat_at'] as String?;
+    final assignedSite = _lastConnectionStatus!['assigned_site_id'] as String?;
+    final assignedSiteName =
+        _lastConnectionStatus!['assigned_site_name'] as String?;
+    final assignedOrganizationName =
+        _lastConnectionStatus!['assigned_organization_name'] as String?;
+    final assignedZoneName =
+        _lastConnectionStatus!['assigned_zone_name'] as String?;
+    final effectivePolicyName =
+        _lastConnectionStatus!['effective_policy_name'] as String?;
+    final effectivePolicyScope =
+        _lastConnectionStatus!['effective_policy_scope'] as String?;
+    final sensorModeActive =
+        (_lastConnectionStatus!['sensor_mode_active'] as bool?) ?? false;
+    final proContextState =
+        _lastConnectionStatus!['pro_context_access_state'] as String?;
+    final proContextRefreshedAt =
+        _lastConnectionStatus!['pro_context_refreshed_at'] as String?;
+
     Color statusColor;
     IconData statusIcon;
     String tooltip;
-    
+
     switch (mode) {
       case 'offline':
         statusColor = Colors.orange;
         statusIcon = Icons.cloud_off;
-        tooltip = queuedEvents > 0 
+        tooltip = queuedEvents > 0
             ? 'Offline - $queuedEvents events queued'
             : 'Running offline mode';
         break;
@@ -254,6 +274,21 @@ class _SharedAppBarState extends State<SharedAppBar>
         statusIcon = Icons.help_outline;
         tooltip = 'Unknown connection status';
     }
+
+    final detailParts = <String>[
+      tooltip,
+      'Sensor mode: ${sensorModeActive ? 'active' : 'idle'}',
+      if (assignedOrganizationName != null || assignedSite != null)
+        'Pro: ${(assignedOrganizationName ?? 'org')} / ${(assignedSiteName ?? assignedSite ?? 'site')}',
+      if (assignedZoneName != null) 'Zone: $assignedZoneName',
+      if (effectivePolicyName != null)
+        'Policy: $effectivePolicyName${effectivePolicyScope != null ? ' ($effectivePolicyScope)' : ''}',
+      if (proContextState != null) 'Context: $proContextState',
+      if (lastHeartbeat != null) 'Last heartbeat: $lastHeartbeat',
+      if (proContextRefreshedAt != null)
+        'Context refreshed: $proContextRefreshedAt',
+    ];
+    tooltip = detailParts.join(' • ');
 
     return GestureDetector(
       onTap: () async {

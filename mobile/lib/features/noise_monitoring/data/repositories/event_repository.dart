@@ -34,8 +34,10 @@ class EventRepository {
 
     // Add to appropriate list
     if (event.isSubmitted) {
+      await _removeFromPendingList(key);
       await _addToSubmittedList(key);
     } else {
+      await _removeFromSubmittedList(key);
       await _addToPendingList(key);
     }
 
@@ -54,6 +56,24 @@ class EventRepository {
       AppLogger.database('Error loading event $eventKey: $e');
       return null;
     }
+  }
+
+  /// Get event by stable event UUID
+  Future<NoiseEventModel?> getEventByUuid(String eventUuid) async {
+    final directKey = _keyForEventUuid(eventUuid);
+    final directMatch = await getEvent(directKey);
+    if (directMatch != null) {
+      return directMatch;
+    }
+
+    final allEvents = await getAllEvents();
+    for (final event in allEvents) {
+      if (event.eventUuid == eventUuid) {
+        return event;
+      }
+    }
+
+    return null;
   }
 
   /// Get all pending events (not yet submitted)
@@ -117,17 +137,18 @@ class EventRepository {
       id: serverId ?? event.id,
       isSubmitted: true,
       status: 'processed',
+      lifecycleState: EventLifecycleState.acknowledgedByServer,
+      serverEventId: serverId ?? event.serverEventId,
+      lastUploadedAt: event.lastUploadedAt ?? DateTime.now(),
+      serverAcknowledgedAt: DateTime.now(),
     );
-
-    final key = _generateEventKey(event);
-
-    // Remove from pending list
-    await _removeFromPendingList(key);
 
     // Save updated event
     await saveEvent(updatedEvent);
 
-    AppLogger.database('Marked event as submitted: $key');
+    AppLogger.database(
+      'Marked event as submitted: ${updatedEvent.eventUuid ?? updatedEvent.id}',
+    );
   }
 
   /// Update event retry count
@@ -163,6 +184,69 @@ class EventRepository {
     await _prefs.remove(_keySubmittedList);
 
     AppLogger.database('Cleared all events');
+  }
+
+  Future<void> updateEventLifecycle({
+    required String eventUuid,
+    required String lifecycleState,
+    String? analysisState,
+    bool? isSubmitted,
+    int? uploadAttemptCount,
+    DateTime? lastUploadAttemptAt,
+    DateTime? lastUploadedAt,
+    DateTime? serverAcknowledgedAt,
+    String? serverEventId,
+    String? classificationLabel,
+    double? classificationConfidence,
+    String? classificationSource,
+    String? segmentType,
+    double? reportabilityScore,
+    String? reportabilityReason,
+    double? peakToAverageDeltaDb,
+    double? variabilityDb,
+    double? thresholdExceedanceRatio,
+    DateTime? analysisUpdatedAt,
+    String? lastErrorCode,
+    String? lastErrorMessage,
+  }) async {
+    final existing = await getEventByUuid(eventUuid);
+    if (existing == null) {
+      AppLogger.database(
+          'Skipping lifecycle update for unknown event: $eventUuid');
+      return;
+    }
+
+    final updated = existing.copyWith(
+      lifecycleState: lifecycleState,
+      analysisState: analysisState ?? existing.analysisState,
+      isSubmitted: isSubmitted ?? existing.isSubmitted,
+      uploadAttemptCount: uploadAttemptCount ?? existing.uploadAttemptCount,
+      lastUploadAttemptAt: lastUploadAttemptAt ?? existing.lastUploadAttemptAt,
+      lastUploadedAt: lastUploadedAt ?? existing.lastUploadedAt,
+      serverAcknowledgedAt:
+          serverAcknowledgedAt ?? existing.serverAcknowledgedAt,
+      serverEventId: serverEventId ?? existing.serverEventId,
+      classificationLabel: classificationLabel ?? existing.classificationLabel,
+      classificationConfidence:
+          classificationConfidence ?? existing.classificationConfidence,
+      classificationSource:
+          classificationSource ?? existing.classificationSource,
+      segmentType: segmentType ?? existing.segmentType,
+      reportabilityScore: reportabilityScore ?? existing.reportabilityScore,
+      reportabilityReason: reportabilityReason ?? existing.reportabilityReason,
+      peakToAverageDeltaDb:
+          peakToAverageDeltaDb ?? existing.peakToAverageDeltaDb,
+      variabilityDb: variabilityDb ?? existing.variabilityDb,
+      thresholdExceedanceRatio:
+          thresholdExceedanceRatio ?? existing.thresholdExceedanceRatio,
+      analysisUpdatedAt: analysisUpdatedAt ?? existing.analysisUpdatedAt,
+      lastErrorCode: lastErrorCode,
+      lastErrorMessage: lastErrorMessage,
+      status:
+          (isSubmitted ?? existing.isSubmitted) ? 'processed' : existing.status,
+    );
+
+    await saveEvent(updated);
   }
 
   /// Get event statistics
@@ -204,10 +288,69 @@ class EventRepository {
     };
   }
 
+  Future<Map<String, dynamic>> getLifecycleStats() async {
+    final allEvents = await getAllEvents();
+
+    return {
+      'local_events': allEvents.length,
+      'queued_events': allEvents
+          .where((event) =>
+              event.lifecycleState == EventLifecycleState.queuedForUpload)
+          .length,
+      'uploaded_events':
+          allEvents.where((event) => event.lastUploadedAt != null).length,
+      'acknowledged_events':
+          allEvents.where((event) => event.serverAcknowledgedAt != null).length,
+      'failed_events': allEvents
+          .where((event) => event.lifecycleState == EventLifecycleState.failed)
+          .length,
+      'device_classified_events': allEvents
+          .where((event) =>
+              event.analysisState == EventAnalysisState.classifiedOnDevice)
+          .length,
+      'server_classified_events': allEvents
+          .where((event) =>
+              event.analysisState == EventAnalysisState.serverClassified)
+          .length,
+      'analysis_failed_events': allEvents
+          .where((event) => event.analysisState == EventAnalysisState.failed)
+          .length,
+      'last_acknowledged_at': allEvents
+          .where((event) => event.serverAcknowledgedAt != null)
+          .map((event) => event.serverAcknowledgedAt!)
+          .fold<DateTime?>(null, (latest, current) {
+        if (latest == null) {
+          return current;
+        }
+        return current.isAfter(latest) ? current : latest;
+      })?.toIso8601String(),
+      'last_analysis_update_at': allEvents
+          .where((event) => event.analysisUpdatedAt != null)
+          .map((event) => event.analysisUpdatedAt!)
+          .fold<DateTime?>(null, (latest, current) {
+        if (latest == null) {
+          return current;
+        }
+        return current.isAfter(latest) ? current : latest;
+      })?.toIso8601String(),
+    };
+  }
+
+  Future<List<NoiseEventModel>> getRecentEvents({int limit = 20}) async {
+    return getAllEvents(limit: limit);
+  }
+
   /// Generate unique key for event storage
   String _generateEventKey(NoiseEventModel event) {
+    final eventUuid = event.eventUuid;
+    if (eventUuid != null && eventUuid.isNotEmpty) {
+      return _keyForEventUuid(eventUuid);
+    }
+
     return '$_keyPrefix${event.deviceId}_${event.timestampStart.millisecondsSinceEpoch}';
   }
+
+  String _keyForEventUuid(String eventUuid) => '$_keyPrefix$eventUuid';
 
   /// Add event key to pending list
   Future<void> _addToPendingList(String eventKey) async {

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:get_it/get_it.dart';
 import '../../../../services/audio_capture_service.dart';
@@ -19,6 +20,36 @@ class NoiseMonitoringPage extends StatefulWidget {
 class _NoiseMonitoringPageState extends State<NoiseMonitoringPage> {
   final RecordingService _recordingService = RecordingService();
   final StatisticsService _statisticsService = StatisticsService();
+  bool _autoStartAttempted = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _attemptAutoStart();
+    });
+  }
+
+  Future<void> _attemptAutoStart() async {
+    if (!mounted || _autoStartAttempted) {
+      return;
+    }
+    _autoStartAttempted = true;
+
+    final bloc = context.read<MonitoringBloc>();
+    final state = bloc.state;
+    if (state is! MonitoringInactive && state is! MonitoringError) {
+      return;
+    }
+
+    final hasPermission =
+        await GetIt.instance<AudioCaptureService>().hasPermission();
+    if (!mounted || !hasPermission) {
+      return;
+    }
+
+    bloc.add(StartMonitoring(context: context));
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -60,12 +91,13 @@ class _NoiseMonitoringPageState extends State<NoiseMonitoringPage> {
                               ),
                               const SizedBox(height: 16),
                               Text(
-                                'Monitoring Inactive',
+                                'Sensor Idle',
                                 style: Theme.of(context).textTheme.titleLarge,
                               ),
                               const SizedBox(height: 8),
                               const Text(
-                                'Start monitoring to see real-time noise levels',
+                                'This phone can run unattended as a fixed sensor. '
+                                'Start sensor mode to capture and upload reportable events automatically.',
                                 textAlign: TextAlign.center,
                               ),
                               const SizedBox(height: 24),
@@ -78,7 +110,7 @@ class _NoiseMonitoringPageState extends State<NoiseMonitoringPage> {
                                 },
                                 icon: const Icon(Icons.play_arrow, size: 24),
                                 label: const Text(
-                                  'Start Monitoring',
+                                  'Start Sensor Mode',
                                   style: TextStyle(
                                     fontSize: 16,
                                     fontWeight: FontWeight.w600,
@@ -213,7 +245,7 @@ class _NoiseMonitoringPageState extends State<NoiseMonitoringPage> {
                     ),
                     const SizedBox(width: 8),
                     Text(
-                      'Recording',
+                      'Autonomous Capture',
                       style: Theme.of(context).textTheme.titleMedium,
                     ),
                     const Spacer(),
@@ -226,7 +258,7 @@ class _NoiseMonitoringPageState extends State<NoiseMonitoringPage> {
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Text(
-                          shouldTrigger ? 'DETECTING' : 'MONITORING',
+                          shouldTrigger ? 'EVENT ACTIVE' : 'AUTONOMOUS',
                           style: const TextStyle(
                             color: Colors.white,
                             fontSize: 10,
@@ -278,7 +310,7 @@ class _NoiseMonitoringPageState extends State<NoiseMonitoringPage> {
                               size: 16, color: Colors.orange),
                           const SizedBox(width: 4),
                           Text(
-                            '${stats['recent_events_count']} recent noise events detected',
+                            '${stats['recent_events_count']} local detections ready for autonomous processing',
                             style: Theme.of(context).textTheme.bodySmall,
                           ),
                         ],
@@ -288,7 +320,7 @@ class _NoiseMonitoringPageState extends State<NoiseMonitoringPage> {
                 ] else ...[
                   const SizedBox(height: 4),
                   Text(
-                    'Continuous recording is disabled. Enable it in Settings to automatically capture noise events.',
+                    'Continuous capture is disabled. Enable it in Settings if this phone should run unattended as a sensor.',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           color: Theme.of(context)
                               .colorScheme
@@ -300,29 +332,41 @@ class _NoiseMonitoringPageState extends State<NoiseMonitoringPage> {
 
                 // Quick action buttons
                 const SizedBox(height: 6),
-                Row(
-                  children: [
-                    if (isActive) ...[
-                      TextButton.icon(
-                        onPressed: () async {
-                          final recording =
-                              await _recordingService.saveCurrentBuffer();
-                          if (recording != null && context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(
-                                    'Recording saved: ${recording.id.substring(0, 8)}...'),
-                                duration: const Duration(seconds: 2),
-                              ),
-                            );
-                          }
-                        },
-                        icon: const Icon(Icons.save_alt, size: 16),
-                        label: const Text('Save Current'),
-                      ),
-                    ],
+                if (isActive) ...[
+                  Text(
+                    'Buffers rotate automatically. Reportable events are saved and uploaded without user interaction.',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(context)
+                              .colorScheme
+                              .onSurface
+                              .withValues(alpha: 0.7),
+                        ),
+                  ),
+                  if (kDebugMode) ...[
+                    const SizedBox(height: 6),
+                    Row(
+                      children: [
+                        TextButton.icon(
+                          onPressed: () async {
+                            final recording =
+                                await _recordingService.saveCurrentBuffer();
+                            if (recording != null && context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                      'Debug buffer saved: ${recording.id.substring(0, 8)}...'),
+                                  duration: const Duration(seconds: 2),
+                                ),
+                              );
+                            }
+                          },
+                          icon: const Icon(Icons.save_alt, size: 16),
+                          label: const Text('Force Save Buffer'),
+                        ),
+                      ],
+                    ),
                   ],
-                ),
+                ],
               ],
             ),
           ),

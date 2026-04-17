@@ -58,12 +58,11 @@ packages:
     source: hosted
     version: "0.2.2"
   audio_streamer:
-    dependency: transitive
+    dependency: "direct overridden"
     description:
-      name: audio_streamer
-      sha256: aed4bc55f57d65953b16344f5848239e1c9bd058cf5a6c23d7b4173f337d4ea8
-      url: "https://pub.dev"
-    source: hosted
+      path: "vendor/audio_streamer"
+      relative: true
+    source: path
     version: "4.3.0"
   audio_waveforms:
     dependency: "direct main"

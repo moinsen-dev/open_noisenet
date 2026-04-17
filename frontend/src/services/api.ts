@@ -269,7 +269,9 @@ export interface SiteDevice {
   zone_id?: string
   calibration_profile_id?: string
   is_active: boolean
+  hardware_info?: Record<string, unknown>
   last_seen?: string
+  last_heartbeat?: string
   updated_at: string
 }
 
@@ -412,15 +414,38 @@ export interface Case {
   site_id: string
   zone_id?: string
   opened_by_id: string
+  closed_by_id?: string
+  last_status_changed_by_id?: string
+  last_status_changed_at?: string
   status: 'open' | 'in_review' | 'closed'
   title: string
   summary?: string
+  audit_history: CaseAuditEntry[]
   opened_at: string
   closed_at?: string
   episode_ids: string[]
   episode_count: number
   created_at: string
   updated_at: string
+}
+
+export interface CaseAuditEntry {
+  event_type: string
+  at: string
+  actor_id?: string
+  actor_email?: string
+  note?: string
+  from_status?: string
+  to_status?: string
+  changed_fields?: string[]
+  metadata?: Record<string, unknown>
+}
+
+export interface CaseStatusUpdate {
+  status?: Case['status']
+  title?: string
+  summary?: string
+  note?: string
 }
 
 export interface CaseCreate {
@@ -626,6 +651,9 @@ export const api = {
 
     create: (payload: CaseCreate) =>
       apiClient.post<Case>('/cases/', payload).then((res) => res.data),
+
+    update: (caseId: string, payload: CaseStatusUpdate) =>
+      apiClient.patch<Case>(`/cases/${caseId}`, payload).then((res) => res.data),
   },
 
   exports: {

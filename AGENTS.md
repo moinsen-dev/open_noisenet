@@ -104,3 +104,50 @@ When implementing components, prefer these technologies aligned with the technic
 - Focus on standardized, comparable noise measurements
 - Consider regulatory compliance (GDPR) throughout development
 - Remeember to use uv as Python package manager
+
+## Execution Policy For Agents
+
+Agents working in this repository should optimize for autonomous execution, not micro-confirmations.
+
+### Default Operating Mode
+
+- Execute the next obvious blocker-removal step without asking for confirmation.
+- Continue until the current feature or bugfix is usable end-to-end, not just partially improved.
+- Treat follow-up fixes discovered during implementation as part of the same task when they are tightly coupled.
+- Prefer reporting completed work and remaining real risks after acting, instead of asking whether to proceed.
+
+### No-Brainer Decisions That Must Not Be Confirmed
+
+These should be handled autonomously unless the user explicitly says otherwise:
+
+- Fixing broken tests, analyzers, type errors, migrations, and local build issues caused by the current task
+- Updating touched schemas, generated files, serializers, API clients, and UI wiring to keep the stack consistent
+- Removing misleading UI text, debug affordances, and demo semantics when they conflict with the product goal
+- Restarting local services, rebuilding local containers, and applying local development migrations required for validation
+- Fixing adjacent regressions or implementation drift discovered while completing the requested work
+- Making small architectural cleanups inside the touched area when needed to make the feature coherent
+
+### When Agents Should Ask
+
+Agents should stop and ask only when a decision materially changes product scope, data safety, or external behavior, for example:
+
+- Destructive actions with user data, irreversible deletion, or resets beyond normal local development flows
+- Changes to privacy posture, retention policy, consent model, or audio-capture policy
+- Major product-direction changes, such as choosing hardware strategy, background-execution strategy, or public API commitments
+- Production-impacting infrastructure changes, secrets, billing, external vendors, or compliance-sensitive behavior
+- Conflicts where two plausible directions exist and each has meaningful tradeoffs for the business or product
+
+### Communication Style
+
+- Do not ask “should I fix this obvious blocker?” when the answer is clearly yes.
+- Do not ask for confirmation for one-file or one-constant follow-up fixes discovered during implementation.
+- Group related no-brainer fixes into one execution pass.
+- Escalate only with a concrete decision to make, not with generic permission-seeking.
+
+### Product Goal Bias
+
+For the mobile app specifically, agents should bias toward the product goal of an unattended autonomous sensor.
+
+- Prefer autonomous capture, upload, and recovery flows over interactive/demo UI behavior.
+- Treat manual save/debug actions as secondary tooling, not core workflow.
+- Favor decisions that make the app viable for long-running unattended monitoring, provided they do not violate privacy or platform constraints.

@@ -1,13 +1,10 @@
 import 'dart:async';
-import 'dart:io';
 
-import 'package:dio/dio.dart';
-
+import 'package:get_it/get_it.dart';
 import '../features/noise_monitoring/data/models/noise_event_model.dart';
 import '../features/noise_monitoring/data/repositories/event_repository.dart';
 import '../core/logging/app_logger.dart';
-import 'api_client_service.dart';
-import 'settings_service.dart';
+import 'backend_sync_service.dart';
 
 class EventSubmissionService {
   static final EventSubmissionService _instance =
@@ -15,14 +12,12 @@ class EventSubmissionService {
   factory EventSubmissionService() => _instance;
   EventSubmissionService._internal();
 
-  final Dio _dio = Dio();
-  final SettingsService _settingsService = SettingsService();
+  final BackendSyncService _backendSync = GetIt.instance<BackendSyncService>();
   EventRepository? _eventRepository;
   Timer? _submissionTimer;
   bool _isSubmitting = false;
 
   // Configuration (will be moved to settings later)
-  String _baseUrl = ApiClientService.defaultBaseUrl;
   Duration _submissionInterval = const Duration(minutes: 5);
   int _maxRetries = 3;
 
@@ -34,30 +29,16 @@ class EventSubmissionService {
 
   /// Initialize the service
   Future<void> initialize({
-    String? baseUrl,
     Duration? submissionInterval,
     int? maxRetries,
   }) async {
-    if (baseUrl != null) _baseUrl = baseUrl;
     if (submissionInterval != null) _submissionInterval = submissionInterval;
     if (maxRetries != null) _maxRetries = maxRetries;
 
     _eventRepository = await EventRepository.getInstance();
 
-    // Configure Dio
-    _dio.options.baseUrl = _baseUrl;
-    _dio.options.connectTimeout = const Duration(seconds: 10);
-    _dio.options.receiveTimeout = const Duration(seconds: 30);
-
-    // Add request/response interceptors for logging
-    _dio.interceptors.add(LogInterceptor(
-      requestBody: true,
-      responseBody: true,
-      logPrint: (object) => AppLogger.network('HTTP: $object'),
-    ));
-
     AppLogger.network(
-        'EventSubmissionService initialized with baseUrl: $_baseUrl');
+        'EventSubmissionService initialized as BackendSyncService compatibility wrapper');
   }
 
   /// Start automatic submission of pending events
@@ -89,65 +70,58 @@ class EventSubmissionService {
     }
 
     try {
-      // Apply privacy settings before submission
-      final sanitizedEvent = await _sanitizeEventForSubmission(event);
-
-      final response = await _dio.post<Map<String, dynamic>>(
-        '/events/',
-        data: sanitizedEvent.toJson(),
-        options: Options(
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-          },
-        ),
+      final result = await _backendSync.submitNoiseEvent(
+        eventUuid: event.eventUuid,
+        timestampStart: event.timestampStart,
+        timestampEnd: event.timestampEnd,
+        leqDb: event.leqDb,
+        lmaxDb: event.lmaxDb,
+        lminDb: event.lminDb,
+        laeqDb: event.laeqDb,
+        exceedancePct: event.exceedancePct,
+        samplesCount: event.samplesCount,
+        ruleTriggered: event.ruleTriggered,
+        locationLat: event.locationLat,
+        locationLng: event.locationLng,
+        eventMetadata: event.eventMetadata,
+        classificationLabel: event.classificationLabel,
+        classificationConfidence: event.classificationConfidence,
+        classificationSource: event.classificationSource,
+        segmentType: event.segmentType,
+        reportabilityScore: event.reportabilityScore,
+        reportabilityReason: event.reportabilityReason,
+        peakToAverageDeltaDb: event.peakToAverageDeltaDb,
+        variabilityDb: event.variabilityDb,
+        thresholdExceedanceRatio: event.thresholdExceedanceRatio,
+        analysisState: event.analysisState,
+        analysisUpdatedAt: event.analysisUpdatedAt,
       );
 
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        final responseData = response.data as Map<String, dynamic>;
-        final serverId = responseData['id']?.toString();
-
-        // Mark event as submitted in local storage
-        await _eventRepository!.markEventAsSubmitted(event, serverId);
-
+      if (result.acknowledged || result.queued) {
         _statusController.add(SubmissionStatus.success(
           eventId: event.id ?? 'unknown',
-          serverId: serverId,
-          message: 'Event submitted successfully',
-        ));
-
-        AppLogger.network('Event submitted successfully: ${event.toString()}');
-
-        return SubmissionResult(
-          success: true,
-          serverId: serverId,
-          statusCode: response.statusCode,
-        );
-      } else {
-        _statusController.add(SubmissionStatus.error(
-          eventId: event.id ?? 'unknown',
-          message: 'Server returned ${response.statusCode}',
+          serverId: result.serverEventId,
+          message: result.acknowledged
+              ? 'Event submitted successfully'
+              : 'Event queued for automatic retry',
         ));
 
         return SubmissionResult(
-          success: false,
-          statusCode: response.statusCode,
-          error: 'Server returned ${response.statusCode}',
+          success: result.acknowledged,
+          serverId: result.serverEventId,
+          statusCode: result.acknowledged ? 200 : 202,
         );
       }
-    } on DioException catch (e) {
-      final errorMessage = _handleDioError(e);
+
+      final errorMessage = 'Event was neither acknowledged nor queued';
 
       _statusController.add(SubmissionStatus.error(
         eventId: event.id ?? 'unknown',
         message: errorMessage,
       ));
 
-      AppLogger.network('Failed to submit event: $errorMessage');
-
       return SubmissionResult(
         success: false,
-        statusCode: e.response?.statusCode,
         error: errorMessage,
       );
     } catch (e) {
@@ -254,46 +228,11 @@ class EventSubmissionService {
     };
   }
 
-  /// Handle Dio HTTP errors
-  String _handleDioError(DioException error) {
-    switch (error.type) {
-      case DioExceptionType.connectionTimeout:
-        return 'Connection timeout';
-      case DioExceptionType.sendTimeout:
-        return 'Send timeout';
-      case DioExceptionType.receiveTimeout:
-        return 'Receive timeout';
-      case DioExceptionType.badResponse:
-        if (error.response != null) {
-          return 'Server error: ${error.response!.statusCode}';
-        }
-        return 'Bad response';
-      case DioExceptionType.cancel:
-        return 'Request cancelled';
-      case DioExceptionType.connectionError:
-        return 'Connection error - check network';
-      case DioExceptionType.unknown:
-        if (error.error is SocketException) {
-          return 'No internet connection';
-        }
-        return 'Unknown error: ${error.message}';
-      default:
-        return 'Network error';
-    }
-  }
-
   /// Update configuration
   void updateConfiguration({
-    String? baseUrl,
     Duration? submissionInterval,
     int? maxRetries,
   }) {
-    if (baseUrl != null && baseUrl != _baseUrl) {
-      _baseUrl = baseUrl;
-      _dio.options.baseUrl = _baseUrl;
-      AppLogger.network('Updated baseUrl: $_baseUrl');
-    }
-
     if (submissionInterval != null &&
         submissionInterval != _submissionInterval) {
       _submissionInterval = submissionInterval;
@@ -309,44 +248,6 @@ class EventSubmissionService {
       _maxRetries = maxRetries;
       AppLogger.network('Updated max retries: $_maxRetries');
     }
-  }
-
-  /// Sanitize event based on privacy settings before submission
-  Future<NoiseEventModel> _sanitizeEventForSubmission(
-      NoiseEventModel event) async {
-    // If privacy mode is enabled, remove location data
-    if (_settingsService.isPrivacyMode) {
-      return NoiseEventModel(
-        id: event.id,
-        deviceId: event.deviceId,
-        timestampStart: event.timestampStart,
-        timestampEnd: event.timestampEnd,
-        leqDb: event.leqDb,
-        lmaxDb: event.lmaxDb,
-        lminDb: event.lminDb,
-        laeqDb: event.laeqDb,
-        exceedancePct: event.exceedancePct,
-        samplesCount: event.samplesCount,
-        ruleTriggered: event.ruleTriggered,
-        // Remove all location fields for privacy
-        locationLat: null,
-        locationLng: null,
-        locationSource: null,
-        locationAccuracy: null,
-        eventMetadata: {
-          ...?event.eventMetadata,
-          'privacy_mode': true,
-          'location_removed': true,
-        },
-        status: event.status,
-        isSubmitted: event.isSubmitted,
-        localTimestamp: event.localTimestamp,
-        retryCount: event.retryCount,
-      );
-    }
-
-    // Return the original event if privacy mode is off
-    return event;
   }
 
   /// Dispose of resources

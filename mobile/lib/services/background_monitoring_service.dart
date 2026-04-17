@@ -278,7 +278,8 @@ Future<Map<String, dynamic>> _runMonitoringCycle() async {
     eventDetection.setThreshold(noiseThreshold);
 
     // Create a stream controller for simulated samples
-    final StreamController<double> simulatedSplStream = StreamController<double>();
+    final StreamController<double> simulatedSplStream =
+        StreamController<double>();
     await eventDetection.startMonitoring(simulatedSplStream.stream);
 
     final samples = <double>[];
@@ -324,7 +325,7 @@ Future<Map<String, dynamic>> _runMonitoringCycle() async {
       }
     }
 
-    eventDetection.stopMonitoring();
+    await eventDetection.stopMonitoring();
 
     final endTime = DateTime.now();
     final actualDuration = endTime.difference(startTime);

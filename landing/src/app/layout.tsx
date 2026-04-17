@@ -4,13 +4,13 @@ import CookieConsentBanner from '@/components/cookie-consent-banner';
 import Analytics from '@/components/analytics';
 
 export const metadata: Metadata = {
-  title: 'OpenNoiseNet - Democratizing Environmental Noise Monitoring',
-  description: 'Join the global network of citizen-operated noise sensors. Build affordable DIY devices, contribute data, and help create a quieter world through community-driven environmental monitoring.',
-  keywords: 'noise monitoring, environmental sensors, citizen science, DIY hardware, ESP32, noise pollution, community data, open source',
+  title: 'OpenNoiseNet - Public + Pro Noise Monitoring',
+  description: 'OpenNoiseNet is a privacy-first Hybrid Public + Pro noise monitoring platform with smartphone field nodes, public map visibility, and operator evidence workflows for episodes, cases, and exports.',
+  keywords: 'noise monitoring, public map, smartphone field node, privacy-first, property operations, housing, episodes, case export, open source',
   authors: [{ name: 'OpenNoiseNet Community' }],
   openGraph: {
-    title: 'OpenNoiseNet - Democratizing Environmental Noise Monitoring',
-    description: 'Join the global network of citizen-operated noise sensors. Build affordable DIY devices and contribute to community-driven environmental monitoring.',
+    title: 'OpenNoiseNet - Public + Pro Noise Monitoring',
+    description: 'Privacy-first noise monitoring with smartphone field nodes, public visibility, and operator evidence workflows.',
     url: 'https://opennoienet.org',
     siteName: 'OpenNoiseNet',
     locale: 'en_US',
@@ -18,8 +18,8 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'OpenNoiseNet - Community Noise Monitoring',
-    description: 'Build DIY noise sensors, contribute data, help create quieter communities.',
+    title: 'OpenNoiseNet - Public + Pro Noise Monitoring',
+    description: 'Public map visibility, smartphone field nodes, and operator evidence workflows.',
   },
   robots: {
     index: true,

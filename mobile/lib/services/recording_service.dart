@@ -88,6 +88,8 @@ class RecordingService {
   final Queue<RecordingBuffer> _activeBuffers = Queue<RecordingBuffer>();
   Timer? _bufferRotationTimer;
   StreamSubscription<NoiseEvent>? _eventSubscription;
+  bool _isInitialized = false;
+  Future<void>? _initializationFuture;
 
   // Stream controllers
   final StreamController<RecordingState> _stateController =
@@ -109,6 +111,21 @@ class RecordingService {
 
   /// Initialize the recording service
   Future<void> initialize() async {
+    if (_initializationFuture != null) {
+      return _initializationFuture!;
+    }
+
+    final initialization = _initializeInternal();
+    _initializationFuture = initialization;
+
+    try {
+      await initialization;
+    } finally {
+      _initializationFuture = null;
+    }
+  }
+
+  Future<void> _initializeInternal() async {
     // Load settings from preferences
     await _loadSettings();
 
@@ -122,12 +139,16 @@ class RecordingService {
     _recordingsDirectory = path.join(appDir.path, 'continuous_recordings');
     await Directory(_recordingsDirectory!).create(recursive: true);
 
-    // Listen to noise events for auto-recording
+    // Keep exactly one event subscription across the app lifetime.
+    await _eventSubscription?.cancel();
     _eventSubscription = _eventDetector.eventStream.listen(_onNoiseEvent);
 
-    // Clean up expired recordings on startup
-    await _cleanupExpiredRecordings();
+    // Clean up expired recordings on first initialization only.
+    if (!_isInitialized) {
+      await _cleanupExpiredRecordings();
+    }
 
+    _isInitialized = true;
     AppLogger.recording('RecordingService: Initialized');
   }
 
@@ -281,7 +302,8 @@ class RecordingService {
       while (_activeBuffers.length > _maxBuffers) {
         final oldestBuffer = _activeBuffers.removeFirst();
         // Keep buffer files for continuous playback, just stop recording to it
-        await _stopBuffer(oldestBuffer, savePermanently: true, isContinuous: true);
+        await _stopBuffer(oldestBuffer,
+            savePermanently: true, isContinuous: true);
       }
 
       AppLogger.recording(
@@ -471,7 +493,8 @@ class RecordingService {
   }
 
   /// Save continuous recording to database for reference
-  Future<void> _saveContinuousRecording(RecordingBuffer buffer, int fileSize) async {
+  Future<void> _saveContinuousRecording(
+      RecordingBuffer buffer, int fileSize) async {
     try {
       final recordingId = _uuid.v4();
       final endTime = DateTime.now();
@@ -486,15 +509,19 @@ class RecordingService {
         format: audioFormat,
         sampleRate: sampleRate,
         createdAt: buffer.startTime.millisecondsSinceEpoch ~/ 1000,
-        expiresAt: endTime.add(const Duration(hours: 4)).millisecondsSinceEpoch ~/ 1000, // Keep for 4 hours
+        expiresAt:
+            endTime.add(const Duration(hours: 4)).millisecondsSinceEpoch ~/
+                1000, // Keep for 4 hours
         triggerType: 'continuous',
-        avgLevel: _eventDetector.getCurrentStats()['avg_5min'] as double? ?? 50.0,
+        avgLevel:
+            _eventDetector.getCurrentStats()['avg_5min'] as double? ?? 50.0,
         priority: 1, // Low priority for continuous recordings
       );
 
       // Save to database
       await _recordingDao.insert(recording);
-      AppLogger.recording('Saved continuous recording reference: ${recording.id}');
+      AppLogger.recording(
+          'Saved continuous recording reference: ${recording.id}');
     } catch (e) {
       AppLogger.error('Failed to save continuous recording reference', e);
     }
@@ -672,6 +699,8 @@ class RecordingService {
   Future<void> dispose() async {
     await stopRecording();
     await _eventSubscription?.cancel();
+    _eventSubscription = null;
+    _isInitialized = false;
     _eventDetector.dispose();
     await _stateController.close();
     await _recordingCreatedController.close();

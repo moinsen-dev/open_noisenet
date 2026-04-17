@@ -71,8 +71,9 @@ class _LiveBackendSmokePageState extends State<LiveBackendSmokePage> {
       _append('Registered device: ${device.deviceId}');
 
       final now = DateTime.now().toUtc();
-      final createdEvent = await apiClient.createEvent(
+      final createdReceipt = await apiClient.createEvent(
         NoiseEventModel(
+          eventUuid: 'mobile-live-$suffix',
           deviceId: device.deviceId,
           timestampStart: now.subtract(const Duration(minutes: 5)),
           timestampEnd: now,
@@ -90,7 +91,7 @@ class _LiveBackendSmokePageState extends State<LiveBackendSmokePage> {
           },
         ),
       );
-      _append('Created event for device: ${createdEvent.deviceId}');
+      _append('Created event for device: ${createdReceipt.deviceId}');
 
       final events = await apiClient.listEvents(
         deviceId: device.deviceId,
@@ -99,9 +100,9 @@ class _LiveBackendSmokePageState extends State<LiveBackendSmokePage> {
       _append('Fetched ${events.length} events for ${device.deviceId}');
 
       final stats = await apiClient.getMapStats();
-      if (createdEvent.deviceId != device.deviceId) {
+      if (createdReceipt.deviceId != device.deviceId) {
         throw StateError(
-          'Expected created event to reference ${device.deviceId}, got ${createdEvent.deviceId}',
+          'Expected created event to reference ${device.deviceId}, got ${createdReceipt.deviceId}',
         );
       }
       if (!events.any(

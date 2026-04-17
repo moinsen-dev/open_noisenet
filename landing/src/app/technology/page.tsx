@@ -11,71 +11,71 @@ import { ArrowLeft, Github, ChevronDown, Shield, Brain, Clock, Network, BarChart
 const technologyStories = [
   {
     id: 'tech-1',
-    title: 'The Silent Guardian',
-    concept: 'Your forgotten device becomes a 24/7 sentinel',
-    caption: 'Old phone → Community sensor',
-    description: 'Transform dormant smartphones into active environmental sensors. Every drawer has a potential guardian waiting to serve your community.',
-    techFocus: 'Hardware transformation and repurposing',
+    title: 'The Field Node',
+    concept: 'A retired phone becomes an unattended sensor node',
+    caption: 'Smartphone node: capture, queue, recover',
+    description: 'The mobile app is being hardened into a long-running field node with local monitoring, recovery, sync diagnostics, and privacy-first uploads.',
+    techFocus: 'Mobile runtime and unattended capture',
     icon: Shield,
     image: getAssetPath('/tech-1.png'),
   },
   {
     id: 'tech-2',
-    title: 'The Privacy Shield',
-    concept: 'Sound enters, only patterns leave',
-    caption: 'Privacy-first: No audio stored',
-    description: 'Edge computing ensures your privacy. Local AI processes sound without storing raw audio - only anonymous patterns reach our servers.',
+    title: 'The Derived-First Contract',
+    concept: 'Sound enters, but cloud-default audio stays out',
+    caption: 'Derived-first by default',
+    description: 'OpenNoiseNet keeps numeric levels, lifecycle state, and policy-governed evidence as the default path. Raw audio is not the normal cloud artifact.',
     techFocus: 'Privacy-preserving architecture',
     icon: Shield,
     image: getAssetPath('/tech-2.png'),
   },
   {
     id: 'tech-3',
-    title: 'The Pattern Hunter',
-    concept: 'Local AI identifies without listening',
-    caption: 'Edge AI: Classify locally',
-    description: 'On-device machine learning categorizes sounds into meaningful events - garbage trucks, sirens, construction - without compromising privacy.',
-    techFocus: 'On-device machine learning',
+    title: 'The Event Receipt',
+    concept: 'Device and server must agree on what happened',
+    caption: 'event_uuid: detect, queue, upload, ACK',
+    description: 'Stable identifiers, receipts, acknowledgements, and sync diagnostics let reportable events survive reconnects and be traced end to end.',
+    techFocus: 'Lifecycle observability and reconciliation',
     icon: Brain,
     image: getAssetPath('/tech-3.png'),
   },
   {
     id: 'tech-4',
-    title: 'The Time Detective',
-    concept: 'From random disruptions to predictable patterns',
-    caption: 'Pattern detection: Hour, day, week',
-    description: 'Reveal hidden temporal patterns in noise pollution. See when your neighborhood is quiet, when it&apos;s disturbed, and what causes the disruption.',
-    techFocus: 'Temporal analysis and pattern recognition',
+    title: 'The Episode Engine',
+    concept: 'Raw events become reviewable incidents',
+    caption: 'Event stream → episode',
+    description: 'Server-side logic now groups events into episodes with severity, nuisance score, review state, and export lifecycle instead of leaving operators with raw event noise.',
+    techFocus: 'Incident construction and review state',
     icon: Clock,
     image: getAssetPath('/tech-1.png'),
   },
   {
     id: 'tech-5',
-    title: 'The Network Effect',
-    concept: 'Individual sensors become collective intelligence',
-    caption: 'Network effect: Street-level coverage',
-    description: 'Your sensor joins a mesh network of community devices, creating comprehensive coverage that reveals neighborhood-wide patterns.',
-    techFocus: 'Distributed sensing and data aggregation',
+    title: 'The Tenant Layer',
+    concept: 'Public visibility and operator workflows stay separate',
+    caption: 'Organization, site, zone, policy',
+    description: 'Organizations, sites, zones, policies, and calibration profiles provide the boundary layer needed for housing and property operators without collapsing the public map into tenant data.',
+    techFocus: 'Tenant context and policy boundaries',
     icon: Network,
     image: getAssetPath('/tech-2.png'),
   },
   {
     id: 'tech-6',
-    title: 'The Evidence Builder',
-    concept: 'Data that demands action',
-    caption: 'Evidence dashboard: Data for change',
-    description: 'Transform community frustration into policy evidence. Generate reports, visualizations, and advocacy tools that local governments can&apos;t ignore.',
-    techFocus: 'Analytics, reporting, and advocacy tools',
+    title: 'The Operator Workflow',
+    concept: 'Review, case, export',
+    caption: 'Inbox, case detail, evidence package',
+    description: 'The dashboard now contains the first operator surfaces for episode review, case creation, and PDF/CSV/JSON export, aimed at early housing and property workflows.',
+    techFocus: 'Operator product and evidence handling',
     icon: BarChart,
     image: getAssetPath('/tech-3.png'),
   },
   {
     id: 'tech-7',
-    title: 'The Change Catalyst',
-    concept: 'From measurement to meaningful change',
-    caption: 'Impact: Quieter neighborhoods',
-    description: 'Track measurable community improvements. See how data-driven advocacy leads to policy changes and genuinely quieter neighborhoods.',
-    techFocus: 'Impact visualization and success metrics',
+    title: 'The Stabilization Gate',
+    concept: 'Trust before scale',
+    caption: '24h/72h field validation first',
+    description: 'Before self-serve beta or broader commercialization, the platform still has to prove unattended mobile reliability, clean Docker operations, and deterministic demos.',
+    techFocus: 'Runtime trust and release gating',
     icon: TrendingUp,
     image: getAssetPath('/tech-1.png'),
   },
@@ -120,7 +120,7 @@ export default function TechnologyPage() {
           <div className="flex justify-between items-center h-16">
             <Link href="/" className="flex items-center space-x-2 text-white hover:text-warn-400 transition-colors">
               <ArrowLeft className="w-5 h-5" />
-              <span>Back to Story</span>
+              <span>Back to Home</span>
             </Link>
             <div className="flex items-center space-x-2">
               <NoiseVisualization />
@@ -153,10 +153,10 @@ export default function TechnologyPage() {
         <div className="relative z-20 text-center max-w-6xl mx-auto px-4 py-20">
           <h1 className="text-6xl md:text-8xl font-bold text-white mb-8 leading-tight">
             The Technology
-            <span className="text-warn-400 block">Behind Change</span>
+            <span className="text-warn-400 block">Behind Public + Pro</span>
           </h1>
           <p className="text-xl md:text-2xl text-slate-300 mb-12 leading-relaxed max-w-4xl mx-auto">
-            How OpenNoiseNet transforms forgotten smartphones into privacy-preserving noise sensors that build evidence for quieter communities
+            How OpenNoiseNet is turning smartphone field nodes, public visibility, and operator evidence workflows into one privacy-first noise monitoring platform
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
             <Button 
@@ -176,8 +176,8 @@ export default function TechnologyPage() {
               className="text-lg px-8 py-6 h-auto border-slate-600 hover:bg-slate-800"
               asChild
             >
-              <Link href="/story">
-                See the Story
+              <Link href="/">
+                Back to Home
               </Link>
             </Button>
           </div>
@@ -195,10 +195,10 @@ export default function TechnologyPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">
-              From Problem to Solution
+              Current Technical Building Blocks
             </h2>
             <p className="text-xl text-slate-300 max-w-3xl mx-auto">
-              Seven technical innovations that transform community frustration into measurable change
+              Seven parts of the architecture that are already in motion while the stabilization gate remains open
             </p>
           </div>
 
@@ -272,10 +272,10 @@ export default function TechnologyPage() {
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">
-              Open Source <span className="text-warn-400">Architecture</span>
+              Execution <span className="text-warn-400">Priorities</span>
             </h2>
             <p className="text-xl text-slate-300 max-w-3xl mx-auto">
-              Built with transparency, powered by community contribution
+              Honest architecture means showing both what already exists and what still has to be hardened
             </p>
           </div>
 
@@ -287,19 +287,17 @@ export default function TechnologyPage() {
                   Privacy by Design
                 </h3>
                 <p className="text-slate-300 leading-relaxed">
-                  No raw audio ever leaves your device. Our edge computing architecture processes sound locally, 
-                  transmitting only anonymous acoustic events and statistical summaries.
+                  Derived-only remains the default posture. The active architecture work is designed so that public visibility and operator evidence workflows do not depend on cloud-default audio storage.
                 </p>
               </div>
 
               <div className="bg-slate-800/60 rounded-2xl p-8 border border-slate-700">
                 <h3 className="text-2xl font-bold text-white mb-4 flex items-center gap-3">
                   <Network className="w-6 h-6 text-blue-400" />
-                  Community Powered
+                  Active Gate
                 </h3>
                 <p className="text-slate-300 leading-relaxed">
-                  Built by volunteers who believe everyone deserves peaceful neighborhoods and restful nights. 
-                  Join thousands contributing to quieter cities worldwide.
+                  The immediate goal is unattended mobile reliability, quiet Docker and monitoring behavior, and a deterministic event → episode → case → export baseline suitable for demos and pilots.
                 </p>
               </div>
             </div>
@@ -308,24 +306,32 @@ export default function TechnologyPage() {
               <div className="bg-slate-800 rounded-2xl p-8 shadow-2xl">
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
-                    <span className="text-slate-300">Active Sensors</span>
-                    <span className="text-warn-400 font-mono text-lg">1,247</span>
+                    <span className="text-slate-300">Public Layer</span>
+                    <span className="text-green-400 font-mono text-lg">Live MVP</span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-slate-300">Data Points</span>
-                    <span className="text-blue-400 font-mono text-lg">156M</span>
+                    <span className="text-slate-300">Pro Domain</span>
+                    <span className="text-warn-400 font-mono text-lg">Implemented</span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-slate-300">Cities</span>
-                    <span className="text-green-400 font-mono text-lg">23</span>
+                    <span className="text-slate-300">Episodes / Cases / Exports</span>
+                    <span className="text-warn-400 font-mono text-lg">Hardening</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-300">Mobile Field Node</span>
+                    <span className="text-blue-400 font-mono text-lg">Validation</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-300">Self-Serve Beta</span>
+                    <span className="text-slate-400 font-mono text-lg">Not started</span>
                   </div>
                   <div className="pt-4 border-t border-slate-700">
                     <div className="flex items-center gap-2 mb-2">
-                      <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse"></div>
-                      <span className="text-white font-semibold">Live Network Status</span>
+                      <div className="w-3 h-3 bg-warn-400 rounded-full animate-pulse"></div>
+                      <span className="text-white font-semibold">Current Program Status</span>
                     </div>
                     <div className="w-full bg-slate-700 rounded-full h-2">
-                      <div className="bg-gradient-to-r from-green-400 via-warn-400 to-red-400 h-2 rounded-full w-3/4 animate-pulse"></div>
+                      <div className="bg-gradient-to-r from-blue-400 via-warn-400 to-green-400 h-2 rounded-full w-2/3 animate-pulse"></div>
                     </div>
                   </div>
                 </div>
@@ -339,12 +345,11 @@ export default function TechnologyPage() {
       <section className="relative py-20 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-5xl md:text-6xl font-bold text-white mb-8">
-            Build the Future of
-            <span className="text-warn-400 block">Noise Monitoring</span>
+            Help Finish the
+            <span className="text-warn-400 block">Platform</span>
           </h2>
           <p className="text-xl md:text-2xl text-slate-300 mb-12 max-w-4xl mx-auto leading-relaxed">
-            One old phone at a time, we&apos;re building the infrastructure for quieter cities. 
-            Every sensor matters. Every measurement counts. Every voice makes a difference.
+            The hardest work now is reliability, hardening, and turning the existing public + Pro slices into a trustworthy pilot baseline.
           </p>
 
           <div className="flex flex-col sm:flex-row gap-6 justify-center mb-12">
@@ -354,8 +359,8 @@ export default function TechnologyPage() {
               className="text-xl px-12 py-8 h-auto"
               asChild
             >
-              <Link href="/#download">
-                Start Building Today
+              <Link href="https://github.com/moinsen-dev/open_noisenet" target="_blank">
+                View Source Code
               </Link>
             </Button>
             <Button 
@@ -364,9 +369,8 @@ export default function TechnologyPage() {
               className="text-xl px-12 py-8 h-auto border-slate-600 hover:bg-slate-800"
               asChild
             >
-              <Link href="https://github.com/moinsen-dev/open_noisenet" target="_blank">
-                <Github className="w-6 h-6 mr-2" />
-                Contribute on GitHub
+              <Link href="/">
+                Back to Home
               </Link>
             </Button>
           </div>
@@ -374,14 +378,14 @@ export default function TechnologyPage() {
           <div className="bg-slate-800/60 rounded-2xl p-8 border border-slate-700 max-w-4xl mx-auto">
             <h3 className="text-2xl font-bold text-white mb-4">Ready to Make an Impact?</h3>
             <p className="text-slate-300 mb-6">
-              Join the quiet revolution. Transform community frustration into policy change through evidence-based advocacy.
+              Follow the repo, validate the field node, and help make the operator workflow trustworthy enough for early pilots.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button variant="outline" className="border-warn-400 text-warn-400 hover:bg-warn-400 hover:text-white" asChild>
-                <Link href="/story">← Read Our Story</Link>
+                <Link href="/story">Read the Story</Link>
               </Button>
               <Button variant="outline" className="border-slate-600 hover:bg-slate-700" asChild>
-                <Link href="/#download">Get the App →</Link>
+                <Link href="/#access">See Access Paths</Link>
               </Button>
             </div>
           </div>

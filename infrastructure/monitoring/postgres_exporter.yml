@@ -1,0 +1,3 @@
+# Explicit config file for postgres_exporter so startup is deterministic and
+# does not warn about a missing default config path.
+auth_modules: {}

@@ -4,6 +4,8 @@ OpenNoiseNet is an open-source environmental noise monitoring platform for commu
 
 This repository is currently in a software stabilization milestone. The codebase is real and substantial, but it is not yet a polished public MVP. The current goal is to make the existing backend, dashboard, landing site, and mobile app contributor-ready and internally consistent before new feature work starts.
 
+The next product direction is documented as **OpenNoiseNet Pro**: a **Hybrid Public + Pro** system that keeps the open/public map layer while adding a commercial tenant-bound layer for housing and property workflows.
+
 ## Current Status
 
 The canonical status document is [docs/current-status.md](/Users/udi/work/moinsen/ideas/open_noisenet/docs/current-status.md).
@@ -13,7 +15,9 @@ Use that document for:
 - the supported MVP backend surface
 - what is intentionally unreleased
 - the current local development baseline
-- the next milestone after stabilization
+- the current strategic direction
+
+The commercialization and finish-the-system roadmap lives in [docs/opennoisenet-pro-roadmap.md](/Users/udi/work/moinsen/ideas/open_noisenet/docs/opennoisenet-pro-roadmap.md).
 
 ## Repository Layout
 
@@ -107,4 +111,11 @@ The short version:
 
 ## Planning Context
 
-The reactivation milestone summary lives in [ImplementationPlan.md](/Users/udi/work/moinsen/ideas/open_noisenet/ImplementationPlan.md). Historical planning documents remain under `docs/plans/` for reference, but they should not override the current status document.
+The active implementation summary lives in [ImplementationPlan.md](/Users/udi/work/moinsen/ideas/open_noisenet/ImplementationPlan.md).
+
+Use these planning documents in this order:
+
+- [docs/current-status.md](/Users/udi/work/moinsen/ideas/open_noisenet/docs/current-status.md) for current repo truth
+- [ImplementationPlan.md](/Users/udi/work/moinsen/ideas/open_noisenet/ImplementationPlan.md) for the active execution focus
+- [docs/opennoisenet-pro-roadmap.md](/Users/udi/work/moinsen/ideas/open_noisenet/docs/opennoisenet-pro-roadmap.md) for the commercialization roadmap
+- `docs/plans/` for supporting design notes and historical planning context

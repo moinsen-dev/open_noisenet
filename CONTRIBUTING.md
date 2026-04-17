@@ -4,6 +4,8 @@ OpenNoiseNet is not in a blank planning phase. The repository already contains s
 
 Read [docs/current-status.md](/Users/udi/work/moinsen/ideas/open_noisenet/docs/current-status.md) before starting work. It defines the supported MVP surface and the intentionally unreleased areas for this milestone.
 
+The commercialization direction is documented in [docs/opennoisenet-pro-roadmap.md](/Users/udi/work/moinsen/ideas/open_noisenet/docs/opennoisenet-pro-roadmap.md). That roadmap does **not** change current repo truth, but it does define what the stabilization phase is preparing for: a Hybrid Public + Pro platform with a tenant-bound Pro layer for housing and property workflows.
+
 ## What We Need Right Now
 
 The immediate audience for this phase is maintainers and contributors who can help make the current software stack reliable:
@@ -21,6 +23,14 @@ Not part of the current milestone:
 - new AI features
 - admin tooling
 - notification systems
+
+## How To Read The Roadmap
+
+- `docs/current-status.md` tells you what exists and is supported today.
+- `ImplementationPlan.md` tells you what the repository is actively executing now.
+- `docs/opennoisenet-pro-roadmap.md` tells you the ordered next phases after stabilization.
+
+Contributors should treat **Phase 0: Stabilization Exit and Commercial Baseline** as the active gate. Do not implement Pro-layer behavior as if it were already shipped unless the current implementation phase has explicitly moved there.
 
 ## Working Rules
 

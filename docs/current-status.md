@@ -1,12 +1,23 @@
 # OpenNoiseNet Current Status
 
-Last updated: 2026-04-16
+Last updated: 2026-04-17
 
 ## What This Repo Is Right Now
 
 OpenNoiseNet is an environmental noise monitoring platform in a software reactivation phase. The repository already contains working backend, web, landing, infrastructure, and mobile code, but the project is not yet in a polished public MVP state.
 
 This phase is focused on stabilizing the software stack so maintainers and contributors can run, verify, and extend it safely.
+
+## Strategic Direction
+
+The repo is now being steered toward **OpenNoiseNet Pro** as a **Hybrid Public + Pro** platform:
+
+- the **public layer** keeps open visibility, map-based access, and community-facing narrative
+- the **Pro layer** will add tenant-bound workflows for housing and property operators
+- the first commercial object will be the **episode**, not the raw event
+- the first commercial workflow will be **episodes + case export**
+
+That strategic direction does **not** change the current supported MVP surface yet. It defines the next ordered program after stabilization.
 
 ## Supported MVP Surface
 
@@ -63,6 +74,19 @@ Intentionally unreleased in this milestone:
 - Backend auth and event submission exist, but the mobile app is still a stabilization target rather than a release candidate.
 - AI-related and advanced analysis paths should be treated as future work, not current MVP functionality.
 
+## Roadmap Context
+
+The canonical commercialization roadmap is [docs/opennoisenet-pro-roadmap.md](/Users/udi/work/moinsen/ideas/open_noisenet/docs/opennoisenet-pro-roadmap.md).
+
+Its delivery order is:
+
+1. Stabilization Exit and Commercial Baseline
+2. Pro Domain Foundation
+3. Episode Engine and Evidence Model
+4. Operator Product for Housing / Property
+5. Commercial Readiness and Self-Serve Beta
+6. Post-Beta Expansion
+
 ## Local Development Baseline
 
 ### Backend
@@ -115,9 +139,15 @@ Expected local ports:
 
 ## Next Milestone After Stabilization
 
-Once this baseline is green, the next milestone should be a public MVP demo pass focused on:
+Once this baseline is green, execution should move into **Phase 1: Pro Domain Foundation** from the OpenNoiseNet Pro roadmap.
 
-- a coherent public web experience
-- a documented demo dataset and seed flow
-- deployment verification
-- a cleaner mobile-to-backend field test path
+That phase introduces:
+
+- organizations
+- sites
+- zones
+- policies
+- calibration profiles
+- public/pro separation rules
+
+The deeper mobile/server event reconciliation and on-device AI track remains documented in [docs/plans/2026-04-16-mobile-server-event-lifecycle-and-on-device-ai.md](/Users/udi/work/moinsen/ideas/open_noisenet/docs/plans/2026-04-16-mobile-server-event-lifecycle-and-on-device-ai.md).

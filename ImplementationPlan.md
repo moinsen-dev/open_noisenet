@@ -1,64 +1,81 @@
-# OpenNoiseNet Reactivation Milestone
+# OpenNoiseNet Active Implementation Program
 
-This file summarizes the active implementation focus for the current software stabilization milestone.
+This file summarizes the active execution focus for the repository.
 
-The detailed, canonical project state lives in [docs/current-status.md](/Users/udi/work/moinsen/ideas/open_noisenet/docs/current-status.md).
+Use it together with:
 
-## Goal
+- [docs/current-status.md](/Users/udi/work/moinsen/ideas/open_noisenet/docs/current-status.md) for current repo truth
+- [docs/opennoisenet-pro-roadmap.md](/Users/udi/work/moinsen/ideas/open_noisenet/docs/opennoisenet-pro-roadmap.md) for the full commercialization roadmap
 
-Turn the existing codebase into a contributor-ready baseline before starting new feature development.
+## Current Phase
 
-## Exit Criteria
+The repository is currently executing **Phase 0: Stabilization Exit and Commercial Baseline** from the OpenNoiseNet Pro roadmap.
 
-- one truthful project status document
-- one reproducible local setup path
-- one supported MVP backend surface
-- green core checks for backend, dashboard, landing, and mobile
-
-## Supported MVP Surface
-
-The current milestone supports:
+That means the project is still intentionally grounded on the current supported MVP surface:
 
 - `/api/v1/auth`
 - `/api/v1/devices`
 - `/api/v1/events`
 - `/api/v1/map`
 
-The following are explicitly unreleased in this milestone:
+The following remain unreleased until later phases:
 
 - `/api/v1/admin`
 - `/api/v1/snippets`
-- AI workflows
-- notification workflows
-- hardware and firmware implementation
+- organizations, sites, zones, policies, episodes, cases, exports
+- AI workflows as productized user-facing features
+- notification workflows as committed product behavior
+- hardware and firmware commercialization
 
-## Workstreams
+## Phase 0 Goal
 
-### 1. Runtime and Developer Workflow
+Turn the current software stack into a repeatable, field-capable baseline that can safely carry the first Pro domain work.
 
-- standardize Python setup on `uv sync --extra dev`
-- make Docker Compose match the documented local ports and env names
-- keep event ingestion safe when background services are unavailable
+## Phase 0 Exit Criteria
 
-### 2. Dashboard and Landing
+- one truthful current-status document and one canonical commercialization roadmap
+- one reproducible local and Docker baseline for backend, dashboard, landing, and mobile
+- stable mobile node behavior for unattended capture, queueing, ACK/receipt, and device health
+- stable device registration -> event upload -> server receipt -> dashboard visibility flow
+- monitoring and Docker without recurring avoidable misconfiguration alerts
 
-- remove unsupported admin exposure from the dashboard
-- replace mock or misleading data flows on core pages with live API-backed reads
-- keep the landing build offline-safe
+## Active Workstreams
 
-### 3. Mobile
+### 1. Runtime, Docker, and Monitoring
 
-- keep the backend integration focused on auth, device registration, and event submission
-- remove unsupported backend calls from the active mobile flow
-- reduce core analyzer noise in the integration-critical paths
+- keep Compose, migrations, monitoring, and exporters reproducible
+- eliminate recurring false-positive or configuration-driven container alerts
+- preserve a clean local/staging baseline for pilots and demos
 
-### 4. Documentation
+### 2. Mobile Node Reliability
 
-- align README, CONTRIBUTING, and component READMEs with the real repo state
-- stop describing the project as concept-only
-- stop describing unreleased features as current product behavior
+- keep the smartphone node focused on unattended monitoring, recovery, and sync
+- maintain a trustworthy local/server event lifecycle with receipts and diagnostics
+- use [docs/plans/2026-04-16-mobile-server-event-lifecycle-and-on-device-ai.md](/Users/udi/work/moinsen/ideas/open_noisenet/docs/plans/2026-04-16-mobile-server-event-lifecycle-and-on-device-ai.md) as the node design reference
 
-## Verification
+### 3. Product Narrative Alignment
+
+- align README, current status, and component roadmaps with the Hybrid Public + Pro direction
+- keep today’s repo truth separate from future Pro capabilities
+- stop presenting old consumer/demo assumptions as the active product plan
+
+### 4. Phase 1 Preparation
+
+- prepare the codebase and docs for the Pro domain foundation
+- keep current APIs stable while defining where organizations, sites, zones, and policies will attach
+- avoid shipping Pro behavior before tenant boundaries and public/pro separation are designed
+
+## Next Phases After Phase 0
+
+Once the stabilization exit is complete, execution proceeds through the roadmap in this order:
+
+1. Pro Domain Foundation
+2. Episode Engine and Evidence Model
+3. Operator Product for Housing / Property
+4. Commercial Readiness and Self-Serve Beta
+5. Post-Beta Expansion
+
+## Verification Baseline
 
 ### Backend
 

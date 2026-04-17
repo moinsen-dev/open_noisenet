@@ -1,254 +1,148 @@
-# OpenNoiseNet Mobile App Roadmap
+# OpenNoiseNet Mobile Node Roadmap
 
-## 🎯 Vision
-Transform the mobile app from a simple SPL display into a complete **noise event detection and recording system** that contributes to the global OpenNoiseNet platform for environmental noise monitoring.
+This roadmap aligns the mobile app with the wider **OpenNoiseNet Pro** direction.
 
-## 📊 Current Status
+The mobile product is not being treated as a consumer novelty app. It is being treated as a **field node** for a Hybrid Public + Pro system:
 
-### ✅ Completed Features
-- [x] Real-time audio monitoring with SPL visualization
-- [x] Audio waveform display with peak hold
-- [x] SQLite database for unified data storage
-- [x] Audio recording service (15-minute WAV files)
-- [x] Event detection service framework
-- [x] Location services integration
-- [x] Dark/light theme support
-- [x] Settings management (thresholds, calibration)
-- [x] Preferences migration system
+- unattended and privacy-first by default
+- derived-first uploads
+- stable event lifecycle and sync visibility
+- smartphone-neutral at product level
+- operator value comes from backend episodes, cases, and exports
 
-### ⚠️ Current Limitations
-- **Critical Gap**: Audio monitoring and event detection are not connected
-- No automatic event detection happening
-- No automatic recordings triggered by loud events
-- No noise events being stored or displayed
-- Backend integration incomplete
+The canonical product roadmap lives in [../docs/opennoisenet-pro-roadmap.md](/Users/udi/work/moinsen/ideas/open_noisenet/docs/opennoisenet-pro-roadmap.md).
 
----
+## Current Repo Reality
 
-## 🚀 Phase 1: Core Event Detection System
-**Goal**: Connect audio monitoring to event detection for automated noise event capture
+The mobile app already contains substantial monitoring and sync infrastructure:
 
-### 1.1 Connect Audio Pipeline
-- [ ] Feed SPL samples from `AudioCaptureService` to `EventDetectionService`
-- [ ] Start/stop event detection with monitoring lifecycle
-- [ ] Store noise measurements in SQLite database
-- [ ] Add real-time event status to monitoring UI
+- real-time monitoring and SPL visualization
+- local storage and preferences
+- calibration support
+- event lifecycle and sync diagnostics
+- backend auth, device registration, and event submission
+- continuous recording and background-service scaffolding
 
-### 1.2 Automatic Event Handling  
-- [ ] Implement threshold-based event detection (configurable dB levels)
-- [ ] Trigger audio recording when events are detected
-- [ ] Calculate Leq15 (15-minute equivalent levels) for events
-- [ ] Add location tagging to detected events
-- [ ] Show event notifications to user
+It is **not** yet a release-ready unattended field node. The remaining work is about runtime stability, field validation, server reconciliation, and alignment with the commercial episode model.
 
-### 1.3 Event Storage & Retrieval
-- [ ] Enhance noise event database schema
-- [ ] Store complete events with audio file references  
-- [ ] Add event metadata (duration, peak levels, exceedance percentages)
-- [ ] Implement event cleanup (7-day retention policy)
+## Guiding Principles
 
-**Deliverable**: Working noise event detection that automatically records audio during loud periods
+- Treat the phone as a sensor node first and a UI surface second.
+- Keep raw audio out of the cloud default path.
+- Separate low-level local detections from reportable events.
+- Make every reportable event observable across local creation, queueing, upload, ACK, and later episode creation.
+- Favor long-running reliability over demo affordances or consumer extras.
 
----
+## Phase 0: Stabilization Exit
 
-## 🔧 Phase 2: User Interface & Management
-**Goal**: Provide comprehensive event management and monitoring dashboard
+**Goal:** make the mobile node field-capable enough to support the broader commercial baseline.
 
-### 2.1 Events Dashboard
-- [ ] Create noise events history page
-- [ ] Display detected events with timeline
-- [ ] Show event details (duration, levels, location)
-- [ ] Add event playback functionality
-- [ ] Filter events by date, level, duration
+Core work:
 
-### 2.2 Enhanced Monitoring UI
-- [ ] Add real-time event detection indicators
-- [ ] Display current threshold status
-- [ ] Show event counter and statistics
-- [ ] Add "Events Today" summary card
-- [ ] Integrate event timeline in monitoring view
+- unattended capture, recovery, and queue handling
+- ACK/receipt visibility and device health diagnostics
+- background and lock-screen behavior hardening where the platform allows it
+- 24-hour and 72-hour real-device validation on both platform classes
+- stable device registration -> event upload -> server receipt behavior
 
-### 2.3 Configuration & Calibration
-- [ ] Advanced threshold configuration (day/night profiles)
-- [ ] Time window settings (5min, 15min, custom)
-- [ ] Audio recording preferences (quality, duration)
-- [ ] Device calibration wizard with reference tones
-- [ ] Export/import settings functionality
+Deliverable:
 
-**Deliverable**: Complete user interface for viewing and managing noise events
+- a field-testable smartphone node suitable for demos, pilots, and Phase 1 backend work
 
----
+## Phase 1: Pro Domain Alignment
 
-## 🌐 Phase 3: Backend Integration & Submission
-**Goal**: Connect to OpenNoiseNet platform for data sharing and analysis
+**Goal:** make the node understand the first commercial domain layer.
 
-### 3.1 Event Submission System
-- [ ] Implement event submission to backend API
-- [ ] Add event review interface (approve/reject before submission)
-- [ ] Support manual event submission
-- [ ] Handle offline queuing and retry logic
-- [ ] Add submission status tracking
+Core work:
 
-### 3.2 Data Synchronization
-- [ ] Automatic event submission (configurable)
-- [ ] Sync device statistics and calibration data
-- [ ] Download community noise maps
-- [ ] Push notifications for nearby events
-- [ ] Handle API authentication and device registration
+- support assignment to organization, site, and zone context
+- support calibration profile sync and local application
+- carry tenant-safe device identity and policy references
+- stay compatible with the current MVP event APIs while preparing for Pro domain APIs
 
-### 3.3 Privacy & Compliance
-- [ ] Implement GDPR-compliant data handling
-- [ ] Optional audio snippet encryption
-- [ ] User consent management
-- [ ] Data retention policy enforcement
-- [ ] Anonymous vs. identified submission modes
+Deliverable:
 
-**Deliverable**: Full backend integration with automated event submission to OpenNoiseNet platform
+- a node that can be placed inside a tenant, site, and zone model without changing the derived-first capture contract
 
----
+## Phase 2: Episode-Ready Node
 
-## 🧠 Phase 4: Advanced Analytics & AI
-**Goal**: Add intelligent analysis and pattern recognition capabilities
+**Goal:** feed the server enough structure to construct trustworthy episodes.
 
-### 4.1 Audio Analysis & Classification
-- [ ] Implement basic audio classification (traffic, construction, nature)
-- [ ] Add spectral analysis for event fingerprinting
-- [ ] Detect recurring noise patterns
-- [ ] Implement A-weighting and frequency analysis
-- [ ] Add psychoacoustic metrics (loudness, sharpness)
+Core work:
 
-### 4.2 Smart Detection
-- [ ] Machine learning-based event classification
-- [ ] Adaptive threshold adjustment based on ambient levels
-- [ ] False positive reduction algorithms
-- [ ] Periodic noise pattern detection
-- [ ] Integration with external audio analysis APIs
+- refine local candidate vs reportable-event semantics
+- preserve stable `event_uuid`, `capture_session_id`, and lifecycle history
+- ship reportability, classification, and confidence hints cleanly
+- attach derived-only evidence references where policy allows
+- keep no mandatory cloud-audio path in the default flow
 
-### 4.3 Advanced Statistics
-- [ ] Daily/weekly/monthly noise statistics
-- [ ] Noise dose calculations (exposure metrics)
-- [ ] Correlation with weather data
-- [ ] Community noise level comparisons
-- [ ] Generate automated noise reports
+Deliverable:
 
-**Deliverable**: Intelligent noise analysis with automatic event classification
+- a node whose uploads can be reconciled into server-side episodes without guesswork
 
----
+## Phase 3: Operator Workflow Support
 
-## 📱 Phase 5: Platform & User Experience
-**Goal**: Polish the app for public release and community use
+**Goal:** support the first paid housing/property workflow.
 
-### 5.1 User Onboarding
-- [ ] Welcome tutorial and app overview
-- [ ] Microphone calibration walkthrough
-- [ ] Location permission education
-- [ ] Community participation explanation
-- [ ] Quick setup wizard
+Core work:
 
-### 5.2 Community Features  
-- [ ] Local noise level comparisons
-- [ ] Community event notifications
-- [ ] Nearby sensor network display
-- [ ] Collaborative noise mapping
-- [ ] User feedback and reporting system
+- expose the metadata needed for review queues, site and zone filters, and case creation
+- support review-safe identifiers and exportable evidence references
+- improve diagnostics so support and operators can distinguish local, queued, uploaded, acknowledged, and server-episode states
 
-### 5.3 Performance & Reliability
-- [ ] Battery optimization for continuous monitoring
-- [ ] Background monitoring capabilities
-- [ ] Crash reporting and analytics
-- [ ] App performance monitoring
-- [ ] Memory usage optimization
+Deliverable:
 
-### 5.4 Platform Integration
-- [ ] Apple Watch companion app
-- [ ] Today widget for quick noise levels
-- [ ] Shortcuts app integration
-- [ ] CarPlay support for in-vehicle monitoring
-- [ ] Export to Apple Health/Google Fit
+- a node that cleanly participates in `episode -> case -> export` workflows
 
-**Deliverable**: Production-ready app for public release
+## Phase 4: Field and Fleet Readiness
 
----
+**Goal:** make the node viable for early paid pilots and self-serve beta.
 
-## 🎯 Success Metrics
+Core work:
 
-### Technical KPIs
-- **Event Detection Accuracy**: >90% precision for noise events >65dB
-- **Battery Life**: <10% drain per hour during continuous monitoring  
-- **False Positive Rate**: <5% for event detection
-- **Data Submission Success**: >95% successful uploads when online
+- 7-day and longer field runs
+- battery and restart telemetry
+- better fleet diagnostics and support tooling
+- release packaging and onboarding for small customer deployments
 
-### User Experience KPIs
-- **Setup Completion Rate**: >80% users complete initial calibration
-- **Daily Active Users**: Target 1000+ contributors
-- **Event Submission Rate**: >60% of detected events submitted
-- **User Retention**: >40% monthly retention rate
+Deliverable:
 
-### Impact KPIs  
-- **Community Coverage**: 100+ active sensors per major city
-- **Data Quality**: Correlation >0.8 with professional monitors
-- **Scientific Use**: Integration with 5+ research projects
-- **Policy Impact**: Used in 10+ noise complaint cases
+- a mobile node ready for small property portfolio beta use
 
----
+## Non-Goals for the Mobile Track
 
-## 🛠️ Technical Architecture
+These are explicitly not part of the near-term critical path:
 
-### Core Services
-- `AudioCaptureService`: Real-time SPL monitoring
-- `EventDetectionService`: Threshold-based event detection  
-- `AudioRecordingService`: Automated recording during events
-- `LocationService`: GPS tagging for events
-- `EventSubmissionService`: Backend API integration
+- Apple Watch
+- CarPlay
+- consumer social or community app mechanics
+- health-app exports
+- cloud-first audio workflows
+- hardware appliance productization
 
-### Data Flow
-```
-Microphone → AudioCapture → EventDetection → Recording + Storage → Submission → OpenNoiseNet
-                ↓                ↓              ↓
-           UI Display      Event Alerts    Local Database
-```
+## Success Metrics
 
-### Database Schema
-- `noise_measurements`: Raw SPL samples
-- `noise_events`: Detected events with metadata
-- `audio_recordings`: Recorded audio files
-- `daily_statistics`: Aggregated daily metrics
-- `preferences`: User settings and calibration
+### Runtime and Sync
 
----
+- stable unattended operation in field tests
+- high success rate for upload and ACK when online
+- clear diagnostics for stalled capture, queue backlog, and sync failure
 
-## 🚦 Next Immediate Actions
+### Product Readiness
 
-1. **[HIGH PRIORITY]** Connect `AudioCaptureService` to `EventDetectionService` 
-2. **[HIGH PRIORITY]** Implement automatic event detection in `MonitoringBloc`
-3. **[MEDIUM PRIORITY]** Add noise events storage to database
-4. **[MEDIUM PRIORITY]** Create basic events dashboard UI
-5. **[LOW PRIORITY]** Implement event submission to backend
+- devices can be assigned to tenant/site/zone context
+- uploaded events reconcile into server-side episodes
+- operator workflows can trust device identity, timing, and policy context
 
----
+### Privacy and Compliance
 
-## 📅 Timeline Estimate
+- derived-only remains the default
+- evidence behavior is governed by policy, not ad hoc UI actions
+- retention and consent behavior stay auditable
 
-- **Phase 1**: 2-3 weeks (Core event detection system)
-- **Phase 2**: 3-4 weeks (UI and management features) 
-- **Phase 3**: 4-5 weeks (Backend integration)
-- **Phase 4**: 6-8 weeks (Advanced analytics)
-- **Phase 5**: 4-6 weeks (Platform polish)
+## Immediate Priorities
 
-**Total Estimated Timeline**: 19-26 weeks (~5-6 months)
-
----
-
-## 🎉 Definition of Done
-
-The OpenNoiseNet mobile app will be **complete** when:
-
-1. ✅ **Automatically detects** noise events based on configurable thresholds
-2. ✅ **Records audio samples** during detected events  
-3. ✅ **Stores events locally** with location and metadata
-4. ✅ **Submits data** to the OpenNoiseNet backend platform
-5. ✅ **Provides insights** through statistics and event history
-6. ✅ **Integrates seamlessly** with the broader OpenNoiseNet ecosystem
-7. ✅ **Maintains user privacy** while contributing to community science
-
-**The ultimate goal**: Transform citizen smartphones into a global network of environmental noise sensors that contribute valuable data for research, policy, and community advocacy.
+1. Finish stabilization exit items for unattended operation and 72-hour field validation.
+2. Keep the mobile/server event lifecycle observable and trustworthy.
+3. Prepare the node for site/zone/policy context instead of global-only ingest.
+4. Support the future episode model without breaking the current MVP contract.

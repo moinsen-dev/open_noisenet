@@ -315,6 +315,29 @@ async def get_case(
     return await _serialize_case(db, case)
 
 
+@cases_router.get("/{case_id}/episodes", response_model=List[EpisodeResponse])
+async def list_case_episodes(
+    case_id: UUID,
+    db: AsyncSession = Depends(get_session),
+    user: User = Depends(require_user),
+):
+    case = await _get_case_or_404(db, case_id)
+    await _require_org_membership(db, case.organization_id, user)
+
+    episodes_result = await db.execute(
+        select(Episode)
+        .join(CaseEpisodeLink, CaseEpisodeLink.episode_id == Episode.id)
+        .where(CaseEpisodeLink.case_id == case.id)
+        .order_by(Episode.started_at.asc())
+    )
+    episodes = episodes_result.scalars().all()
+    device_map = await _device_public_id_map(db, [episode.device_id for episode in episodes if episode.device_id])
+    return [
+        _serialize_episode(episode, device_map.get(episode.device_id, str(episode.device_id)))
+        for episode in episodes
+    ]
+
+
 @exports_router.post("/", response_model=ExportResponse, status_code=status.HTTP_201_CREATED)
 async def create_export(
     payload: ExportCreate,

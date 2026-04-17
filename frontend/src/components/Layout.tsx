@@ -28,11 +28,43 @@ import { useNavigate, useLocation } from 'react-router-dom'
 const DRAWER_WIDTH = 240
 
 const navigationItems = [
-  { label: 'Home', path: '/', icon: Home },
-  { label: 'Events', path: '/events', icon: Event },
-  { label: 'Noise Map', path: '/map', icon: Map },
-  { label: 'Devices', path: '/devices', icon: Devices },
-  { label: 'Pro Ops', path: '/operations', icon: Business },
+  {
+    label: 'Home',
+    path: '/',
+    icon: Home,
+    isActive: (pathname: string) => pathname === '/',
+  },
+  {
+    label: 'Events',
+    path: '/events',
+    icon: Event,
+    isActive: (pathname: string) => pathname === '/events',
+  },
+  {
+    label: 'Noise Map',
+    path: '/map',
+    icon: Map,
+    isActive: (pathname: string) => pathname === '/map',
+  },
+  {
+    label: 'Devices',
+    path: '/devices',
+    icon: Devices,
+    isActive: (pathname: string) => pathname === '/devices',
+  },
+  {
+    label: 'Pro Setup',
+    path: '/operations',
+    icon: Business,
+    isActive: (pathname: string) => pathname === '/operations',
+  },
+  {
+    label: 'Episode Inbox',
+    path: '/operations/inbox',
+    icon: Event,
+    isActive: (pathname: string) =>
+      pathname === '/operations/inbox' || pathname.startsWith('/operations/cases/'),
+  },
 ]
 
 interface LayoutProps {
@@ -63,7 +95,7 @@ export default function Layout({ children }: LayoutProps) {
       <List>
         {navigationItems.map((item) => {
           const Icon = item.icon
-          const isActive = location.pathname === item.path
+          const isActive = item.isActive(location.pathname)
           
           return (
             <ListItem key={item.path} disablePadding>

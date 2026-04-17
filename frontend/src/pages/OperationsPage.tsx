@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { Link as RouterLink } from 'react-router-dom'
 import {
   Alert,
   Box,
@@ -614,12 +615,17 @@ export default function OperationsPage() {
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Box>
           <Typography variant="h4" gutterBottom>
-            Pro Operations
+            Pro Setup
           </Typography>
           <Typography variant="body1" color="textSecondary">
-            First operator workflow for organizations, sites, zones, policies, calibration, and device assignment.
+            Configure organizations, sites, policies, calibration, and device assignment before handing off daily review to the operator inbox.
           </Typography>
         </Box>
+        {authenticated ? (
+          <Button variant="contained" component={RouterLink} to="/operations/inbox">
+            Open Episode Inbox
+          </Button>
+        ) : null}
         {authenticated ? (
           <Button variant="outlined" color="inherit" startIcon={<Logout />} onClick={handleLogout}>
             Sign out

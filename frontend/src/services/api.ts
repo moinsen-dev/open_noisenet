@@ -619,6 +619,11 @@ export const api = {
     get: (caseId: string) =>
       apiClient.get<Case>(`/cases/${caseId}`).then((res) => res.data),
 
+    listEpisodes: (caseId: string) =>
+      apiClient
+        .get<Episode[]>(`/cases/${caseId}/episodes`)
+        .then((res) => res.data),
+
     create: (payload: CaseCreate) =>
       apiClient.post<Case>('/cases/', payload).then((res) => res.data),
   },

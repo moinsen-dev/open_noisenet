@@ -188,6 +188,13 @@ async def test_episode_review_case_and_export_flow(client: AsyncClient):
     case_id = created_case.json()["id"]
     assert created_case.json()["episode_count"] == 1
 
+    case_episodes = await client.get(
+        f"/api/v1/cases/{case_id}/episodes",
+        headers=headers,
+    )
+    assert case_episodes.status_code == 200
+    assert case_episodes.json()[0]["id"] == episode_id
+
     exported = await client.post(
         "/api/v1/exports/",
         json={"case_id": case_id, "format": "json"},

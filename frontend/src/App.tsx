@@ -8,6 +8,8 @@ import MapPage from './pages/MapPage'
 import DevicesPage from './pages/DevicesPage'
 import NotFoundPage from './pages/NotFoundPage'
 import OperationsPage from './pages/OperationsPage'
+import EpisodeInboxPage from './pages/EpisodeInboxPage'
+import CaseDetailPage from './pages/CaseDetailPage'
 
 function App() {
   return (
@@ -19,6 +21,8 @@ function App() {
           <Route path="/map" element={<MapPage />} />
           <Route path="/devices" element={<DevicesPage />} />
           <Route path="/operations" element={<OperationsPage />} />
+          <Route path="/operations/inbox" element={<EpisodeInboxPage />} />
+          <Route path="/operations/cases/:caseId" element={<CaseDetailPage />} />
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </Container>

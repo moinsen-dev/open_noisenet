@@ -1,0 +1,23 @@
+services:
+  backend:
+    ports:
+      - "127.0.0.1:8181:8000"
+
+  frontend:
+    ports:
+      - "127.0.0.1:3100:3000"
+    build:
+      args:
+        - VITE_API_URL=/api/v1
+
+  grafana:
+    ports:
+      - "127.0.0.1:3102:3000"
+
+  prometheus:
+    ports:
+      - "127.0.0.1:9191:9090"
+
+  nginx:
+    ports:
+      - "127.0.0.1:8080:80"

@@ -123,12 +123,13 @@ export default function MapPage() {
       })
 
       marker.bindPopup(`
-        <div>
-          <strong>Event ${feature.properties.id.slice(0, 8)}</strong><br/>
-          Device: ${feature.properties.device_id.slice(0, 8)}<br/>
+        <div style="min-width:180px">
+          <strong>${feature.properties.device_id.slice(0, 20)}</strong><br/>
           Leq: ${feature.properties.leq_db?.toFixed?.(1) ?? feature.properties.leq_db ?? '—'} dB<br/>
-          Status: ${feature.properties.status}<br/>
-          Started: ${feature.properties.timestamp_start ?? '—'}
+          Status: ${feature.properties.status ?? '—'}<br/>
+          <a href="/devices/${feature.properties.device_id}/timeline" style="color:#1976d2;font-weight:bold">
+            📊 Tagesverlauf anzeigen →
+          </a>
         </div>
       `)
 

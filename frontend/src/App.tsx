@@ -1,6 +1,5 @@
 import { Routes, Route } from 'react-router-dom'
 import { Container } from '@mui/material'
-
 import Layout from './components/Layout'
 import HomePage from './pages/HomePage'
 import EventsPage from './pages/EventsPage'
@@ -10,7 +9,7 @@ import NotFoundPage from './pages/NotFoundPage'
 import OperationsPage from './pages/OperationsPage'
 import EpisodeInboxPage from './pages/EpisodeInboxPage'
 import CaseDetailPage from './pages/CaseDetailPage'
-
+import DeviceTimelinePage from './pages/DeviceTimelinePage'
 function App() {
   return (
     <Layout>
@@ -20,7 +19,7 @@ function App() {
           <Route path="/events" element={<EventsPage />} />
           <Route path="/map" element={<MapPage />} />
           <Route path="/devices" element={<DevicesPage />} />
-          <Route path="/operations" element={<OperationsPage />} />
+          <Route path="/devices/:deviceId/timeline" element={<DeviceTimelinePage />} />
           <Route path="/operations/inbox" element={<EpisodeInboxPage />} />
           <Route path="/operations/cases/:caseId" element={<CaseDetailPage />} />
           <Route path="*" element={<NotFoundPage />} />

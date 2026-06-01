@@ -65,9 +65,16 @@ class EventDetectionService {
   final Uuid _uuid = const Uuid();
   final NoiseMeasurementDao _measurementDao = NoiseMeasurementDao();
 
-  // Configuration (will be moved to settings later)
+  // Configuration
   double _thresholdDb = 60.0;
   Duration _windowDuration = const Duration(minutes: 10);
+
+  // Day/night threshold switching (German night hours: 22:00-06:00)
+  double _dayThresholdDb = 65.0;
+  double _nightThresholdDb = 55.0;
+  bool _useTimeBasedThresholds = false;
+
+  bool get _isNightTime => DateTime.now().hour >= 22 || DateTime.now().hour < 6;
 
   // Event merging configuration
   Duration _gracePeriod =
@@ -106,7 +113,9 @@ class EventDetectionService {
   double get thresholdDb => _thresholdDb;
   Duration get windowDuration => _windowDuration;
   bool get isMonitoring => _isMonitoring;
-
+  double get dayThresholdDb => _dayThresholdDb;
+  double get nightThresholdDb => _nightThresholdDb;
+  bool get useTimeBasedThresholds => _useTimeBasedThresholds;
   /// Start monitoring for events
   Future<void> startMonitoring(Stream<double> splStream) async {
     if (_isMonitoring) return;
@@ -199,6 +208,19 @@ class EventDetectionService {
     }
   }
 
+  /// Configure day/night thresholds (from backend Policy or local settings)
+  /// Follows German regulations: day 06:00-22:00, night 22:00-06:00
+  void setDayNightThresholds({
+    required double dayThresholdDb,
+    required double nightThresholdDb,
+  }) {
+    _dayThresholdDb = dayThresholdDb;
+    _nightThresholdDb = nightThresholdDb;
+    _useTimeBasedThresholds = true;
+    AppLogger.event(
+        'Day/night thresholds configured: day=$dayThresholdDb dB, night=$nightThresholdDb dB');
+  }
+
   /// Update window duration
   void setWindowDuration(Duration duration) {
     if (duration != _windowDuration) {
@@ -238,6 +260,16 @@ class EventDetectionService {
 
   /// Check if current window exceeds threshold and handle event logic with merging
   void _checkThresholdExceedance(_WindowStats stats, DateTime timestamp) {
+    // Apply time-based day/night threshold if configured
+    if (_useTimeBasedThresholds) {
+      final targetDb = _isNightTime ? _nightThresholdDb : _dayThresholdDb;
+      if (targetDb != _thresholdDb) {
+        _thresholdDb = targetDb;
+        AppLogger.event(
+            'Threshold switched to $targetDb dB (${_isNightTime ? "night" : "day"})');
+      }
+    }
+
     final exceedsThreshold = stats.averageLeq >= _thresholdDb;
 
     if (exceedsThreshold) {

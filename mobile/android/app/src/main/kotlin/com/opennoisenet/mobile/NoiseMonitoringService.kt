@@ -131,7 +131,7 @@ class NoiseMonitoringService : Service() {
         val splText = if (spl > 0) "${spl.toInt()} dB" else "-- dB"
 
         // Intent to open the app when notification is tapped
-        val appIntent = Intent(this, MainActivity::class.java).apply {
+        val appIntent = Intent(this, dev.moinsen.noisenet_mobile.MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
         }
         val pendingIntent = PendingIntent.getActivity(
@@ -151,9 +151,9 @@ class NoiseMonitoringService : Service() {
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle("OpenNoiseNet Monitoring")
             .setContentText("$status • Current: $splText")
-            .setSmallIcon(R.drawable.ic_notification) // You'll need to add this icon
+            .setSmallIcon(android.R.drawable.ic_dialog_info)
             .setContentIntent(pendingIntent)
-            .addAction(R.drawable.ic_stop, "Stop", stopPendingIntent)
+            .addAction(android.R.drawable.ic_media_pause, "Stop", stopPendingIntent)
             .setOngoing(true)
             .setSilent(true)
             .setCategory(NotificationCompat.CATEGORY_SERVICE)

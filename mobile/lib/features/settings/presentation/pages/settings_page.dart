@@ -949,7 +949,7 @@ class _SettingsPageState extends State<SettingsPage> {
       await _preferencesService.setCalibrationOffset(0.0);
 
       // Reset backend URL to default
-      await _preferencesService.setBackendUrl('http://localhost:8000/api/v1');
+      await _preferencesService.setBackendUrl('http://localhost:8100/api/v1');
 
       // Reset auto-submission
       await _preferencesService.setAutoSubmissionEnabled(false);

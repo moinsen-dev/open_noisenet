@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react'
+import { Link as RouterLink } from 'react-router-dom'
 import {
   Alert,
   Box,
+  Button,
   Card,
   CardContent,
   Chip,
@@ -129,6 +131,7 @@ export default function DevicesPage() {
                     <TableCell>Location</TableCell>
                     <TableCell>Visibility</TableCell>
                     <TableCell>Last Seen</TableCell>
+                    <TableCell>Aktionen</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -176,6 +179,16 @@ export default function DevicesPage() {
                           <Typography variant="body2" color="textSecondary">
                             {formatTimestamp(device.last_heartbeat || device.last_seen)}
                           </Typography>
+                        </TableCell>
+                        <TableCell>
+                          <Button
+                            component={RouterLink}
+                            to={`/devices/${device.device_id}/timeline`}
+                            size="small"
+                            variant="outlined"
+                          >
+                            📊 Tagesverlauf
+                          </Button>
                         </TableCell>
                       </TableRow>
                     )

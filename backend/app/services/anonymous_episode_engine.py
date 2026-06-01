@@ -167,6 +167,8 @@ def _classify_episode_pattern(
     duration_h = (ended_at - started_at).total_seconds() / 3600
     db_values = [e.leq_db for e in events if e.leq_db]
     peak_values = [e.lmax_db for e in events if e.lmax_db]
+    # ── Loudness profile ─────────────────────────────────────────────────
+    profile = _compute_loudness_profile(events)
 
     if not db_values:
         return CLASSIFICATION_RULES[0]
@@ -225,6 +227,31 @@ def _classify_episode_pattern(
             score += 1
         elif peak == "sustained_high" and max_db > 90:
             score += 1
+
+        # ── Profile-based scoring ────────────────────────────────────────
+        if profile:
+            trend = profile.get("trend", "")
+            silence = profile.get("silence_ratio_pct", 0)
+            peak_density = profile.get("peak_density_per_min", 0)
+
+            # Conversation has high silence ratio (natural pauses)
+            if rule["name"] == "conversation_dispute" and silence > 20:
+                score += 2
+            # Mechanical has very low silence (always on)
+            if rule["name"] == "mechanical_hvac" and silence < 5:
+                score += 2
+            # Construction has occasional impacts (medium peak density)
+            if rule["name"] == "construction_noise" and 0.5 < peak_density < 5:
+                score += 1
+            # Traffic has intermittent spikes
+            if rule["name"] == "traffic_noise" and peak_density > 3:
+                score += 1
+            # Alarm is sustained high
+            if rule["name"] == "alarm_siren" and trend == "konstant" and silence < 5:
+                score += 2
+            # Music has rhythmic pattern (medium peak density + low silence)
+            if rule["name"] == "music_party" and 1 < peak_density < 10 and silence < 10:
+                score += 1
 
         if score > best_score:
             best_score = score

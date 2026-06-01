@@ -455,14 +455,13 @@ class EventDetectionService {
         leqDb: stats.averageLeq,
         lmaxDb: stats.maxLevel,
         lminDb: stats.minLevel,
-        samplesCount: stats.sampleCount,
         ruleTriggered: 'threshold_${_thresholdDb}dB_${_windowDuration.inMinutes}min',
-        analysisState: EventAnalysisState.notStarted,
+        analysisState: EventAnalysisState.classifiedOnDevice,
         status: 'active',
-        classificationLabel: 'sustained_noise',
-        classificationSource: 'device_threshold_detection',
-        classificationConfidence: 0.75,
-        segmentType: 'sustained',
+        classificationLabel: _quickClassify(stats),
+        classificationSource: 'device_classifier',
+        classificationConfidence: 0.7,
+        segmentType: _quickSegmentType(stats),
       );
 
       AppLogger.event(
@@ -926,4 +925,54 @@ class EventClassification {
         'duration: $durationClass, intensity: $intensityClass, '
         'segment: $segmentType, reportability: ${reportabilityScore.toStringAsFixed(2)})';
   }
+}
+
+/// Quick classification for preliminary events — uses rich rules matching
+/// the backend episode classifier (construction, traffic, conversation, etc.)
+String _quickClassify(_WindowStats stats) {
+  final avgDb = stats.averageLeq;
+  final variability = (stats.maxLevel - stats.minLevel).clamp(0, 200);
+  final peakToAvg = (stats.maxLevel - avgDb).clamp(0, 200);
+  final isNight = DateTime.now().hour >= 22 || DateTime.now().hour < 6;
+
+  // High + steady + daytime → construction
+  if (avgDb >= 65 && variability < 8 && !isNight) {
+    return 'construction_noise';
+  }
+  // High variability + evening/night → conversation/dispute
+  if (avgDb >= 55 && variability >= 10 && (isNight || DateTime.now().hour >= 20)) {
+    return 'conversation_dispute';
+  }
+  // Very loud + night → music/party
+  if (avgDb >= 70 && isNight) {
+    return 'music_party';
+  }
+  // Very steady, any time → mechanical/HVAC
+  if (variability < 5 && avgDb >= 55) {
+    return 'mechanical_hvac';
+  }
+  // Intermittent spikes → traffic
+  if (peakToAvg >= 12 && avgDb >= 55) {
+    return 'traffic_noise';
+  }
+  // Very short, very loud → alarm/siren
+  if (avgDb >= 75 && stats.sampleCount < 10) {
+    return 'alarm_siren';
+  }
+  // Repeated impulsive → animal barking
+  if (peakToAvg >= 15 && variability >= 8) {
+    return 'animal_barking';
+  }
+  // Default sustained
+  if (avgDb >= 55) {
+    return 'sustained_noise';
+  }
+  return 'impulsive_noise';
+}
+
+String _quickSegmentType(_WindowStats stats) {
+  final variability = (stats.maxLevel - stats.minLevel).clamp(0, 200);
+  if (variability < 5) return 'sustained';
+  if (variability < 12) return 'fluctuating';
+  return 'impulsive';
 }

@@ -1,6 +1,6 @@
 """Device management endpoints."""
 
-from typing import List
+from typing import List, Optional
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -50,7 +50,7 @@ async def register_device(
 async def get_device(
     device_id: str,
     db: AsyncSession = Depends(get_session),
-    current_user: User | None = Depends(get_current_user),
+    current_user: Optional[User] = Depends(get_current_user),
 ):
     """Get device information by device_id. Only returns if user owns the device."""
     result = await db.execute(
@@ -126,7 +126,7 @@ async def device_heartbeat(
 @router.get("/", response_model=List[DeviceResponse])
 async def list_devices(
     db: AsyncSession = Depends(get_session),
-    current_user: User | None = Depends(get_current_user),
+    current_user: Optional[User] = Depends(get_current_user),
 ):
     """List devices. If authenticated, only returns user's own devices."""
     stmt = select(Device)

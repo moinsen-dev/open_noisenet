@@ -498,3 +498,53 @@ async def delete_event(
     await db.flush()
 
     return {"message": f"Event {event_id} deleted successfully"}
+
+
+@router.post("/detect-episodes", response_model=dict)
+async def detect_episodes(
+    device_id: Optional[str] = Query(None, description="Device ID to process. Omit for all devices."),
+    db: AsyncSession = Depends(get_session),
+):
+    """Run episode detection on unassigned events. Groups temporally adjacent
+    events into classified episodes (construction, traffic, conversation, etc.).
+    """
+    from app.services.anonymous_episode_engine import detect_episodes_for_device
+    from sqlalchemy import distinct as _distinct
+
+    if device_id:
+        episodes = await detect_episodes_for_device(db, device_id)
+        await db.commit()
+        return {
+            "device_id": device_id,
+            "episodes_created": len(episodes),
+            "episodes": [
+                {
+                    "id": str(ep.id),
+                    "started_at": ep.started_at.isoformat() if ep.started_at else None,
+                    "ended_at": ep.ended_at.isoformat() if ep.ended_at else None,
+                    "primary_class": ep.primary_class,
+                    "severity": ep.severity,
+                    "event_count": ep.event_count,
+                    "nuisance_score": ep.nuisance_score,
+                    "quiet_hours_triggered": ep.quiet_hours_triggered,
+                    "metadata": ep.review_metadata,
+                }
+                for ep in episodes
+            ],
+        }
+
+    # Process all devices
+    stmt = select(_distinct(Event.device_id)).where(
+        Event.episode_id.is_(None),
+        Event.timestamp_start.isnot(None),
+    )
+    result = await db.execute(stmt)
+    device_ids = [row[0] for row in result.fetchall()]
+
+    total = 0
+    for did in device_ids:
+        episodes = await detect_episodes_for_device(db, did)
+        total += len(episodes)
+
+    await db.commit()
+    return {"devices_processed": len(device_ids), "episodes_created": total}

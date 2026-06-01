@@ -11,6 +11,7 @@ import '../../../../services/audio_capture_service.dart';
 import '../../../../services/backend_sync_service.dart';
 import '../../../../services/recording_service.dart';
 import '../../../../services/event_detection_service.dart';
+import '../../../../services/api_client_service.dart';
 import '../../../../services/statistics_service.dart';
 import '../../../../services/background_monitoring_service.dart';
 import '../../../../services/ios_background_service.dart';
@@ -43,6 +44,8 @@ class MonitoringBloc extends Bloc<MonitoringEvent, MonitoringState> {
   final IOSBackgroundService _iosBackgroundService = IOSBackgroundService();
   final SQLitePreferencesService _preferencesService =
       GetIt.instance<SQLitePreferencesService>();
+
+  final ApiClientService _apiClient = GetIt.instance<ApiClientService>();
 
   StreamSubscription<double>? _splSubscription;
   StreamSubscription<BackgroundMonitoringState>? _backgroundStateSubscription;
@@ -90,6 +93,18 @@ class MonitoringBloc extends Bloc<MonitoringEvent, MonitoringState> {
       // reportable-event submission.
       final noiseThreshold = await _preferencesService.getNoiseThreshold();
       _eventDetectionService.setThreshold(noiseThreshold);
+
+      // Configure day/night thresholds from Pro context or local defaults
+      final dayThresholdDb = _apiClient.effectiveDayThresholdDb ?? 65.0;
+      final nightThresholdDb = _apiClient.effectiveNightThresholdDb ?? 55.0;
+      _eventDetectionService.setDayNightThresholds(
+        dayThresholdDb: dayThresholdDb,
+        nightThresholdDb: nightThresholdDb,
+      );
+      AppLogger.event(
+        'Day/night thresholds set: day=$dayThresholdDb dB (${_apiClient.effectiveDayThresholdDb != null ? "Pro" : "local"}), '
+        'night=$nightThresholdDb dB (${_apiClient.effectiveNightThresholdDb != null ? "Pro" : "local"})',
+      );
 
       // Ensure continuous recording is enabled and start it
       await _recordingService.updateSettings(enableContinuousRecording: true);

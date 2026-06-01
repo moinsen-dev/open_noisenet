@@ -292,6 +292,10 @@ class EventDetectionService {
               'threshold_${_thresholdDb}dB_${_windowDuration.inMinutes}min',
         );
 
+        // Fire-and-forget: immediately submit a preliminary event to backend
+        // so the event appears even if the app is killed before grace period ends.
+        unawaited(_submitPreliminaryEvent(_currentEvent!, stats));
+
         AppLogger.event(
             'Event started: ${stats.averageLeq.toStringAsFixed(1)} dB >= $_thresholdDb dB');
       } else {
@@ -430,6 +434,42 @@ class EventDetectionService {
       await _submitEventToBackend(event);
     } catch (e) {
       AppLogger.event('Failed to store event: $e');
+    }
+  }
+
+
+  /// Immediately submit a preliminary event to the backend as soon as threshold
+  /// is exceeded, without waiting for event finalization.
+  Future<void> _submitPreliminaryEvent(
+      NoiseEvent event, _WindowStats stats) async {
+    try {
+      final deviceId = await _apiClient.ensureDeviceId();
+      final eventUuid = const Uuid().v4();
+      final now = DateTime.now();
+
+      final eventModel = NoiseEventModel(
+        eventUuid: eventUuid,
+        deviceId: deviceId,
+        timestampStart: event.startTime,
+        timestampEnd: now,
+        leqDb: stats.averageLeq,
+        lmaxDb: stats.maxLevel,
+        lminDb: stats.minLevel,
+        samplesCount: stats.sampleCount,
+        ruleTriggered: 'threshold_${_thresholdDb}dB_${_windowDuration.inMinutes}min',
+        analysisState: EventAnalysisState.notStarted,
+        status: 'active',
+        classificationLabel: 'sustained_noise',
+        classificationSource: 'device_threshold_detection',
+        classificationConfidence: 0.75,
+        segmentType: 'sustained',
+      );
+
+      AppLogger.event(
+          'Submitting preliminary event: ${stats.averageLeq.toStringAsFixed(1)} dB');
+      await _submitEventToBackend(eventModel);
+    } catch (e) {
+      AppLogger.event('Preliminary event submission failed: $e');
     }
   }
 

@@ -440,32 +440,58 @@ class _SettingsPageState extends State<SettingsPage> {
 
   void _showAudioDialog(BuildContext context) {
     double currentOffset = _audioService.calibrationOffset;
-
+    final threshold =
+        _recordingService.getSettings()['auto_record_threshold'] as double;
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Audio Calibration'),
         content: StatefulBuilder(
-          builder: (context, setState) => Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text(
-                  'Adjust calibration to match a professional sound level meter:'),
-              const SizedBox(height: 16),
-              Slider(
-                value: currentOffset,
-                min: -10.0,
-                max: 10.0,
-                divisions: 40,
-                label: '${currentOffset.toStringAsFixed(1)} dB',
-                onChanged: (value) {
-                  setState(() {
-                    currentOffset = value;
-                  });
-                },
-              ),
-              Text('Current offset: ${currentOffset.toStringAsFixed(1)} dB'),
-            ],
+          builder: (context, setState) => SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                    'Adjust calibration to match a professional sound level meter:'),
+                const SizedBox(height: 16),
+                Slider(
+                  value: currentOffset,
+                  min: -10.0,
+                  max: 10.0,
+                  divisions: 40,
+                  label: '${currentOffset.toStringAsFixed(1)} dB',
+                  onChanged: (value) {
+                    setState(() {
+                      currentOffset = value;
+                    });
+                  },
+                ),
+                Text('Current offset: ${currentOffset.toStringAsFixed(1)} dB'),
+                const SizedBox(height: 4),
+                Text(
+                  'Effective threshold: ${(threshold + currentOffset).toStringAsFixed(1)} dB',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Colors.grey,
+                        fontWeight: FontWeight.w600,
+                      ),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'Typical smartphone microphone offsets:\n'
+                  '• Pixel / Google phones: -10 to -15 dB\n'
+                  '• iPhones: -8 to -12 dB\n'
+                  '• Samsung: -12 to -18 dB\n'
+                  '• Budget Android: -15 to -25 dB\n'
+                  '\n'
+                  'Set a NEGATIVE offset if your readings seem too high. '
+                  'For best results, calibrate against a reference SPL meter '
+                  'or a known quiet environment (~30-35 dB).',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Colors.grey,
+                      ),
+                ),
+              ],
+            ),
           ),
         ),
         actions: [

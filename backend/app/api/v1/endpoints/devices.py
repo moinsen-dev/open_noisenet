@@ -218,7 +218,46 @@ async def device_timeline(
             }
             for ep in episodes
         ],
+        "noise_duration": _compute_noise_duration(events, episodes),
         "summary": _build_timeline_summary(events, episodes),
+    }
+
+
+def _compute_noise_duration(events, episodes):
+    # Events with continuous monitoring give us the most accurate measure
+    # Episode durations are the best estimate for sustained noise
+    total_noise_seconds = 0
+    night_noise_seconds = 0
+    by_threshold = {"55dB": 0, "65dB": 0, "75dB": 0}
+    for ep in episodes:
+        if ep.started_at and ep.ended_at:
+            duration = (ep.ended_at - ep.started_at).total_seconds()
+            total_noise_seconds += duration
+            if ep.quiet_hours_triggered:
+                night_noise_seconds += duration
+            avg_db = ep.review_metadata.get("avg_leq_db") if ep.review_metadata else 0
+            if avg_db >= 75:
+                by_threshold["75dB"] += duration
+            elif avg_db >= 65:
+                by_threshold["65dB"] += duration
+            else:
+                by_threshold["55dB"] += duration
+    def fmt(seconds):
+        if seconds < 60:
+            return f"{int(seconds)}s"
+        if seconds < 3600:
+            return f"{int(seconds // 60)}min"
+        h = int(seconds // 3600)
+        m = int((seconds % 3600) // 60)
+        return f"{h}h {m}min" if m > 0 else f"{h}h"
+    return {
+        "total": fmt(total_noise_seconds),
+        "total_seconds": int(total_noise_seconds),
+        "night": fmt(night_noise_seconds),
+        "night_seconds": int(night_noise_seconds),
+        "episode_count": len(episodes),
+        "by_threshold": {k: fmt(v) for k, v in by_threshold.items()},
+        "by_threshold_seconds": by_threshold,
     }
 def _get_german_label(primary_class: str) -> str:
     labels = {

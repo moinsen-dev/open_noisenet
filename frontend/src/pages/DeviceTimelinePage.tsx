@@ -29,12 +29,22 @@ interface TimelineEpisode {
   avg_leq_db: number | null
 }
 
+interface NoiseDuration {
+  total: string
+  total_seconds: number
+  night: string
+  night_seconds: number
+  episode_count: number
+  by_threshold: Record<string, string>
+}
+
 interface TimelineData {
   device_id: string
   date: string
   events: TimelineEvent[]
   episodes: TimelineEpisode[]
   summary: string
+  noise_duration: NoiseDuration
 }
 
 function severityColor(severity: string): 'error' | 'warning' | 'info' | 'default' {
@@ -98,6 +108,41 @@ export default function DeviceTimelinePage() {
           <Typography>{data.summary || 'Keine nennenswerten Lärmereignisse'}</Typography>
         </CardContent>
       </Card>
+
+      {/* Noise Duration Summary */}
+      {data.noise_duration && data.noise_duration.total_seconds > 0 && (
+        <Card sx={{ mb: 3, bgcolor: 'warning.dark', color: 'white' }}>
+          <CardContent>
+            <Typography variant="h6" gutterBottom>🔊 Lärmdauer heute</Typography>
+            <Stack direction="row" spacing={4} alignItems="center">
+              <Box>
+                <Typography variant="h4">{data.noise_duration.total}</Typography>
+                <Typography variant="body2">Gesamtdauer</Typography>
+              </Box>
+              {data.noise_duration.night_seconds > 0 && (
+                <Box>
+                  <Typography variant="h4" color="error.light">
+                    {data.noise_duration.night}
+                  </Typography>
+                  <Typography variant="body2">davon in der Nachtruhe</Typography>
+                </Box>
+              )}
+              <Box>
+                <Typography variant="h4">{data.noise_duration.episode_count}</Typography>
+                <Typography variant="body2">Einzelepisoden</Typography>
+              </Box>
+              <Box sx={{ flex: 1 }}>
+                <Typography variant="body2" gutterBottom>Nach Lautstärke:</Typography>
+                {Object.entries(data.noise_duration.by_threshold).map(([threshold, duration]) => (
+                  <Typography key={threshold} variant="body2" sx={{ opacity: 0.9 }}>
+                    &gt; {threshold}: {duration}
+                  </Typography>
+                ))}
+              </Box>
+            </Stack>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Episode Timeline */}
       {episodes.length > 0 && (

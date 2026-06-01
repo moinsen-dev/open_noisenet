@@ -139,7 +139,7 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
       args:
-        - VITE_API_URL=${VITE_API_URL:-http://localhost:${BACKEND_PORT:-8100}/api/v1}
+        - VITE_API_URL=/api/v1
     restart: unless-stopped
     ports:
       - "${FRONTEND_PORT:-3100}:3000"

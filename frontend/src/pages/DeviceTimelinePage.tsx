@@ -48,7 +48,8 @@ function severityColor(severity: string): 'error' | 'warning' | 'info' | 'defaul
 
 function formatTime(iso: string | null): string {
   if (!iso) return '—'
-  return iso.slice(11, 16)
+  const d = new Date(iso)
+  return d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })
 }
 
 function noiseToBar(db: number, max: number): number {

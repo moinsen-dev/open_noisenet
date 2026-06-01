@@ -1,6 +1,7 @@
 """Integration tests for devices API."""
 import pytest
 from httpx import AsyncClient
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
 @pytest.mark.asyncio
@@ -67,3 +68,111 @@ async def test_list_devices(client: AsyncClient):
     assert response.status_code == 200
     data = response.json()
     assert len(data) >= 1
+
+
+@pytest.mark.asyncio
+async def test_update_device(client: AsyncClient):
+    """PUT /devices/{device_id} with new name updates the device."""
+    await client.post("/api/v1/devices/register", json={
+        "device_id": "update-test-001",
+        "name": "Original Name",
+    })
+    response = await client.put("/api/v1/devices/update-test-001", json={
+        "name": "Updated Name",
+    })
+    assert response.status_code == 200
+    assert response.json()["name"] == "Updated Name"
+
+
+@pytest.mark.asyncio
+async def test_update_nonexistent_device(client: AsyncClient):
+    """PUT /devices/nonexistent returns 404."""
+    response = await client.put("/api/v1/devices/nonexistent", json={
+        "name": "No Device",
+    })
+    assert response.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_delete_device(client: AsyncClient):
+    """DELETE /devices/{device_id} removes the device."""
+    # Register + login to get a token
+    resp = await client.post("/api/v1/auth/register", json={
+        "email": "delete-test@test.noisenet.org",
+        "password": "testpass123",
+        "full_name": "Delete Tester",
+    })
+    token = resp.json()["access_token"]
+
+    await client.post("/api/v1/devices/register", json={
+        "device_id": "delete-test-001",
+        "name": "Delete Me",
+    })
+    response = await client.delete(
+        "/api/v1/devices/delete-test-001",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert response.status_code == 204
+
+    get_response = await client.get("/api/v1/devices/delete-test-001")
+    assert get_response.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_list_devices_only_returns_owned(
+    client: AsyncClient, db_session: AsyncSession
+):
+    """List only returns devices owned by the authenticated user."""
+    from tests.factories import create_user, create_device
+
+    user_a = await create_user(db_session, email="owner-a@test.noisenet.org", password="pw-a")
+    await create_device(db_session, device_id="owned-a-001", name="A's Device", owner_id=user_a.id)
+
+    user_b = await create_user(db_session, email="owner-b@test.noisenet.org", password="pw-b")
+    await create_device(db_session, device_id="owned-b-001", name="B's Device", owner_id=user_b.id)
+
+    # Login as user A
+    login_resp = await client.post("/api/v1/auth/login", json={
+        "email": "owner-a@test.noisenet.org",
+        "password": "pw-a",
+    })
+    assert login_resp.status_code == 200
+    token = login_resp.json()["access_token"]
+    client.headers["Authorization"] = f"Bearer {token}"
+
+    response = await client.get("/api/v1/devices/")
+    assert response.status_code == 200
+    device_ids = [d["device_id"] for d in response.json()]
+
+    assert "owned-a-001" in device_ids
+    assert "owned-b-001" not in device_ids, (
+        "Ownership enforcement missing: list_devices returned another user's device"
+    )
+
+
+@pytest.mark.asyncio
+async def test_cannot_access_other_users_device(
+    client: AsyncClient, db_session: AsyncSession
+):
+    """GET /devices/{device_id} returns 404 for another user's device."""
+    from tests.factories import create_user, create_device
+
+    user_a = await create_user(db_session, email="sec-a@test.noisenet.org", password="pw-a")
+    await create_device(db_session, device_id="secret-device", name="A's Secret", owner_id=user_a.id)
+
+    await create_user(db_session, email="sec-b@test.noisenet.org", password="pw-b")
+
+    # Login as user B
+    login_resp = await client.post("/api/v1/auth/login", json={
+        "email": "sec-b@test.noisenet.org",
+        "password": "pw-b",
+    })
+    assert login_resp.status_code == 200
+    token = login_resp.json()["access_token"]
+    client.headers["Authorization"] = f"Bearer {token}"
+
+    response = await client.get("/api/v1/devices/secret-device")
+    assert response.status_code == 404, (
+        f"Ownership enforcement missing: got {response.status_code}, "
+        f"another user can access device they don't own"
+    )

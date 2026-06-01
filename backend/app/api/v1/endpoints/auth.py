@@ -7,6 +7,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
+from app.core.rate_limit import login_rate_limiter
 from app.core.security import (
     create_access_token,
     create_refresh_token,
@@ -55,11 +56,11 @@ async def register(
         expires_in=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
     )
 
-
 @router.post("/login", response_model=TokenResponse)
 async def login(
     data: LoginRequest,
     db: AsyncSession = Depends(get_session),
+    _rate_limit: None = Depends(login_rate_limiter),
 ):
     """Authenticate a user and return access/refresh tokens."""
     result = await db.execute(select(User).where(User.email == data.email))

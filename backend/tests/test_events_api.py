@@ -5,10 +5,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.models.device import Device, DeviceType
 
 
-async def _create_device(db: AsyncSession) -> Device:
+async def _create_device(db: AsyncSession, device_id: str = "test-device-001", name: str = "Test Device") -> Device:
     device = Device(
-        device_id="test-device-001",
-        name="Test Device",
+        device_id=device_id,
+        name=name,
         device_type=DeviceType.SMARTPHONE,
     )
     db.add(device)
@@ -244,3 +244,133 @@ async def test_get_event_status_returns_analysis_details(
     assert data["classification_source"] == "device_rule_engine"
     assert data["segment_type"] == "impulsive"
     assert data["reportability_score"] == pytest.approx(0.78)
+
+
+# ── Phase 2: Event CRUD + Search ─────────────────────────────────────────────
+
+
+@pytest.mark.asyncio
+async def test_get_event_by_id(client: AsyncClient, db_session: AsyncSession):
+    """GET /events/{id} returns event details by server ID."""
+    await _create_device(db_session)
+    resp = await client.post("/api/v1/events/", json=_base_event_payload(device_id="dev-getbyid-001"))
+    server_id = resp.json()["server_event_id"]
+
+    detail = await client.get(f"/api/v1/events/{server_id}")
+    assert detail.status_code == 200
+    assert detail.json()["id"] == server_id
+
+
+@pytest.mark.asyncio
+async def test_get_nonexistent_event_returns_404(client: AsyncClient):
+    """GET /events/{nonexistent} returns 404."""
+    resp = await client.get("/api/v1/events/00000000-0000-0000-0000-000000000000")
+    assert resp.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_delete_event_requires_auth(client: AsyncClient, db_session: AsyncSession):
+    """DELETE /events/{id} without auth returns 401."""
+    await _create_device(db_session)
+    resp = await client.post("/api/v1/events/", json=_base_event_payload(device_id="dev-del-001"))
+    server_id = resp.json()["server_event_id"]
+
+    del_resp = await client.delete(f"/api/v1/events/{server_id}")
+    assert del_resp.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_delete_event(client: AsyncClient, db_session: AsyncSession):
+    """DELETE /events/{id} removes the event."""
+    # Register + login
+    reg = await client.post("/api/v1/auth/register", json={
+        "email": "event-deleter@test.noisenet.org", "password": "testpass123", "full_name": "Deleter",
+    })
+    token = reg.json()["access_token"]
+
+    await _create_device(db_session)
+    resp = await client.post("/api/v1/events/", json=_base_event_payload(device_id="dev-del-002"))
+    server_id = resp.json()["server_event_id"]
+
+    del_resp = await client.delete(
+        f"/api/v1/events/{server_id}",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert del_resp.status_code == 200
+    assert "deleted" in del_resp.json()["message"].lower()
+
+    # Verify gone
+    get_resp = await client.get(f"/api/v1/events/{server_id}")
+    assert get_resp.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_delete_nonexistent_event_returns_404(client: AsyncClient):
+    """DELETE /events/{nonexistent} returns 404."""
+    reg = await client.post("/api/v1/auth/register", json={
+        "email": "noevt-del@test.noisenet.org", "password": "testpass123", "full_name": "Nope",
+    })
+    token = reg.json()["access_token"]
+    resp = await client.delete(
+        "/api/v1/events/00000000-0000-0000-0000-000000000000",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert resp.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_filter_events_by_device_id(client: AsyncClient, db_session: AsyncSession):
+    """List events filtered by device_id returns only that device's events."""
+    await _create_device(db_session, device_id="dev-filter-aa", name="Device AA")
+    await _create_device(db_session, device_id="dev-filter-bb", name="Device BB")
+
+    await client.post("/api/v1/events/", json=_base_event_payload(
+        event_uuid="evt-aa-1", device_id="dev-filter-aa"))
+    await client.post("/api/v1/events/", json=_base_event_payload(
+        event_uuid="evt-aa-2", device_id="dev-filter-aa"))
+    await client.post("/api/v1/events/", json=_base_event_payload(
+        event_uuid="evt-bb-1", device_id="dev-filter-bb"))
+
+    resp = await client.get("/api/v1/events/?device_id=dev-filter-aa")
+    assert resp.status_code == 200
+    events = resp.json()["events"]
+    assert len(events) >= 2
+    assert all(e["device_id"] == "dev-filter-aa" for e in events)
+
+
+@pytest.mark.asyncio
+async def test_list_events_by_timestamp_range(client: AsyncClient, db_session: AsyncSession):
+    """List events filtered by timestamp range returns correct subset."""
+    await _create_device(db_session, device_id="dev-time-001")
+
+    await client.post("/api/v1/events/", json=_base_event_payload(
+        event_uuid="evt-time-past", device_id="dev-time-001",
+        timestamp_start="2025-01-01T00:00:00Z", timestamp_end="2025-01-01T00:15:00Z",
+    ))
+    await client.post("/api/v1/events/", json=_base_event_payload(
+        event_uuid="evt-time-mid", device_id="dev-time-001",
+        timestamp_start="2025-06-15T12:00:00Z", timestamp_end="2025-06-15T12:15:00Z",
+    ))
+    await client.post("/api/v1/events/", json=_base_event_payload(
+        event_uuid="evt-time-future", device_id="dev-time-001",
+        timestamp_start="2025-12-31T23:00:00Z", timestamp_end="2025-12-31T23:15:00Z",
+    ))
+
+    resp = await client.get("/api/v1/events/?from_ts=2025-06-01T00:00:00Z&to_ts=2025-07-01T00:00:00Z")
+    assert resp.status_code == 200
+    events = resp.json()["events"]
+    assert len(events) >= 1
+
+@pytest.mark.asyncio
+async def test_pagination_offset_limit(client: AsyncClient, db_session: AsyncSession):
+    """Pagination: offset and limit work correctly."""
+    await _create_device(db_session, device_id="dev-page-001")
+    for i in range(5):
+        await client.post("/api/v1/events/", json=_base_event_payload(
+            event_uuid=f"evt-page-{i}", device_id="dev-page-001",
+        ))
+
+    page1 = await client.get("/api/v1/events/?offset=0&limit=3")
+    assert page1.status_code == 200
+    assert len(page1.json()["events"]) >= 1
+    assert page1.json()["total"] >= 5

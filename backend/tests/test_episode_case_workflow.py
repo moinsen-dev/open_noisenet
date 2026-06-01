@@ -327,3 +327,299 @@ async def test_pdf_export_is_generated(client: AsyncClient):
     assert content.status_code == 200
     assert content.headers["content-type"].startswith("application/pdf")
     assert content.content.startswith(b"%PDF")
+
+
+# ── Episode Lifecycle ──────────────────────────────────────────────
+
+async def test_create_episode(client: AsyncClient):
+    """POST /episodes/ with org_id → 201, status=open."""
+    headers = await _auth_headers(client)
+    organization = await client.post(
+        "/api/v1/organizations/",
+        json={"name": "Episode Creator", "slug": "ep-creator", "plan_tier": "pro_site"},
+        headers=headers,
+    )
+    assert organization.status_code == 201
+    organization_id = organization.json()["id"]
+
+    response = await client.post(
+        "/api/v1/episodes/",
+        json={"organization_id": organization_id},
+        headers=headers,
+    )
+    assert response.status_code == 201
+    assert response.json()["status"] == "open"
+
+
+async def test_close_episode(client: AsyncClient):
+    """Create episode, PUT /episodes/{id}/close → 200, status=closed, closed_at set."""
+    headers, organization_id, site_id, _zone_id = await _bootstrap_site_context(client)
+    event = await client.post("/api/v1/events/", json=_event_payload())
+    assert event.status_code == 200
+    episode_id = event.json()["episode_id"]
+
+    response = await client.put(
+        f"/api/v1/episodes/{episode_id}/close",
+        headers=headers,
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "closed"
+    assert data["closed_at"] is not None
+
+
+async def test_reopen_episode(client: AsyncClient):
+    """Close then reopen → status=open, closed_at cleared."""
+    headers, organization_id, site_id, _zone_id = await _bootstrap_site_context(client)
+    event = await client.post("/api/v1/events/", json=_event_payload())
+    assert event.status_code == 200
+    episode_id = event.json()["episode_id"]
+
+    closed = await client.put(f"/api/v1/episodes/{episode_id}/close", headers=headers)
+    assert closed.status_code == 200
+
+    response = await client.put(
+        f"/api/v1/episodes/{episode_id}/reopen",
+        headers=headers,
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "open"
+    assert data["closed_at"] is None
+
+
+async def test_get_episode_returns_404_for_other_org(client: AsyncClient):
+    """Cross-org episode access → 404."""
+    headers_a, organization_id, site_id, _zone_id = await _bootstrap_site_context(client)
+    event = await client.post("/api/v1/events/", json=_event_payload())
+    assert event.status_code == 200
+    episode_id = event.json()["episode_id"]
+
+    headers_b = await _auth_headers(client, email="org-b@example.com")
+    org_b = await client.post(
+        "/api/v1/organizations/",
+        json={"name": "Org B", "slug": "org-b", "plan_tier": "pro_site"},
+        headers=headers_b,
+    )
+    assert org_b.status_code == 201
+
+    response = await client.get(
+        f"/api/v1/episodes/{episode_id}",
+        headers=headers_b,
+    )
+    assert response.status_code == 404
+
+
+# ── Case Lifecycle ─────────────────────────────────────────────────
+
+async def test_create_case_from_episode(client: AsyncClient):
+    """POST /cases/ with episode_id → 201, references episode."""
+    headers, organization_id, site_id, zone_id = await _bootstrap_site_context(client)
+    event = await client.post("/api/v1/events/", json=_event_payload())
+    assert event.status_code == 200
+    episode_id = event.json()["episode_id"]
+
+    response = await client.post(
+        "/api/v1/cases/",
+        json={
+            "organization_id": organization_id,
+            "site_id": site_id,
+            "zone_id": zone_id,
+            "title": "Noise complaint #42",
+            "episode_id": episode_id,
+        },
+        headers=headers,
+    )
+    assert response.status_code == 201
+    data = response.json()
+    assert data["episode_count"] == 1
+
+
+async def test_case_transition_to_review(client: AsyncClient):
+    """PUT /cases/{id}/transition with status=in_review → 200."""
+    headers, organization_id, site_id, zone_id = await _bootstrap_site_context(client)
+    event = await client.post("/api/v1/events/", json=_event_payload())
+    assert event.status_code == 200
+    episode_id = event.json()["episode_id"]
+
+    created_case = await client.post(
+        "/api/v1/cases/",
+        json={
+            "organization_id": organization_id,
+            "site_id": site_id,
+            "zone_id": zone_id,
+            "title": "Transition test",
+            "episode_ids": [episode_id],
+        },
+        headers=headers,
+    )
+    assert created_case.status_code == 201
+    case_id = created_case.json()["id"]
+
+    response = await client.put(
+        f"/api/v1/cases/{case_id}/transition",
+        json={"status": "in_review"},
+        headers=headers,
+    )
+    assert response.status_code == 200
+    assert response.json()["status"] == "in_review"
+
+
+async def test_case_transition_to_closed(client: AsyncClient):
+    """PUT /cases/{id}/transition with status=closed → 200."""
+    headers, organization_id, site_id, zone_id = await _bootstrap_site_context(client)
+    event = await client.post("/api/v1/events/", json=_event_payload())
+    assert event.status_code == 200
+    episode_id = event.json()["episode_id"]
+
+    created_case = await client.post(
+        "/api/v1/cases/",
+        json={
+            "organization_id": organization_id,
+            "site_id": site_id,
+            "zone_id": zone_id,
+            "title": "Close transition test",
+            "episode_ids": [episode_id],
+        },
+        headers=headers,
+    )
+    assert created_case.status_code == 201
+    case_id = created_case.json()["id"]
+
+    response = await client.put(
+        f"/api/v1/cases/{case_id}/transition",
+        json={"status": "closed"},
+        headers=headers,
+    )
+    assert response.status_code == 200
+    assert response.json()["status"] == "closed"
+    assert response.json()["closed_at"] is not None
+
+
+async def test_case_invalid_transition(client: AsyncClient):
+    """closed → open should return 422."""
+    headers, organization_id, site_id, zone_id = await _bootstrap_site_context(client)
+    event = await client.post("/api/v1/events/", json=_event_payload())
+    assert event.status_code == 200
+    episode_id = event.json()["episode_id"]
+
+    created_case = await client.post(
+        "/api/v1/cases/",
+        json={
+            "organization_id": organization_id,
+            "site_id": site_id,
+            "zone_id": zone_id,
+            "title": "Invalid transition test",
+            "episode_ids": [episode_id],
+        },
+        headers=headers,
+    )
+    assert created_case.status_code == 201
+    case_id = created_case.json()["id"]
+
+    # Close via PATCH (existing endpoint)
+    await client.patch(
+        f"/api/v1/cases/{case_id}",
+        json={"status": "closed"},
+        headers=headers,
+    )
+
+    # Try to transition back to open via the transition endpoint
+    response = await client.put(
+        f"/api/v1/cases/{case_id}/transition",
+        json={"status": "open"},
+        headers=headers,
+    )
+    assert response.status_code == 422
+
+
+# ── Export Fidelity ────────────────────────────────────────────────
+
+async def test_export_case_pdf(client: AsyncClient):
+    """POST /exports/ with case_id, format=pdf → 201, content-type application/pdf."""
+    headers, organization_id, site_id, zone_id = await _bootstrap_site_context(client)
+    event = await client.post("/api/v1/events/", json=_event_payload())
+    assert event.status_code == 200
+    episode_id = event.json()["episode_id"]
+
+    created_case = await client.post(
+        "/api/v1/cases/",
+        json={
+            "organization_id": organization_id,
+            "site_id": site_id,
+            "zone_id": zone_id,
+            "title": "PDF export fidelity",
+            "episode_ids": [episode_id],
+        },
+        headers=headers,
+    )
+    assert created_case.status_code == 201
+    case_id = created_case.json()["id"]
+
+    response = await client.post(
+        "/api/v1/exports/",
+        json={"case_id": case_id, "format": "pdf"},
+        headers=headers,
+    )
+    assert response.status_code == 201
+    assert response.headers.get("content-type", "").startswith("application/pdf")
+
+
+async def test_export_case_csv(client: AsyncClient):
+    """POST /exports/ with case_id, format=csv → 201, content-type text/csv."""
+    headers, organization_id, site_id, zone_id = await _bootstrap_site_context(client)
+    event = await client.post("/api/v1/events/", json=_event_payload())
+    assert event.status_code == 200
+    episode_id = event.json()["episode_id"]
+
+    created_case = await client.post(
+        "/api/v1/cases/",
+        json={
+            "organization_id": organization_id,
+            "site_id": site_id,
+            "zone_id": zone_id,
+            "title": "CSV export fidelity",
+            "episode_ids": [episode_id],
+        },
+        headers=headers,
+    )
+    assert created_case.status_code == 201
+    case_id = created_case.json()["id"]
+
+    response = await client.post(
+        "/api/v1/exports/",
+        json={"case_id": case_id, "format": "csv"},
+        headers=headers,
+    )
+    assert response.status_code == 201
+    assert response.headers.get("content-type", "").startswith("text/csv")
+
+
+async def test_export_case_json(client: AsyncClient):
+    """POST /exports/ with case_id, format=json → 201, content-type application/json."""
+    headers, organization_id, site_id, zone_id = await _bootstrap_site_context(client)
+    event = await client.post("/api/v1/events/", json=_event_payload())
+    assert event.status_code == 200
+    episode_id = event.json()["episode_id"]
+
+    created_case = await client.post(
+        "/api/v1/cases/",
+        json={
+            "organization_id": organization_id,
+            "site_id": site_id,
+            "zone_id": zone_id,
+            "title": "JSON export fidelity",
+            "episode_ids": [episode_id],
+        },
+        headers=headers,
+    )
+    assert created_case.status_code == 201
+    case_id = created_case.json()["id"]
+
+    response = await client.post(
+        "/api/v1/exports/",
+        json={"case_id": case_id, "format": "json"},
+        headers=headers,
+    )
+    assert response.status_code == 201
+    assert response.headers.get("content-type", "").startswith("application/json")

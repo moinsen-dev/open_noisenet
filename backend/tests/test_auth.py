@@ -125,3 +125,54 @@ async def test_protected_endpoint_without_token(client: AsyncClient):
     fake_id = str(uuid.uuid4())
     resp = await client.delete(f"/api/v1/events/{fake_id}")
     assert resp.status_code == 401
+
+
+# ---------- Refresh edge cases ----------
+
+
+async def test_refresh_with_tampered_token(client: AsyncClient):
+    """POST /refresh with a tampered token returns 401 or 422."""
+    reg = await client.post(
+        REGISTER_URL,
+        json={
+            "email": "tamper@example.com",
+            "password": "tamperpass123",
+            "full_name": "Tamper User",
+        },
+    )
+    refresh = reg.json()["refresh_token"]
+    tampered = refresh[:-1] + ("A" if refresh[-1] != "A" else "B")
+    resp = await client.post(REFRESH_URL, json={"refresh_token": tampered})
+    assert resp.status_code in (401, 422)
+
+
+async def test_refresh_with_access_token_as_refresh(client: AsyncClient):
+    """POST /refresh with access_token as refresh_token returns 401."""
+    reg = await client.post(
+        REGISTER_URL,
+        json={
+            "email": "accrefresh@example.com",
+            "password": "accpass1234",
+            "full_name": "AccRefresh User",
+        },
+    )
+    access = reg.json()["access_token"]
+    resp = await client.post(REFRESH_URL, json={"refresh_token": access})
+    assert resp.status_code == 401
+
+
+# ---------- Rate limiting ----------
+
+
+async def test_login_rate_limit(client: AsyncClient):
+    """Rapid-fire 7 login attempts → first 5 get 401, 6th+7th get 429."""
+    payload = {"email": "ratelimit@example.com", "password": "wrongpassword"}
+
+    for i in range(5):
+        resp = await client.post(LOGIN_URL, json=payload)
+        assert resp.status_code == 401, f"Attempt {i + 1}: expected 401, got {resp.status_code}"
+
+    resp6 = await client.post(LOGIN_URL, json=payload)
+    assert resp6.status_code == 429, f"Attempt 6: expected 429, got {resp6.status_code}"
+    resp7 = await client.post(LOGIN_URL, json=payload)
+    assert resp7.status_code == 429, f"Attempt 7: expected 429, got {resp7.status_code}"

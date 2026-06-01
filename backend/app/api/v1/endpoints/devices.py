@@ -8,6 +8,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
+from app.core.deps import get_current_user, require_user
+from app.db.models.user import User
 from app.db.session import get_session
 from app.db.models.device import Device
 from app.schemas.device import DeviceRegister, DeviceUpdate, DeviceResponse, HeartbeatRequest
@@ -47,17 +49,18 @@ async def register_device(
 @router.get("/{device_id}", response_model=DeviceResponse)
 async def get_device(
     device_id: str,
-    db: AsyncSession = Depends(get_session)
+    db: AsyncSession = Depends(get_session),
+    current_user: User | None = Depends(get_current_user),
 ):
-    """Get device information by device_id."""
-    
-    stmt = select(Device).where(Device.device_id == device_id)
-    result = await db.execute(stmt)
+    """Get device information by device_id. Only returns if user owns the device."""
+    result = await db.execute(
+        select(Device).where(Device.device_id == device_id)
+    )
     device = result.scalar_one_or_none()
-    
     if not device:
-        raise HTTPException(status_code=404, detail=f"Device {device_id} not found")
-    
+        raise HTTPException(status_code=404, detail="Device not found")
+    if current_user and device.owner_id and str(device.owner_id) != str(current_user.id):
+        raise HTTPException(status_code=404, detail="Device not found")
     return DeviceResponse.model_validate(device)
 
 
@@ -122,19 +125,32 @@ async def device_heartbeat(
 
 @router.get("/", response_model=List[DeviceResponse])
 async def list_devices(
-    limit: int = 100,
-    offset: int = 0,
-    active_only: bool = False,
-    db: AsyncSession = Depends(get_session)
+    db: AsyncSession = Depends(get_session),
+    current_user: User | None = Depends(get_current_user),
 ):
-    """List all devices with optional filtering."""
-    
-    stmt = select(Device).offset(offset).limit(limit)
-    
-    if active_only:
-        stmt = stmt.where(Device.is_active == True)
-    
+    """List devices. If authenticated, only returns user's own devices."""
+    stmt = select(Device)
+    if current_user:
+        stmt = stmt.where(Device.owner_id == current_user.id)
     result = await db.execute(stmt)
     devices = result.scalars().all()
-    
     return [DeviceResponse.model_validate(device) for device in devices]
+
+
+@router.delete("/{device_id}", status_code=204)
+async def delete_device(
+    device_id: str,
+    db: AsyncSession = Depends(get_session),
+    current_user: User = Depends(require_user),
+):
+    """Delete a device. Only the owner can delete it."""
+    result = await db.execute(
+        select(Device).where(Device.device_id == device_id)
+    )
+    device = result.scalar_one_or_none()
+    if not device:
+        raise HTTPException(status_code=404, detail="Device not found")
+    if device.owner_id and str(device.owner_id) != str(current_user.id):
+        raise HTTPException(status_code=404, detail="Device not found")
+    await db.delete(device)
+    await db.commit()

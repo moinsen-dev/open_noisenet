@@ -62,3 +62,53 @@ def test_regulatory_compliance():
     assert compliant["status"] == "compliant"
     violation = svc.check_regulatory_compliance(70.0, "night", "WHO")
     assert violation["status"] == "severe_violation"
+
+
+# ── Celery task structure tests (import + signature only, no broker needed) ─────
+#
+# NOTE: The worker module chain has a circular import between celery_app and
+# the individual task modules. We inject the celery_app mock into sys.modules
+# before importing to break the cycle at test time.
+
+
+def _import_task(mod_name: str, task_name: str):
+    """Import a task function by pre-loading the celery_app module stub."""
+    import sys
+    from unittest.mock import MagicMock
+
+    if "app.workers.celery_app" not in sys.modules:
+        fake_celery = MagicMock()
+        fake_celery.task = MagicMock(return_value=lambda fn: fn)
+        celery_mod = MagicMock()
+        celery_mod.celery_app = fake_celery
+        sys.modules["app.workers.celery_app"] = celery_mod
+
+    import importlib
+
+    mod = importlib.import_module(mod_name)
+    fn = getattr(mod, task_name)
+    return fn
+
+
+def test_noise_processing_task_structure():
+    """process_real_time_measurement is importable and callable."""
+    fn = _import_task(
+        "app.workers.noise_processing_tasks", "process_real_time_measurement"
+    )
+    assert callable(fn)
+    assert fn.__name__ == "process_real_time_measurement"
+
+def test_aggregation_task_structure():
+    """calculate_daily_statistics is importable and callable."""
+    fn = _import_task(
+        "app.workers.data_aggregation_tasks", "calculate_daily_statistics"
+    )
+    assert callable(fn)
+    assert fn.__name__ == "calculate_daily_statistics"
+
+
+def test_maintenance_task_structure():
+    """cleanup_old_data is importable and callable."""
+    fn = _import_task("app.workers.maintenance_tasks", "cleanup_old_data")
+    assert callable(fn)
+    assert fn.__name__ == "cleanup_old_data"

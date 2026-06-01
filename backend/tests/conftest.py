@@ -11,6 +11,7 @@ from sqlalchemy.pool import StaticPool
 from app.db.base import Base
 from app.db.session import get_session
 from app.main import app
+from app.core.rate_limit import LoginRateLimiter, login_rate_limiter
 
 # Use in-memory SQLite for tests so no external DB is required
 TEST_DATABASE_URL = "sqlite+aiosqlite://"
@@ -46,8 +47,25 @@ async def db_session() -> AsyncGenerator[AsyncSession, None]:
 async def client(db_session: AsyncSession) -> AsyncGenerator[AsyncClient, None]:
     async def override_get_session():
         yield db_session
+    fresh_limiter = LoginRateLimiter(max_attempts=5, window_seconds=60)
+    app.dependency_overrides[login_rate_limiter] = fresh_limiter
     app.dependency_overrides[get_session] = override_get_session
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
         yield ac
     app.dependency_overrides.clear()
+
+
+@pytest_asyncio.fixture
+async def auth_client(client: AsyncClient) -> AsyncGenerator[AsyncClient, None]:
+    """Pre-authenticated client with a test user."""
+    resp = await client.post("/api/v1/auth/register", json={
+        "email": "authed@test.noisenet.org",
+        "password": "testpass123",
+        "full_name": "Authed User",
+    })
+    assert resp.status_code == 201, f"auth_client setup failed: {resp.text}"
+    token = resp.json()["access_token"]
+    client.headers["Authorization"] = f"Bearer {token}"
+    yield client
+    client.headers.pop("Authorization", None)

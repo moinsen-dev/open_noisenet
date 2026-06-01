@@ -1,5 +1,5 @@
 # Multi-stage build for React app
-FROM node:18-alpine as builder
+FROM node:22-alpine as builder
 
 # Build argument for the Vite API base URL
 ARG VITE_API_URL=http://localhost:8100/api/v1

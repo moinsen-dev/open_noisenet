@@ -311,6 +311,7 @@ async def detect_episodes_for_device(
                 "avg_leq_db": round(avg_leq, 1),
                 "max_leq_db": round(max_leq, 1),
                 "merge_gap_minutes": merge_gap_minutes,
+                "loudness_profile": _compute_loudness_profile(cluster),
                 "classification": best_rule,
             },
         )
@@ -363,3 +364,68 @@ def _compute_severity(avg_db: float, max_db: float, hour: int) -> str:
         if avg_db > 55:
             return "moderate"
     return "informational"
+
+
+def _compute_loudness_profile(events: List[Event]) -> dict:
+    """Compute detailed loudness profile for an episode.
+
+    Returns statistics about the noise intensity distribution within the block:
+    - quartiles (P25, P50, P75, P90)
+    - trend (rising, falling, steady, fluctuating)
+    - peak density (peaks per minute)
+    - silence ratio (% of time below threshold)
+    """
+    db_values = sorted([e.leq_db for e in events if e.leq_db])
+    if not db_values:
+        return {}
+
+    n = len(db_values)
+
+    def percentile(p):
+        idx = int(n * p / 100)
+        return round(db_values[min(idx, n - 1)], 1)
+
+    # Quartile analysis
+    p25 = percentile(25)
+    p50 = percentile(50)
+    p75 = percentile(75)
+    p90 = percentile(90)
+
+    # Trend detection: compare first half vs second half
+    half = n // 2
+    first_half_avg = sum(db_values[:half]) / max(half, 1)
+    second_half_avg = sum(db_values[half:]) / max(n - half, 1)
+
+    if second_half_avg > first_half_avg * 1.1:
+        trend = "steigend (wird lauter)"
+    elif first_half_avg > second_half_avg * 1.1:
+        trend = "fallend (wird leiser)"
+    elif db_values[-1] - db_values[0] < 5:
+        trend = "konstant"
+    else:
+        trend = "schwankend"
+
+    # Peak density: events above P90 per minute
+    timestamps = [e.timestamp_start for e in events if e.timestamp_start]
+    if len(timestamps) >= 2:
+        duration_min = max((timestamps[-1] - timestamps[0]).total_seconds() / 60, 0.1)
+        peak_threshold = p90 if n >= 10 else p75
+        peaks = [v for v in db_values if v >= peak_threshold]
+        peak_density = round(len(peaks) / duration_min, 1)
+    else:
+        peak_density = 0.0
+
+    # Silence ratio: % of values below typical background (45 dB)
+    silent = sum(1 for v in db_values if v < 45)
+    silence_ratio = round(silent / n * 100, 1)
+
+    return {
+        "p25_db": p25,
+        "p50_db": p50,
+        "p75_db": p75,
+        "p90_db": p90,
+        "trend": trend,
+        "peak_density_per_min": peak_density,
+        "silence_ratio_pct": silence_ratio,
+        "sample_count": n,
+    }

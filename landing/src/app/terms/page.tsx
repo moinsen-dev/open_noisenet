@@ -25,8 +25,22 @@ export default function Terms() {
           
           <div className="bg-slate-800/50 rounded-xl p-8 border border-slate-700 space-y-8">
             <p className="text-slate-300 text-sm mb-4">
-              <strong>Last updated:</strong> December 2024
+              <strong>Last updated:</strong> June 2026
             </p>
+
+            <div className="bg-warn-500/10 border border-warn-500/30 rounded-lg p-4 mb-8">
+              <p className="text-warn-300 text-sm">
+                <strong>Deutsche Zusammenfassung:</strong> Diese Nutzungsbedingungen regeln die Teilnahme 
+                am OpenNoiseNet-Lärmmonitoring-Netzwerk. Standardmäßig werden nur anonymisierte 
+                Schalldruckpegel erfasst. Die vollständige Datenschutzerklärung finden Sie in unserer{' '}
+                <Link href="/privacy" className="text-warn-400 hover:underline">Datenschutzerklärung</Link>.
+                Verantwortlich: Ulrich Diedrichsen, Kippingstraße 27, 20144 Hamburg ({' '}
+                <a href="mailto:business@moinsen.dev" className="text-warn-400 hover:underline">
+                  business@moinsen.dev
+                </a>).
+              </p>
+            </div>
+
 
             <div className="space-y-8 text-slate-300">
               <div>
@@ -147,8 +161,8 @@ export default function Terms() {
                 <h2 className="text-2xl font-bold text-white mb-4">11. Contact Information</h2>
                 <p>
                   For questions about these terms, please contact: 
-                  <a href="mailto:legal@opennosienet.org" className="text-warn-400 hover:underline ml-1">
-                    legal@opennosienet.org
+                  <a href="mailto:business@moinsen.dev" className="text-warn-400 hover:underline ml-1">
+                    business@moinsen.dev
                   </a>
                 </p>
               </div>

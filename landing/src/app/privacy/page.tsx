@@ -25,205 +25,271 @@ export default function PrivacyPolicy() {
           
           <div className="prose prose-invert prose-slate max-w-none space-y-8">
             <div className="bg-slate-800/50 rounded-xl p-8 border border-slate-700">
-              <p className="text-slate-300 text-sm mb-4">
-                <strong>Last updated:</strong> April 2026
+              <p className="text-slate-300 text-sm mb-8">
+                <strong>Stand:</strong> Juni 2026
               </p>
-              
-              <h2 className="text-2xl font-bold text-white mb-4">English Version</h2>
-              
-              <section className="space-y-6 text-slate-300">
+
+              <section className="space-y-8 text-slate-300">
                 <div>
-                  <h3 className="text-xl font-semibold text-white mb-3">1. Data Controller</h3>
+                  <h2 className="text-2xl font-bold text-white mb-4">1. Verantwortlicher</h2>
                   <p>
-                    OpenNoiseNet is a community-driven open-source project. For data protection inquiries regarding this website, please contact: 
-                    <a href="mailto:privacy@opennosienet.org" className="text-warn-400 hover:underline ml-1">
-                      privacy@opennosienet.org
+                    Ulrich Diedrichsen<br />
+                    Kippingstraße 27<br />
+                    20144 Hamburg<br />
+                    Deutschland
+                  </p>
+                  <p className="mt-2">
+                    E-Mail:{' '}
+                    <a href="mailto:business@moinsen.dev" className="text-warn-400 hover:underline">
+                      business@moinsen.dev
                     </a>
                   </p>
                 </div>
 
                 <div>
-                  <h3 className="text-xl font-semibold text-white mb-3">2. Data We Collect</h3>
-                  <h4 className="text-lg font-medium text-warn-400 mb-2">Website Data:</h4>
-                  <ul className="list-disc list-inside space-y-1 mb-4">
-                    <li>Server log files (IP address, browser type, access time)</li>
-                    <li>Cookie preferences and consent choices</li>
-                    <li>Analytics data (only with your consent)</li>
-                  </ul>
-                  
-                  <h4 className="text-lg font-medium text-warn-400 mb-2">Cookies and Tracking:</h4>
-                    <ul className="list-disc list-inside space-y-1 mb-4">
-                      <li><strong>Essential Cookies:</strong> Required for security, consent management, and core functionality</li>
-                      <li><strong>Functional Cookies:</strong> Remember your preferences (story settings, theme choices)</li>
-                      <li><strong>Analytics Cookies:</strong> Google Analytics (anonymized, with consent only)</li>
-                      <li><strong>Marketing Cookies:</strong> Referral and outreach measurement (with consent only)</li>
-                    </ul>
-                  
-                  <h4 className="text-lg font-medium text-warn-400 mb-2">Sensor Network Data:</h4>
-                  <ul className="list-disc list-inside space-y-1">
-                    <li>Anonymized noise level measurements (dB values)</li>
-                    <li>GPS coordinates (approximate location, no precise addresses)</li>
-                    <li>Timestamp and sensor ID (randomized)</li>
-                    <li>Optional: Encrypted audio snippets (deleted after 7 days)</li>
-                  </ul>
-                </div>
-
-                <div>
-                  <h3 className="text-xl font-semibold text-white mb-3">3. Legal Basis</h3>
+                  <h2 className="text-2xl font-bold text-white mb-4">2. Überblick über die Datenverarbeitung</h2>
                   <p>
-                    Data processing is based on:
+                    OpenNoiseNet ist eine datenschutzfreundliche, quelloffene Plattform zur Erfassung und
+                    Visualisierung von Umgebungslärm. Freiwillige betreiben Smartphone-basierte Feldknoten,
+                    die Schalldruckpegel (SPL) messen und auf einer öffentlichen Karte darstellen.
+                    Betreiber von Organisationen können über die Pro-Oberfläche standortbezogene
+                    Lärm-Monitoring-Workflows durchführen.
                   </p>
-                  <ul className="list-disc list-inside space-y-1 mt-2">
-                    <li><strong>Legitimate interest (Art. 6(1)(f) GDPR):</strong> Operating the website and sensor network</li>
-                    <li><strong>Consent (Art. 6(1)(a) GDPR):</strong> Analytics cookies, marketing cookies, and optional audio data</li>
-                    <li><strong>Public task (Art. 6(1)(e) GDPR):</strong> Environmental research and public health</li>
-                  </ul>
+                  <p className="mt-3">
+                    Die Plattform erhebt grundsätzlich nur die für den Betrieb notwendigen Daten.
+                    Wir setzen <strong>kein Tracking</strong>, <strong>keine Werbung</strong> und{' '}
+                    <strong>keine Analyse-Cookies</strong> ein. Der Quellcode ist unter der MIT-Lizenz
+                    öffentlich einsehbar, die erhobenen Lärmdaten stehen unter der Open Data Commons
+                    Open Database License (ODC-ODbL).
+                  </p>
                 </div>
 
                 <div>
-                  <h3 className="text-xl font-semibold text-white mb-3">4. Data Retention</h3>
+                  <h2 className="text-2xl font-bold text-white mb-4">3. Welche Daten wir erheben</h2>
+
+                  <h3 className="text-xl font-semibold text-white mt-6 mb-3">Schalldruckpegel (SPL)</h3>
+                  <p>
+                    Standardmäßig erfassen Feldknoten ausschließlich anonymisierte Schalldruckpegel-Werte
+                    in Dezibel (dB). Diese Messungen enthalten keine Sprachaufnahmen, keine
+                    Umgebungsgeräusche und keine personenbezogenen Inhalte — es handelt sich um reine
+                    Zahlenwerte, die den Lärmpegel an einem Ort zu einem Zeitpunkt beschreiben.
+                  </p>
+
+                  <h3 className="text-xl font-semibold text-white mt-6 mb-3">Gerätemetadaten</h3>
                   <ul className="list-disc list-inside space-y-1">
-                    <li>Server logs: 30 days</li>
-                    <li>Noise measurements: 2 years (anonymized)</li>
-                    <li>Audio snippets: 7 days (encrypted, for ML processing only)</li>
+                    <li>GPS-Position des Feldknotens zum Zeitpunkt der Messung</li>
+                    <li>Gerätetyp und Firmware-Version</li>
+                    <li>Batteriestatus des Feldknotens</li>
+                    <li>Zeitstempel der Messung</li>
+                    <li>Anonymisierte Knoten-ID</li>
+                  </ul>
+
+                  <h3 className="text-xl font-semibold text-white mt-6 mb-3">Optionale Audio-Aufnahmen</h3>
+                  <p>
+                    Feldknoten-Betreiber können optional kurze, verschlüsselte Audio-Schnipsel
+                    (maximal 10 Sekunden) erfassen, etwa zur Validierung von Lärmereignissen.
+                    Diese Aufnahmen sind Ende-zu-Ende verschlüsselt und werden{' '}
+                    <strong>nach 7 Tagen automatisch gelöscht</strong>. Die Aktivierung dieser
+                    Funktion erfordert eine gesonderte Einwilligung.
+                  </p>
+
+                  <h3 className="text-xl font-semibold text-white mt-6 mb-3">Konto-Daten</h3>
+                  <ul className="list-disc list-inside space-y-1">
+                    <li>E-Mail-Adresse (für Registrierung und Kommunikation)</li>
+                    <li>Optional: Organisationsname und -zugehörigkeit (Pro)</li>
+                    <li>Login-Zeitstempel und Sitzungsdaten</li>
+                  </ul>
+
+                  <h3 className="text-xl font-semibold text-white mt-6 mb-3">Heartbeat-Daten</h3>
+                  <p>
+                    Feldknoten senden in regelmäßigen Abständen Status-Signale (Heartbeats), um die
+                    Betriebsbereitschaft zu signalisieren. Diese enthalten ausschließlich die Knoten-ID,
+                    den Batteriestatus und einen Zeitstempel.
+                  </p>
+                </div>
+
+                <div>
+                  <h2 className="text-2xl font-bold text-white mb-4">4. Zweck der Verarbeitung</h2>
+                  <p>Ihre Daten werden ausschließlich für folgende Zwecke verarbeitet:</p>
+                  <ul className="list-disc list-inside space-y-1 mt-3">
+                    <li>
+                      <strong>Öffentliche Lärmkarte:</strong> Anonymisierte SPL-Messungen werden als
+                      Ereignismarker mit dB-Wert auf der öffentlichen Karte dargestellt — ohne
+                      Personenbezug und ohne Rückschluss auf einzelne Feldknoten-Betreiber.
+                    </li>
+                    <li>
+                      <strong>Pro-Workflows für Betreiber:</strong> Registrierte Nutzer können
+                      Organisationen, Standorte, Zonen, Episoden und Fälle anlegen, um strukturierte
+                      Lärm-Monitoring-Projekte durchzuführen und Messdaten zu exportieren.
+                    </li>
+                    <li>
+                      <strong>Forschung und öffentliches Interesse:</strong> Die unter ODC-ODbL
+                      veröffentlichten Lärmdaten dienen der Umweltforschung, Stadtplanung und
+                      dem öffentlichen Gesundheitsdiskurs.
+                    </li>
+                    <li>
+                      <strong>Plattform-Betrieb:</strong> Technische Bereitstellung, Sicherheit
+                      und Stabilität der Plattform.
+                    </li>
                   </ul>
                 </div>
 
                 <div>
-                  <h3 className="text-xl font-semibold text-white mb-3">5. Cookie Management</h3>
-                  <p className="mb-4">
-                    We use cookies to enhance your experience and provide essential functionality. 
-                    You can manage your cookie preferences at any time.
+                  <h2 className="text-2xl font-bold text-white mb-4">5. Rechtsgrundlage</h2>
+                  <p>
+                    Die Verarbeitung Ihrer Daten erfolgt auf folgenden Rechtsgrundlagen der DSGVO:
                   </p>
-                  <div className="bg-slate-700/50 rounded-lg p-4 mb-4">
-                    <h4 className="text-lg font-medium text-warn-400 mb-2">Cookie Categories:</h4>
-                    <ul className="list-disc list-inside space-y-2">
-                      <li><strong>Essential:</strong> Cannot be disabled. Required for security and basic functionality.</li>
-                      <li><strong>Functional:</strong> Remember your preferences and settings. Enabled by default.</li>
-                      <li><strong>Analytics:</strong> Help us understand site usage. Google Analytics with IP anonymization.</li>
-                      <li><strong>Marketing:</strong> Measure outreach and referral effectiveness.</li>
-                    </ul>
-                  </div>
-                  <p className="text-sm">
-                    <Link href="/cookie-preferences" className="text-warn-400 hover:underline">
-                      → Manage Cookie Preferences
-                    </Link>
+                  <ul className="list-disc list-inside space-y-3 mt-3">
+                    <li>
+                      <strong>Art. 6 Abs. 1 lit. a DSGVO (Einwilligung):</strong> Für optionale
+                      Audio-Aufnahmen, die Konto-Registrierung und optionale Pro-Funktionen.
+                      Sie können Ihre Einwilligung jederzeit widerrufen.
+                    </li>
+                    <li>
+                      <strong>Art. 6 Abs. 1 lit. f DSGVO (Berechtigtes Interesse):</strong> Für
+                      die Erhebung und Veröffentlichung anonymisierter SPL-Werte auf der öffentlichen
+                      Lärmkarte. Unser berechtigtes Interesse besteht in der Bereitstellung einer
+                      gemeinnützigen, quelloffenen Umweltdaten-Plattform. Die Anonymisierung der
+                      Messwerte stellt sicher, dass keine schutzwürdigen Interessen der Betroffenen
+                      überwiegen.
+                    </li>
+                  </ul>
+                </div>
+                <div>
+                  <h2 className="text-2xl font-bold text-white mb-4">6. Speicherdauer</h2>
+                  <ul className="list-disc list-inside space-y-3">
+                    <li>
+                      <strong>Audio-Aufnahmen:</strong> 7 Tage nach Erfassung — automatische Löschung.
+                      Verschlüsselt während der gesamten Speicherdauer.
+                    </li>
+                    <li>
+                      <strong>SPL-Messwerte und Statistiken:</strong> 2 Jahre. Nach Ablauf werden
+                      die Daten aggregiert und Einzelmessungen gelöscht.
+                    </li>
+                    <li>
+                      <strong>Konto-Daten:</strong> Bis zur Löschung des Kontos durch den Nutzer
+                      oder auf Anforderung. Inaktive Konten werden nach 24 Monaten ohne Login
+                      benachrichtigt und bei ausbleibender Reaktion gelöscht.
+                    </li>
+                    <li>
+                      <strong>Server-Logs:</strong> 30 Tage.
+                    </li>
+                  </ul>
+                </div>
+                <div>
+                  <h2 className="text-2xl font-bold text-white mb-4">7. Drittanbieter und Auftragsverarbeiter</h2>
+
+                  <h3 className="text-xl font-semibold text-white mt-6 mb-3">Cloudflare (Hosting und Infrastruktur)</h3>
+                  <p>
+                    Die Plattform wird über Cloudflare (Cloudflare, Inc., San Francisco, USA) gehostet.
+                    Cloudflare verarbeitet IP-Adressen zum Schutz der Infrastruktur und zur Bereitstellung
+                    des Dienstes. Die Datenverarbeitung erfolgt auf Grundlage von Standardvertragsklauseln
+                    (Art. 46 Abs. 2 lit. c DSGVO).
+                  </p>
+
+                  <h3 className="text-xl font-semibold text-white mt-6 mb-3">GitHub (Open Source)</h3>
+                  <p>
+                    Der Quellcode und die Daten der Plattform sind auf GitHub (GitHub, Inc., San Francisco, USA)
+                    öffentlich zugänglich. Es werden ausschließlich der MIT-lizenzierte Code und die
+                    ODC-ODbL-lizenzierten, aggregierten Lärmdaten veröffentlicht — keine personenbezogenen
+                    Daten, keine Audio-Aufnahmen, keine Konto-Informationen.
+                  </p>
+                  <h3 className="text-xl font-semibold text-white mt-6 mb-3">Optionale Pro-Integrationen</h3>
+                  <p>
+                    Betreiber von Organisationen können in der Pro-Oberfläche optionale Integrationen
+                    mit Drittanbietern aktivieren (etwa für Datenexporte oder Analyse-Werkzeuge).
+                    Diese Integrationen sind standardmäßig deaktiviert und erfordern eine gesonderte
+                    Aktivierung durch den Organisations-Administrator. Für die dabei anfallende
+                    Datenverarbeitung gelten die Datenschutzbestimmungen des jeweiligen Anbieters.
                   </p>
                 </div>
-
                 <div>
-                  <h3 className="text-xl font-semibold text-white mb-3">6. Your Rights (GDPR)</h3>
-                  <p>You have the right to:</p>
-                  <ul className="list-disc list-inside space-y-1 mt-2">
-                    <li>Access your personal data</li>
-                    <li>Correct inaccurate data</li>
-                    <li>Delete your data (&quot;right to be forgotten&quot;)</li>
-                    <li>Restrict processing</li>
-                    <li>Data portability</li>
-                    <li>Object to processing</li>
-                    <li>Withdraw consent at any time</li>
+                  <h2 className="text-2xl font-bold text-white mb-4">8. Cookies und Tracking</h2>
+                  <p>
+                    OpenNoiseNet setzt <strong>kein Tracking</strong> und <strong>keine Werbe- oder
+                    Analyse-Cookies</strong> ein. Es werden keine Tracking-Pixel, keine
+                    Fingerprinting-Techniken und keine Drittanbieter-Skripte für Marketing-Zwecke
+                    verwendet.
+                  </p>
+                  <p className="mt-3">
+                    Ausschließlich technisch notwendige, funktionale Session-Cookies können zum Einsatz
+                    kommen — etwa für die Authentifizierung im Konto-Bereich. Diese Cookies sind von der
+                    Einwilligungspflicht nach § 25 TTDSG ausgenommen und werden beim Abmelden gelöscht.
+                  </p>
+                </div>
+                <div>
+                  <h2 className="text-2xl font-bold text-white mb-4">9. Ihre Rechte</h2>
+                  <p>
+                    Sie haben gemäß DSGVO folgende Rechte bezüglich Ihrer personenbezogenen Daten:
+                  </p>
+                  <ul className="list-disc list-inside space-y-2 mt-3">
+                    <li>
+                      <strong>Auskunft (Art. 15 DSGVO)</strong> — Sie können Auskunft darüber verlangen,
+                      welche Daten wir über Sie gespeichert haben.
+                    </li>
+                    <li>
+                      <strong>Berichtigung (Art. 16 DSGVO)</strong> — Sie können die Korrektur
+                      unrichtiger Daten verlangen.
+                    </li>
+                    <li>
+                      <strong>Löschung (Art. 17 DSGVO)</strong> — Sie können die unverzügliche Löschung
+                      Ihrer Daten verlangen (&quot;Recht auf Vergessenwerden&quot;).
+                    </li>
+                    <li>
+                      <strong>Einschränkung der Verarbeitung (Art. 18 DSGVO)</strong> — Sie können die
+                      Einschränkung der Verarbeitung Ihrer Daten verlangen.
+                    </li>
+                    <li>
+                      <strong>Datenübertragbarkeit (Art. 20 DSGVO)</strong> — Sie können die Herausgabe
+                      Ihrer Daten in einem maschinenlesbaren Format verlangen.
+                    </li>
+                    <li>
+                      <strong>Widerspruch (Art. 21 DSGVO)</strong> — Sie können der Verarbeitung Ihrer
+                      Daten jederzeit widersprechen.
+                    </li>
+                    <li>
+                      <strong>Widerruf der Einwilligung (Art. 7 Abs. 3 DSGVO)</strong> — Sie können
+                      Ihre Einwilligung jederzeit ohne Angabe von Gründen widerrufen.
+                    </li>
                   </ul>
+                  <p className="mt-4">
+                    Zur Ausübung Ihrer Rechte wenden Sie sich an:{' '}
+                    <a href="mailto:business@moinsen.dev" className="text-warn-400 hover:underline">
+                      business@moinsen.dev
+                    </a>
+                  </p>
+                </div>
+                <div>
+                  <h2 className="text-2xl font-bold text-white mb-4">10. Beschwerderecht bei einer Aufsichtsbehörde</h2>
+                  <p>
+                    Wenn Sie der Ansicht sind, dass die Verarbeitung Ihrer personenbezogenen Daten gegen
+                    die DSGVO verstößt, haben Sie das Recht, sich bei einer Datenschutz-Aufsichtsbehörde
+                    zu beschweren (Art. 77 DSGVO).
+                  </p>
+                  <p className="mt-3">
+                    Die für uns zuständige Aufsichtsbehörde ist:
+                  </p>
+                  <address className="not-italic mt-2">
+                    Der Hamburgische Beauftragte für Datenschutz und Informationsfreiheit<br />
+                    Ludwig-Erhard-Str. 22, 7. OG<br />
+                    20459 Hamburg<br />
+                    Telefon: 040 / 428 54 - 4040<br />
+                    E-Mail:{' '}
+                    <a href="mailto:mailbox@datenschutz.hamburg.de" className="text-warn-400 hover:underline">
+                      mailbox@datenschutz.hamburg.de
+                    </a>
+                  </address>
+                </div>
+                <div>
+                  <h2 className="text-2xl font-bold text-white mb-4">11. Änderungen dieser Datenschutzerklärung</h2>
+                  <p>
+                    Wir behalten uns vor, diese Datenschutzerklärung anzupassen, um sie an geänderte
+                    Rechtslagen, neue Funktionen der Plattform oder Änderungen der Datenverarbeitung
+                    anzupassen. Die aktuelle Version finden Sie stets auf dieser Seite. Über wesentliche
+                    Änderungen informieren wir registrierte Nutzer per E-Mail.
+                  </p>
                 </div>
               </section>
-              
-              <div className="border-t border-slate-600 pt-8 mt-8">
-                <h2 className="text-2xl font-bold text-white mb-4">Deutsche Version (DSGVO)</h2>
-                
-                <section className="space-y-6 text-slate-300">
-                  <div>
-                    <h3 className="text-xl font-semibold text-white mb-3">1. Verantwortlicher</h3>
-                    <p>
-                      OpenNoiseNet ist ein gemeinschaftlich betriebenes Open-Source-Projekt. Für datenschutzrechtliche Anfragen zu dieser Website kontaktieren Sie bitte: 
-                      <a href="mailto:privacy@opennosienet.org" className="text-warn-400 hover:underline ml-1">
-                        privacy@opennosienet.org
-                      </a>
-                    </p>
-                  </div>
-
-                  <div>
-                    <h3 className="text-xl font-semibold text-white mb-3">2. Erhobene Daten</h3>
-                    <h4 className="text-lg font-medium text-warn-400 mb-2">Website-Daten:</h4>
-                    <ul className="list-disc list-inside space-y-1 mb-4">
-                      <li>Server-Logfiles (IP-Adresse, Browser-Typ, Zugriffszeitpunkt)</li>
-                      <li>Cookie-Präferenzen und Einwilligungsentscheidungen</li>
-                      <li>Analytics-Daten (nur mit Ihrer Einwilligung)</li>
-                    </ul>
-                    
-                    <h4 className="text-lg font-medium text-warn-400 mb-2">Cookies und Tracking:</h4>
-                    <ul className="list-disc list-inside space-y-1 mb-4">
-                      <li><strong>Essentielle Cookies:</strong> Erforderlich für Sicherheit, Consent-Management und Kernfunktionalität</li>
-                      <li><strong>Funktionale Cookies:</strong> Speichern Ihre Präferenzen (Story-Einstellungen, Theme-Auswahl)</li>
-                      <li><strong>Analytics Cookies:</strong> Google Analytics (anonymisiert, nur mit Einwilligung)</li>
-                      <li><strong>Marketing Cookies:</strong> Messung von Verweisen und Outreach-Aktivitäten (nur mit Einwilligung)</li>
-                    </ul>
-                    
-                    <h4 className="text-lg font-medium text-warn-400 mb-2">Sensornetzwerk-Daten:</h4>
-                    <ul className="list-disc list-inside space-y-1">
-                      <li>Anonymisierte Lärmmessungen (dB-Werte)</li>
-                      <li>GPS-Koordinaten (ungefährer Standort, keine genauen Adressen)</li>
-                      <li>Zeitstempel und Sensor-ID (randomisiert)</li>
-                      <li>Optional: Verschlüsselte Audio-Schnipsel (Löschung nach 7 Tagen)</li>
-                    </ul>
-                  </div>
-
-                  <div>
-                    <h3 className="text-xl font-semibold text-white mb-3">3. Rechtsgrundlage</h3>
-                    <p>
-                      Die Datenverarbeitung erfolgt auf Grundlage von:
-                    </p>
-                    <ul className="list-disc list-inside space-y-1 mt-2">
-                      <li><strong>Berechtigtes Interesse (Art. 6 Abs. 1 lit. f DSGVO):</strong> Betrieb der Website und des Sensornetzwerks</li>
-                      <li><strong>Einwilligung (Art. 6 Abs. 1 lit. a DSGVO):</strong> Analytics-Cookies, Marketing-Cookies und optionale Audio-Daten</li>
-                      <li><strong>Öffentliche Aufgabe (Art. 6 Abs. 1 lit. e DSGVO):</strong> Umweltforschung und öffentliche Gesundheit</li>
-                    </ul>
-                  </div>
-
-                  <div>
-                    <h3 className="text-xl font-semibold text-white mb-3">4. Speicherdauer</h3>
-                    <ul className="list-disc list-inside space-y-1">
-                      <li>Server-Logs: 30 Tage</li>
-                      <li>Lärmmessungen: 2 Jahre (anonymisiert)</li>
-                      <li>Audio-Schnipsel: 7 Tage (verschlüsselt, nur für ML-Verarbeitung)</li>
-                    </ul>
-                  </div>
-
-                  <div>
-                    <h3 className="text-xl font-semibold text-white mb-3">5. Cookie-Verwaltung</h3>
-                    <p className="mb-4">
-                      Wir verwenden Cookies, um Ihre Erfahrung zu verbessern und wesentliche Funktionen bereitzustellen. 
-                      Sie können Ihre Cookie-Präferenzen jederzeit verwalten.
-                    </p>
-                    <div className="bg-slate-700/50 rounded-lg p-4 mb-4">
-                      <h4 className="text-lg font-medium text-warn-400 mb-2">Cookie-Kategorien:</h4>
-                      <ul className="list-disc list-inside space-y-2">
-                        <li><strong>Essenziell:</strong> Können nicht deaktiviert werden. Erforderlich für Sicherheit und Grundfunktionen.</li>
-                        <li><strong>Funktional:</strong> Speichern Ihre Präferenzen und Einstellungen. Standardmäßig aktiviert.</li>
-                        <li><strong>Analytics:</strong> Helfen uns, die Website-Nutzung zu verstehen. Google Analytics mit IP-Anonymisierung.</li>
-                        <li><strong>Marketing:</strong> Messen Outreach- und Referral-Wirkung.</li>
-                      </ul>
-                    </div>
-                    <p className="text-sm">
-                      <Link href="/cookie-preferences" className="text-warn-400 hover:underline">
-                        → Cookie-Präferenzen verwalten
-                      </Link>
-                    </p>
-                  </div>
-
-                  <div>
-                    <h3 className="text-xl font-semibold text-white mb-3">6. Ihre Rechte (DSGVO)</h3>
-                    <p>Sie haben das Recht auf:</p>
-                    <ul className="list-disc list-inside space-y-1 mt-2">
-                      <li>Auskunft über Ihre personenbezogenen Daten</li>
-                      <li>Berichtigung unrichtiger Daten</li>
-                      <li>Löschung Ihrer Daten (&quot;Recht auf Vergessenwerden&quot;)</li>
-                      <li>Einschränkung der Verarbeitung</li>
-                      <li>Datenübertragbarkeit</li>
-                      <li>Widerspruch gegen die Verarbeitung</li>
-                      <li>Widerruf der Einwilligung jederzeit</li>
-                    </ul>
-                  </div>
-                </section>
-              </div>
             </div>
           </div>
         </div>

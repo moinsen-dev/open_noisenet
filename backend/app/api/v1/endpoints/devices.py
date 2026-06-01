@@ -3,7 +3,7 @@
 from typing import List, Optional
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
@@ -135,6 +135,124 @@ async def list_devices(
     result = await db.execute(stmt)
     devices = result.scalars().all()
     return [DeviceResponse.model_validate(device) for device in devices]
+
+
+@router.get("/{device_id}/timeline")
+async def device_timeline(
+    device_id: str,
+    date: Optional[str] = Query(None, description="Date in YYYY-MM-DD format"),
+    db: AsyncSession = Depends(get_session),
+):
+    """Get daily noise timeline for a device including episodes and events."""
+    from datetime import date as date_type, datetime, timedelta, timezone
+    from app.db.models.event import Event
+    from app.db.models.pro_domain import Episode
+
+    # Resolve device
+    stmt = select(Device).where(Device.device_id == device_id)
+    result = await db.execute(stmt)
+    dev = result.scalar_one_or_none()
+    if not dev:
+        raise HTTPException(status_code=404, detail="Device not found")
+
+    # Default to today
+    target_date = date_type.today()
+    if date:
+        target_date = date_type.fromisoformat(date)
+
+    day_start = datetime(target_date.year, target_date.month, target_date.day, tzinfo=timezone.utc)
+    day_end = day_start + timedelta(days=1)
+
+    # Get events for this device on this day
+    event_stmt = (
+        select(Event)
+        .where(
+            Event.device_id == dev.id,
+            Event.timestamp_start >= day_start,
+            Event.timestamp_start < day_end,
+        )
+        .order_by(Event.timestamp_start.asc())
+    )
+    event_result = await db.execute(event_stmt)
+    events = event_result.scalars().all()
+
+    # Get episodes linked to these events
+    episode_ids = {e.episode_id for e in events if e.episode_id}
+    episodes = []
+    if episode_ids:
+        ep_stmt = select(Episode).where(Episode.id.in_(episode_ids))
+        ep_result = await db.execute(ep_stmt)
+        episodes = ep_result.scalars().all()
+
+    # Build response
+    episode_map = {ep.id: ep for ep in episodes}
+
+    return {
+        "device_id": device_id,
+        "date": target_date.isoformat(),
+        "events": [
+            {
+                "id": str(e.id),
+                "timestamp_start": e.timestamp_start.isoformat() if e.timestamp_start else None,
+                "leq_db": e.leq_db,
+                "lmax_db": e.lmax_db,
+                "classification_label": e.classification_label,
+                "status": e.status,
+                "episode_id": str(e.episode_id) if e.episode_id else None,
+            }
+            for e in events
+        ],
+        "episodes": [
+            {
+                "id": str(ep.id),
+                "primary_class": ep.primary_class,
+                "class_family": ep.class_family,
+                "label_de": _get_german_label(ep.primary_class),
+                "started_at": ep.started_at.isoformat() if ep.started_at else None,
+                "ended_at": ep.ended_at.isoformat() if ep.ended_at else None,
+                "severity": ep.severity,
+                "nuisance_score": ep.nuisance_score,
+                "event_count": ep.event_count,
+                "quiet_hours_triggered": ep.quiet_hours_triggered,
+                "avg_leq_db": ep.review_metadata.get("avg_leq_db") if ep.review_metadata else None,
+            }
+            for ep in episodes
+        ],
+        "summary": _build_timeline_summary(events, episodes),
+    }
+def _get_german_label(primary_class: str) -> str:
+    labels = {
+        "construction_noise": "Baustellenlärm",
+        "traffic_noise": "Verkehrslärm",
+        "conversation_dispute": "Lautes Gespräch / Streit",
+        "music_party": "Musik / Party",
+        "mechanical_hvac": "Maschinen- / Klimaanlagenlärm",
+        "animal_barking": "Hundegebell / Tierlaute",
+        "alarm_siren": "Alarm / Sirene",
+        "impulsive_noise": "Impulsiver Lärm",
+        "sustained_noise": "Dauerschall",
+    }
+    return labels.get(primary_class, primary_class.replace("_", " ").title())
+def _build_timeline_summary(events, episodes):
+    """Build a human-readable summary of the day's noise."""
+    if not episodes:
+        # If no episodes, check if there's any sustained noise
+        sustained = [e for e in events if e.leq_db and e.leq_db > 55]
+        if sustained:
+            avg = sum(e.leq_db for e in sustained) / len(sustained)
+            return f"Durchgehend erhöhter Pegel: {len(sustained)} Events, ø {avg:.0f} dB"
+        return "Keine nennenswerten Lärmereignisse"
+    parts = []
+    for ep in sorted(episodes, key=lambda e: e.started_at):
+        label = _get_german_label(ep.primary_class)
+        start = ep.started_at.strftime("%H:%M") if ep.started_at else "?"
+        end = ep.ended_at.strftime("%H:%M") if ep.ended_at else "?"
+        avg = ep.review_metadata.get("avg_leq_db") if ep.review_metadata else "?"
+        parts.append(f"{start}–{end}: {label} ({ep.event_count} Events, ø {avg} dB)")
+    return " | ".join(parts)
+
+
+@router.delete("/{device_id}", status_code=204)
 
 
 @router.delete("/{device_id}", status_code=204)

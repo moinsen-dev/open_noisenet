@@ -5,7 +5,7 @@ services:
 
   frontend:
     ports:
-      - "127.0.0.1:3100:3000"
+      - "127.0.0.1:3131:3000"
     build:
       args:
         - VITE_API_URL=/api/v1

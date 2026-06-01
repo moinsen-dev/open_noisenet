@@ -97,3 +97,4 @@ mobile/ios/build/
 
 # Git worktrees
 .worktrees/
+.env.prod

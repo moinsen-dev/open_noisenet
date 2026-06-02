@@ -1,10 +1,10 @@
 # OpenNoiseNet — German Rollout Plan
 
 **Status:** Planning · **Last updated:** 2026-06-02
-**Phase:** 2 (after Berlin pilot proven, stabilization gate closed)
+**Phase:** 2 (after Hamburg pilot proven, stabilization gate closed)
 **Timeline:** Q4 2026 – Q2 2027
 
-This document operationalizes the German rollout phase from the Business Strategy (§5.2) and Pro Roadmap. It assumes the Berlin pilot (Phase 1) has validated the full stack with 100 devices and at least one Bezirksamt partnership.
+This document operationalizes the German rollout phase from the Business Strategy (§5.2) and Pro Roadmap. It assumes the Hamburg pilot (Phase 1) has validated the full stack with 100 devices and at least one Bezirksamt partnership.
 
 ---
 
@@ -17,7 +17,7 @@ This document operationalizes the German rollout phase from the Business Strateg
 | 3 | **Cologne** | Rhine corridor traffic noise, event noise (Karneval, concerts). Strong Bürgerinitiative culture. | Umwelt- und Verbraucherschutzamt |
 | 4 | **Frankfurt** | Airport (FRA) — Europe's 4th busiest, persistent community complaints. Financial hub = potential Pro customers. | Umweltamt Frankfurt, Fluglärmkommission |
 
-**Expansion logic**: Each city gets the same playbook as Berlin — pitch the Umweltamt, recruit 50–100 volunteer device hosts, run a 90-day pilot, publish a city-specific noise report, hold a Bürgerveranstaltung.
+**Expansion logic**: Each city gets the same playbook as Hamburg — pitch the Umweltamt, recruit 50–100 volunteer device hosts, run a 90-day pilot, publish a city-specific noise report, hold a Bürgerveranstaltung.
 
 ---
 
@@ -36,11 +36,11 @@ This document operationalizes the German rollout phase from the Business Strateg
 
 - Target **Lärmschutzbeauftragte** in each city's Umweltamt — they are legally required, under-resourced, and hungry for data.
 - Each city pilot produces a **Lärmaktionsplan input report** — directly feeds the 5-year END update cycle.
-- Offer cities the **Bezirksamt playbook** proven in Berlin: 50–100 devices, 90-day run, public report, Bürgerveranstaltung.
+- Offer cities the **Bezirksamt playbook** proven in Hamburg: 50–100 devices, 90-day run, public report, Bürgerveranstaltung.
 
 ### 2.3 Academic Partners
 
-- **TU Berlin** (Akustik): Calibration methodology validation, peer-reviewed publication.
+- **TU Hamburg** (Akustik): Calibration methodology validation, peer-reviewed publication.
 - **HCU Hamburg** (City Science Lab): Urban data integration, map layer interoperability.
 - **Uni Stuttgart** (Lärmwirkung): Health impact correlation studies.
 
@@ -50,7 +50,7 @@ This document operationalizes the German rollout phase from the Business Strateg
 
 | Outlet | Type | Angle | Timing |
 |---|---|---|---|
-| **Tagesspiegel** (Berlin → national) | Print/online | Local angle: "Wie laut ist Ihre Stadt wirklich?" Data-driven comparisons between cities. | City launch + report publication |
+| **Tagesspiegel** (Hamburg → national) | Print/online | Local angle: "Wie laut ist Ihre Stadt wirklich?" Data-driven comparisons between cities. | City launch + report publication |
 | **ZEIT / ZEIT Online** | National weekly | Feature: "Die Lärm-Revolution von unten" — long-form citizen-science narrative. | Mid-rollout, after 2+ cities live |
 | **Spiegel Online** | National news | Data story: noise maps across German cities, interactive comparisons. | Early 2027, when map has 4-city coverage |
 | **Deutschlandfunk** | National radio | Feature + interview: live device demo, noise-affected resident interview. Audio-friendly topic. | Q1 2027 |
@@ -133,7 +133,7 @@ This document operationalizes the German rollout phase from the Business Strateg
 
 | Risk | Impact | Mitigation |
 |---|---|---|
-| **City bureaucracy stalls permit/partnership** | Delayed launch | Start Umweltamt conversations 3 months before planned launch. Have the Berlin Bezirksamt reference case ready. |
+| **City bureaucracy stalls permit/partnership** | Delayed launch | Start Umweltamt conversations 3 months before planned launch. Have the Hamburg Bezirksamt reference case ready. |
 | **Device supply bottleneck** | Can't meet host demand | Pre-order ESP32+INMP441 kits in batches of 200. Partner with German electronics distributor (BerryBase, Reichelt) for bulk pricing. |
 | **Community fatigue after pilot hype** | Device attrition, data gaps | City captain model. Monthly engagement (events, blog posts, data stories). Gamification: "Quietest street in Hamburg" leaderboard. |
 | **Server scaling under load** | Degraded uptime, data loss | Load-test at 1,000-device scale during Q3 2026 (pre-rollout). TimescaleDB proven at this scale. CDN for map tiles. |

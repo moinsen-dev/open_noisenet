@@ -84,14 +84,14 @@ export default function PilotPage() {
       <section className="pt-32 pb-16 px-4 sm:px-6 lg:px-8">
         <div className="max-w-4xl mx-auto text-center">
           <div className="inline-flex items-center rounded-full border border-warn-500/30 bg-warn-500/10 px-4 py-2 text-sm font-medium text-warn-300 mb-6">
-            Berlin Pilotprogramm — Juli–September 2026
+            Hamburg Pilotprogramm — Juli–September 2026
           </div>
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white leading-tight mb-6">
             Werde Teil des
             <span className="text-warn-400 block">Lärmschutz-Netzwerks</span>
           </h1>
           <p className="text-lg text-slate-300 max-w-2xl mx-auto">
-            100 kostenlose Messgeräte für Berliner Bürger:innen — gemeinsam machen wir
+            100 kostenlose Messgeräte für Hamburger Bürger:innen — gemeinsam machen wir
             Lärmbelastung sichtbar und schaffen die Datengrundlage für wirksamen Lärmschutz.
           </p>
         </div>
@@ -101,14 +101,14 @@ export default function PilotPage() {
       <section className="py-16 px-4 sm:px-6 lg:px-8">
         <div className="max-w-4xl mx-auto">
           <div className="bg-slate-800/50 rounded-xl p-8 border border-slate-700">
-            <h2 className="text-2xl font-semibold text-white mb-4">Was ist das Berliner Pilotprogramm?</h2>
+            <h2 className="text-2xl font-semibold text-white mb-4">Was ist das Hamburger Pilotprogramm?</h2>
             <p className="text-slate-300 mb-4">
-              OpenNoiseNet startet im Juli 2026 ein dreimonatiges Pilotprogramm in Berlin.
+              OpenNoiseNet startet im Juli 2026 ein dreimonatiges Pilotprogramm in Hamburg.
               Wir statten 100 Haushalte mit kostengünstigen Lärm-Messgeräten aus und bauen
               gemeinsam das erste offene, datenschutzkonforme Lärm-Monitoring-Netzwerk der Hauptstadt auf.
             </p>
             <p className="text-slate-300">
-              Ziel ist es, belastbare Echtzeit-Daten zur Lärmbelastung in Berlin zu sammeln —
+              Ziel ist es, belastbare Echtzeit-Daten zur Lärmbelastung in Hamburg zu sammeln —
               für Bürger:innen, Initiativen, Wissenschaft und Verwaltung. Die gewonnenen Daten
               fließen in eine öffentliche Karte und helfen, Lärmschutz-Maßnahmen evidenzbasiert
               zu planen.
@@ -290,9 +290,9 @@ export default function PilotPage() {
           <h2 className="text-3xl font-bold text-white mb-12">Partner</h2>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-8">
             {[
-              { name: 'Senatsverwaltung', subtitle: 'für Umwelt, Verkehr und Klimaschutz' },
-              { name: 'TU Berlin', subtitle: 'Fachgebiet Akustik' },
-              { name: 'BUND Berlin', subtitle: 'Bund für Umwelt und Naturschutz' },
+              { name: 'Behörde für Umwelt, Klima, Energie und Agrarwirtschaft', subtitle: 'für Umwelt, Verkehr und Klimaschutz' },
+              { name: 'TU Hamburg', subtitle: 'Fachgebiet Akustik' },
+              { name: 'BUND Hamburg', subtitle: 'Bund für Umwelt und Naturschutz' },
             ].map((partner) => (
               <div
                 key={partner.name}
@@ -397,7 +397,7 @@ export default function PilotPage() {
               <h4 className="text-white font-semibold mb-4">Kontakt</h4>
               <div className="space-y-2 text-sm text-slate-400">
                 <p>OpenNoiseNet Community</p>
-                <p>Berlin, Deutschland</p>
+                <p>Hamburg, Deutschland</p>
                 <a href="mailto:pilot@opennoienet.org" className="text-warn-400 hover:text-warn-300 transition-colors">
                   pilot@opennoienet.org
                 </a>

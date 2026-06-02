@@ -1,4 +1,4 @@
-# Pilot Scaling Checklist — Berlin 100-Device Deployment
+# Pilot Scaling Checklist — Hamburg 100-Device Deployment
 
 **Status: Planning | Last updated: June 2026**
 
@@ -130,7 +130,7 @@ Per DSGVO Art. 35 erforderlich bei systematischer Überwachung öffentlicher Rä
   - [ ] Retention: raw events 12 months, aggregates indefinite
 - [ ] Appoint data protection contact (can be founder for pilot scale)
 - [ ] Publish DPIA summary on website (transparency)
-- [ ] Register processing activities with Berlin DPA (Berliner Beauftragte für Datenschutz)
+- [ ] Register processing activities with Hamburg DPA (Hamburger Beauftragte für Datenschutz)
 
 ### 3.2 Nutzungsbedingungen (Terms of Use)
 
@@ -186,7 +186,7 @@ Per DSGVO Art. 35 erforderlich bei systematischer Überwachung öffentlicher Rä
 | Week | Tasks |
 |---|---|
 | W13–14 | Consolidate final report; publish open dataset; stakeholder debriefs |
-| W15 | Decision gate: proceed to permanent Berlin network? Expand to other cities? |
+| W15 | Decision gate: proceed to permanent Hamburg network? Expand to other cities? |
 | W16 | Transition plan: participant devices transfer to permanent program or return |
 
 ---

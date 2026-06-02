@@ -1,9 +1,9 @@
-# Outreach-Vorlagen — Berlin Pilotprogramm
+# Outreach-Vorlagen — Hamburg Pilotprogramm
 
 **Stand: Juni 2026**
 
 Diese Vorlagen dienen als Grundlage für die Ansprache von Partner-Organisationen und
-Multiplikator:innen für das Berliner Pilotprogramm (Juli–September 2026).
+Multiplikator:innen für das Hamburger Pilotprogramm (Juli–September 2026).
 Bitte vor dem Versand personalisieren und an die jeweilige Organisation anpassen.
 
 ---
@@ -15,7 +15,7 @@ Bitte vor dem Versand personalisieren und an die jeweilige Organisation anpassen
 Sehr geehrte Damen und Herren,
 
 im Juli 2026 startet OpenNoiseNet ein dreimonatiges Pilotprogramm für zivilgesellschaftliches
-Lärm-Monitoring in Berlin. Wir statten 100 Haushalte mit kostengünstigen Messgeräten aus
+Lärm-Monitoring in Hamburg. Wir statten 100 Haushalte mit kostengünstigen Messgeräten aus
 und bauen ein offenes, datenschutzkonformes Messnetzwerk auf.
 
 **Warum das für Ihren Bezirk relevant ist:**
@@ -48,7 +48,7 @@ Lärmbelastung ist eines der drängendsten, aber am wenigsten sichtbaren
 Umweltprobleme in unseren Städten. OpenNoiseNet — eine offene, datenschutzkonforme
 Lärm-Monitoring-Plattform — macht Lärm messbar, sichtbar und politisch adressierbar.
 
-Im Juli 2026 beginnt unser Berliner Pilotprogramm mit 100 Messgeräten in Bürgerhand.
+Im Juli 2026 beginnt unser Hamburger Pilotprogramm mit 100 Messgeräten in Bürgerhand.
 Wir suchen Partner-Organisationen aus dem Umwelt- und Verkehrsbereich, die das Programm
 ideell unterstützen, bei der Teilnehmer:innen-Auswahl helfen oder die gewonnenen Daten
 für ihre Facharbeit nutzen möchten.
@@ -79,7 +79,7 @@ Sehr geehrte Damen und Herren,
 Sie setzen sich in Ihrer Initiative für weniger Lärm und mehr Lebensqualität ein —
 wir stellen die Technik dafür bereit.
 
-OpenNoiseNet startet im Juli 2026 ein Pilotprogramm in Berlin: 100 kostenlose Messgeräte
+OpenNoiseNet startet im Juli 2026 ein Pilotprogramm in Hamburg: 100 kostenlose Messgeräte
 für Bürger:innen, die Lärmbelastung in Echtzeit dokumentieren. Die Daten fließen in eine
 öffentliche Karte und stehen für Ihre Argumentation gegenüber Behörden und Politik zur
 Verfügung.
@@ -103,16 +103,16 @@ https://opennoienet.org
 
 ---
 
-## 4. Lokalpresse (Berliner Zeitungen, Stadtmagazine, Radio)
+## 4. Lokalpresse (Hamburger Zeitungen, Stadtmagazine, Radio)
 
-**Betreff:** Pressemitteilung: OpenNoiseNet startet Berliner Bürger-Lärmmonitoring
+**Betreff:** Pressemitteilung: OpenNoiseNet startet Hamburger Bürger-Lärmmonitoring
 
 Sehr geehrte Redaktion,
 
-**100 Berliner Haushalte werden zu Lärmschutz-Pionieren.**
+**100 Hamburger Haushalte werden zu Lärmschutz-Pionieren.**
 
 Im Juli 2026 startet OpenNoiseNet ein dreimonatiges Pilotprogramm: 100 kostenlose
-Messgeräte erfassen die Lärmbelastung in Berliner Wohnstraßen — in Echtzeit,
+Messgeräte erfassen die Lärmbelastung in Hamburger Wohnstraßen — in Echtzeit,
 datenschutzkonform und Open Source. Die Daten fließen in eine öffentliche Karte und
 schaffen erstmals eine fein aufgelöste, bürgergetragene Datengrundlage für Lärmschutz.
 

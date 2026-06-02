@@ -106,11 +106,11 @@ This section builds on the detailed playbook in `FUNDING.md`. The table below pr
 | **NLnet Foundation** | Open-source, privacy-respecting internet tech. | €5k–50k per project |
 | **Stiftung Mercator** | Climate, participation, urban transformation. | €50k–200k |
 | **Volkswagen Stiftung** | "Pioniervorhaben" for citizen science + tech. | €100k–500k |
-| **Carbon13** | Climate tech accelerator (Berlin hub). | €80k investment + 6-month programme |
+| **Carbon13** | Climate tech accelerator (Hamburg hub). | €80k investment + 6-month programme |
 
 ### 3.4 Smart City Tenders
 
-- **Berlin**: Senate Department for Urban Mobility, Transport, Climate (SenMVKU) regularly tenders pilot projects for smart city tech. The "Gemeinsam Digital: Berlin" strategy explicitly funds citizen-science monitoring.
+- **Hamburg**: Senate Department for Urban Mobility, Transport, Climate (SenMVKU) regularly tenders pilot projects for smart city tech. The "Gemeinsam Digital: Hamburg" strategy explicitly funds citizen-science monitoring.
 - **Hamburg**: "MySMARTLife" programme and the City Science Lab at HCU are open to environmental monitoring partnerships.
 - **Munich**: "Smarter Together" follow-up projects; noise is a documented concern in several Bezirksausschüsse.
 
@@ -124,7 +124,7 @@ OpenNoiseNet's value proposition is inherently political: it gives citizens, NGO
 
 | Target | Why They Care | Starting Point |
 |---|---|---|
-| **Umweltausschuss** (Berlin Abgeordnetenhaus, Bezirksverordnetenversammlungen) | Noise is a top-3 citizen complaint category in every Berlin district. An open monitoring network gives them data-driven arguments for policy change. | Request a 15-min presentation slot. Bring a live map showing real device data from the pilot district. |
+| **Umweltausschuss** (Hamburg Abgeordnetenhaus, Bezirksverordnetenversammlungen) | Noise is a top-3 citizen complaint category in every Hamburg district. An open monitoring network gives them data-driven arguments for policy change. | Request a 15-min presentation slot. Bring a live map showing real device data from the pilot district. |
 | **Lärmschutzbeauftragte** (noise protection officers) | Legally required in many municipalities. Currently rely on sparse, expensive professional measurements. OpenNoiseNet fills the gap between complaint logs and professional surveys. | Approach directly with a pilot proposal for their district. |
 | **Bürgerinitiativen** (citizen action groups) | Already organized, already angry about specific noise sources (Tegel follow-up, A100 extension, club noise in Friedrichshain). They need data, not just anecdotes. | Offer free Pro Site tier for organized groups; provide export-ready reports for their petitions. |
 | **Umweltverbände** (BUND, NABU, DUH) | Noise is an environmental health issue. BUND already runs citizen-science air quality monitoring; noise is a natural extension. | Pitch as a complementary monitoring layer to their existing programmes. |
@@ -134,11 +134,11 @@ OpenNoiseNet's value proposition is inherently political: it gives citizens, NGO
 - **EU Environmental Noise Directive (END, 2002/49/EC)**: Requires member states to produce strategic noise maps and action plans every 5 years. Most cities rely on modeled data — OpenNoiseNet provides ground-truth validation and fills the gap between 5-year cycles.
 - **TA Lärm**: Germany's technical noise protection regulation. The Pro episode engine can be configured to flag TA Lärm exceedances automatically, producing legally structured evidence packages.
 - **DIN 45645**: Standard for assessing noise annoyance. Episode scoring (nuisance score, quiet-hours weighting) maps directly to the DIN's noise-rating levels.
-- **Berliner Lärmaktionsplan**: Updated every 5 years. The 2024–2029 plan explicitly mentions citizen participation in noise monitoring. A 2025/2026 pilot would feed directly into the next update cycle.
+- **Hamburger Lärmaktionsplan**: Updated every 5 years. The 2024–2029 plan explicitly mentions citizen participation in noise monitoring. A 2025/2026 pilot would feed directly into the next update cycle.
 
 ### 4.3 Pilot Strategy: Bezirksamt Partnership
 
-**Proposal**: Partner with one Berlin Bezirksamt (recommended: Friedrichshain-Kreuzberg or Neukölln — both have active noise complaints and engaged Bezirksverordnete) for a 3-month, 100-device trial.
+**Proposal**: Partner with one Hamburg Bezirksamt (recommended: Friedrichshain-Kreuzberg or Neukölln — both have active noise complaints and engaged Bezirksverordnete) for a 3-month, 100-device trial.
 
 **Structure**:
 1. Recruit 80–100 volunteer households and businesses across 3–5 noise hotspots.
@@ -154,7 +154,7 @@ OpenNoiseNet's value proposition is inherently political: it gives citizens, NGO
 
 | Outlet | Angle | Pitch |
 |---|---|---|
-| **Tagesspiegel** (Berlin) | Local angle: "Wie laut ist Ihre Straße wirklich? Bürger messen selbst." | Offer exclusive access to the pilot map + interviews with participating households. |
+| **Tagesspiegel** (Hamburg) | Local angle: "Wie laut ist Ihre Straße wirklich? Bürger messen selbst." | Offer exclusive access to the pilot map + interviews with participating households. |
 | **taz** | Civic tech + environmental justice: "Open Source gegen Lärm — eine Community nimmt es selbst in die Hand." | Pitch the citizen-science + open-source narrative. taz audience overlaps heavily with potential contributors. |
 | **Spiegel Online** | National: "Lärmkarten aus der Nachbarschaft — wie eine App Wohnqualität messbar macht." | Data-driven story with comparisons between districts. |
 | **Golem / heise online** | Tech: "ESP32 als Lärmsensor — OpenNoiseNet baut ein offenes Monitoring-Netz." | Hardware + software deep-dive. Attracts contributors. |
@@ -164,7 +164,7 @@ OpenNoiseNet's value proposition is inherently political: it gives citizens, NGO
 
 ## 5. Go-to-Market
 
-### 5.1 Phase 1: Berlin Pilot (Q3 2025 — Q1 2026)
+### 5.1 Phase 1: Hamburg Pilot (Q3 2025 — Q1 2026)
 
 **Objective**: Validate the full stack with 100 real devices in the field, generate a public noise map, secure first Bezirksamt partnership.
 
@@ -207,7 +207,7 @@ OpenNoiseNet's value proposition is inherently political: it gives citizens, NGO
 - **GitHub-first**: All development public. Good first issues tagged, contribution guide maintained. Monthly community calls.
 - **Citizen-scientist onboarding**: Step-by-step setup video, calibration walkthrough, data interpretation guide. Make it possible for a non-technical person to deploy a device in 30 minutes.
 - **University partnerships**: Offer free Portfolio tier to research groups. They supply devices, publish papers citing OpenNoiseNet — mutual credibility.
-- **Content marketing**: Blog series: "What we learned from 100 Berlin noise sensors", "How to read your neighborhood's noise profile", "The 10 loudest streets in [city] — and what the data says".
+- **Content marketing**: Blog series: "What we learned from 100 Hamburg noise sensors", "How to read your neighborhood's noise profile", "The 10 loudest streets in [city] — and what the data says".
 
 ---
 
@@ -259,7 +259,7 @@ OpenNoiseNet's value proposition is inherently political: it gives citizens, NGO
 | **Grants secured** | €100,000 | €250,000 | €200,000 |
 | **Total Revenue** | €107,200 | €304,200 | €433,800 |
 
-**Path to self-sustainability**: At ~1,200 Pro subscribers (mix of Site and Portfolio) plus modest data licensing, the SaaS revenue covers a 2-person team at Berlin rates. This is plausible by end of Year 3.
+**Path to self-sustainability**: At ~1,200 Pro subscribers (mix of Site and Portfolio) plus modest data licensing, the SaaS revenue covers a 2-person team at Hamburg rates. This is plausible by end of Year 3.
 
 ---
 
@@ -268,6 +268,6 @@ OpenNoiseNet's value proposition is inherently political: it gives citizens, NGO
 1. **Close the stabilization gate** (current priority — see `docs/current-status.md`). Android APK fix, 24h field runs on both platforms.
 2. **Harden Pro tenant isolation** (Phase 4 in the production-readiness plan). Cross-tenant regression tests are the #1 commercial blocker.
 3. **Submit Prototype Fund application** for the next round. €47.5k covers 6 months of mobile app hardening + on-device AI pipeline. Quickest money on the table.
-4. **Draft 2-page DBU Projektskizze** for a Berlin pilot. Use the Bezirksamt partnership structure from §4.3.
+4. **Draft 2-page DBU Projektskizze** for a Hamburg pilot. Use the Bezirksamt partnership structure from §4.3.
 5. **Identify and approach 2–3 Bezirksämter** with a concrete pilot proposal. Start with Friedrichshain-Kreuzberg (active noise complaints, green-party Bezirksbürgermeister, precedent for citizen-science cooperation).
 6. **Update landing page copy** to reflect Pro model once the stabilization gate closes. Current landing is intentionally minimal; add a "For Organizations" section with the SaaS tiers.

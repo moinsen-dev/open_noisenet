@@ -10,7 +10,7 @@ OpenNoiseNet ist eine offene, datenschutzkonforme Plattform für Lärm-Monitorin
 
 Die Plattform umfasst eine öffentliche Lärmkarte mit anonymisierten Messwerten, ein persönliches Dashboard für Teilnehmer:innen sowie ein Pro-Modul für Betreiber mit Episode-Erkennung, Fall-Management und rechtssicheren Export-Funktionen. Alle Komponenten sind Open Source (MIT-Lizenz), die Daten stehen unter ODC-ODbL. Der Betrieb erfolgt auf deutschen Servern mit Ende-zu-Ende-Datenschutz nach DSGVO.
 
-Im Juli 2026 startet das Berliner Pilotprogramm mit 100 Messgeräten, unterstützt von Partnern aus Wissenschaft und Zivilgesellschaft.
+Im Juli 2026 startet das Hamburger Pilotprogramm mit 100 Messgeräten, unterstützt von Partnern aus Wissenschaft und Zivilgesellschaft.
 
 ## Team
 
@@ -36,7 +36,7 @@ Im Juli 2026 startet das Berliner Pilotprogramm mit 100 Messgeräten, unterstüt
 
 > „Wir bauen bewusst auf Open Source und offene Daten. Lärmschutz darf kein teures Gutachten-Produkt sein — es braucht eine demokratische Datengrundlage, die allen zugänglich ist."
 
-## Erwartete Kennzahlen (Berlin Pilot, Q3 2026)
+## Erwartete Kennzahlen (Hamburg Pilot, Q3 2026)
 
 - **100** Messgeräte im Feld
 - **~3 Mio.** Messdatenpunkte pro Monat (bei 1/min pro Gerät)
@@ -49,7 +49,7 @@ Im Juli 2026 startet das Berliner Pilotprogramm mit 100 Messgeräten, unterstüt
 - **E-Mail:** press@opennoienet.org
 - **Web:** https://opennoienet.org
 - **GitHub:** https://github.com/moinsen-dev/open_noisenet
-- **Standort:** Berlin, Deutschland
+- **Standort:** Hamburg, Deutschland
 
 ## Download-Material
 

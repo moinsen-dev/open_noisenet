@@ -650,6 +650,9 @@ export default function Home() {
                 <Link href="/imprint" className="block text-slate-400 hover:text-white transition-colors">
                   Impressum
                 </Link>
+                <Link href="/security" className="block text-slate-400 hover:text-white transition-colors">
+                  Sicherheit / Security
+                </Link>
                 <Link href="/privacy" className="block text-slate-400 hover:text-white transition-colors">
                   Datenschutz
                 </Link>

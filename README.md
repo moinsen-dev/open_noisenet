@@ -10,7 +10,7 @@ The next product direction is documented as **OpenNoiseNet Pro**: a **Hybrid Pub
 
 ## Current Status
 
-The canonical status document is [docs/current-status.md](/Users/udi/work/moinsen/ideas/open_noisenet/docs/current-status.md).
+The canonical status document is [docs/current-status.md](docs/current-status.md).
 
 Use that document for:
 
@@ -19,7 +19,7 @@ Use that document for:
 - the current local development baseline
 - the current strategic direction
 
-The commercialization and finish-the-system roadmap lives in [docs/opennoisenet-pro-roadmap.md](/Users/udi/work/moinsen/ideas/open_noisenet/docs/opennoisenet-pro-roadmap.md).
+The commercialization and finish-the-system roadmap lives in [docs/opennoisenet-pro-roadmap.md](docs/opennoisenet-pro-roadmap.md).
 
 ## Repository Layout
 
@@ -102,7 +102,7 @@ Default local URLs:
 
 ## Contributing
 
-Contributor guidance lives in [CONTRIBUTING.md](/Users/udi/work/moinsen/ideas/open_noisenet/CONTRIBUTING.md).
+Contributor guidance lives in [CONTRIBUTING.md](CONTRIBUTING.md).
 
 The short version:
 
@@ -113,12 +113,12 @@ The short version:
 
 ## Planning Context
 
-The active implementation summary lives in [ImplementationPlan.md](/Users/udi/work/moinsen/ideas/open_noisenet/ImplementationPlan.md).
+The active implementation summary lives in [ImplementationPlan.md](ImplementationPlan.md).
 
 Use these planning documents in this order:
 
-- [docs/current-status.md](/Users/udi/work/moinsen/ideas/open_noisenet/docs/current-status.md) for current repo truth
-- [ImplementationPlan.md](/Users/udi/work/moinsen/ideas/open_noisenet/ImplementationPlan.md) for the active execution focus
-- [docs/execution-backlog.md](/Users/udi/work/moinsen/ideas/open_noisenet/docs/execution-backlog.md) for the ordered remaining work
-- [docs/opennoisenet-pro-roadmap.md](/Users/udi/work/moinsen/ideas/open_noisenet/docs/opennoisenet-pro-roadmap.md) for the commercialization roadmap
+- [docs/current-status.md](docs/current-status.md) for current repo truth
+- [ImplementationPlan.md](ImplementationPlan.md) for the active execution focus
+- [docs/execution-backlog.md](docs/execution-backlog.md) for the ordered remaining work
+- [docs/opennoisenet-pro-roadmap.md](docs/opennoisenet-pro-roadmap.md) for the commercialization roadmap
 - `docs/plans/` for supporting design notes and historical planning context

@@ -42,7 +42,7 @@ TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 DEVICE=$(curl -sf -X POST "$API/devices/register" \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer $TOKEN" \
-  -d "{\"device_id\":\"$DEVICE_ID\",\"name\":\"E2E Test Device\",\"firmware_version\":\"0.1.0\",\"latitude\":52.52,\"longitude\":13.405}")
+  -d "{\"device_id\":\"$DEVICE_ID\",\"name\":\"E2E Test Device\",\"firmware_version\":\"0.1.0\",\"location_lat\":52.52,\"location_lng\":13.405}")
 check $? "Device registered: $DEVICE_ID"
 
 # 4. Submit event
@@ -50,7 +50,7 @@ echo "--- 4. Submit Noise Event ---"
 EVENT=$(curl -sf -X POST "$API/events/" \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer $TOKEN" \
-  -d "{\"device_id\":\"$DEVICE_ID\",\"timestamp_start\":\"$TIMESTAMP\",\"timestamp_end\":\"$TIMESTAMP\",\"leq_db\":72.3,\"peak_db\":88.1,\"pct_over\":0.55,\"rule\":\"15min_Leq_over_65dBA\",\"latitude\":52.52,\"longitude\":13.405}")
+  -d "{\"device_id\":\"$DEVICE_ID\",\"timestamp_start\":\"$TIMESTAMP\",\"timestamp_end\":\"$TIMESTAMP\",\"leq_db\":72.3,\"lmax_db\":88.1,\"exceedance_pct\":0.55,\"rule_triggered\":\"15min_Leq_over_65dBA\",\"location_lat\":52.52,\"location_lng\":13.405}")
 check $? "Event submitted"
 
 EVENT_UUID=$(echo "$EVENT" | python3 -c "import json,sys; print(json.load(sys.stdin)['event_uuid'])")
@@ -74,7 +74,7 @@ echo "--- 7. Device Heartbeat ---"
 HB=$(curl -sf -X POST "$API/devices/$DEVICE_ID/heartbeat" \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer $TOKEN" \
-  -d "{\"device_id\":\"$DEVICE_ID\",\"timestamp\":\"$TIMESTAMP\",\"battery_level\":85,\"capture_active\":true,\"uptime_seconds\":3600}")
+  -d "{\"device_id\":\"$DEVICE_ID\",\"timestamp\":\"$TIMESTAMP\",\"battery_level\":85,\"status\":{\"capture_active\":true,\"uptime_seconds\":3600}}")
 check $? "Heartbeat submitted"
 
 # 8. Map endpoint

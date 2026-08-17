@@ -533,10 +533,15 @@ async def detect_episodes(
             ],
         }
 
-    # Process all devices
-    stmt = select(_distinct(Event.device_id)).where(
-        Event.episode_id.is_(None),
-        Event.timestamp_start.isnot(None),
+    # Process all devices: resolve public device_id strings via the devices join,
+    # because detect_episodes_for_device expects the public string, not the UUID FK.
+    stmt = (
+        select(_distinct(Device.device_id))
+        .join(Event, Event.device_id == Device.id)
+        .where(
+            Event.episode_id.is_(None),
+            Event.timestamp_start.isnot(None),
+        )
     )
     result = await db.execute(stmt)
     device_ids = [row[0] for row in result.fetchall()]

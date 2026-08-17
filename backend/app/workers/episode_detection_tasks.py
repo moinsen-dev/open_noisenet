@@ -39,9 +39,12 @@ def detect_all_episodes_task(self):
 
     async def _run():
         async with _async_session() as db:
-            # Get all device IDs with unassigned events
-            stmt = select(distinct(Event.device_id)).where(
-                Event.episode_id.is_(None)
+            # Get public device_id strings for devices with unassigned events
+            # (Event.device_id is the UUID FK; detect_episodes_for_device needs the public string)
+            stmt = (
+                select(distinct(Device.device_id))
+                .join(Event, Event.device_id == Device.id)
+                .where(Event.episode_id.is_(None))
             )
             result = await db.execute(stmt)
             device_ids = [row[0] for row in result.fetchall()]
@@ -62,3 +65,4 @@ def detect_all_episodes_task(self):
 
 # Need this import at module level for the Celery task
 from app.db.models.event import Event  # noqa: E402, F811
+from app.db.models.device import Device  # noqa: E402, F811

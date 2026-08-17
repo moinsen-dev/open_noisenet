@@ -226,7 +226,7 @@ void callbackDispatcher() {
         'data': result,
       });
 
-      return Future.value(true);
+      return true;
     } catch (e) {
       AppLogger.background('Background task failed: $e');
 
@@ -235,7 +235,7 @@ void callbackDispatcher() {
         'data': {'error': e.toString()},
       });
 
-      return Future.value(false);
+      return false;
     }
   });
 }

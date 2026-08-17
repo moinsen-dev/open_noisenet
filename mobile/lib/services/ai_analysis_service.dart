@@ -4,7 +4,6 @@ import 'dart:io';
 
 import 'audio_extraction_service.dart';
 import 'event_detection_service.dart';
-import 'cactus_ai_service.dart';
 import 'noise_pattern_analyzer.dart';
 import 'audio_processing_service.dart';
 import '../features/noise_monitoring/data/models/noise_event_model.dart';
@@ -14,17 +13,14 @@ import '../core/logging/app_logger.dart';
 
 /// Service that integrates continuous recording system with AI analysis capabilities
 class AIAnalysisService {
-  final CactusAIService _cactusAI;
   final NoisePatternAnalyzer _patternAnalyzer;
   final AudioExtractionService _extractionService = AudioExtractionService();
   final EventDetectionService _eventDetectionService = EventDetectionService();
   final AudioRecordingDao _audioRecordingDao = AudioRecordingDao();
 
   AIAnalysisService({
-    required CactusAIService cactusService,
     required NoisePatternAnalyzer patternAnalyzer,
-  }) : _cactusAI = cactusService,
-       _patternAnalyzer = patternAnalyzer;
+  }) : _patternAnalyzer = patternAnalyzer;
 
   // Analysis status tracking
   final Map<String, AnalysisStatus> _analysisQueue = {};
@@ -32,23 +28,15 @@ class AIAnalysisService {
       StreamController<AIAnalysisResult>.broadcast();
 
   Stream<AIAnalysisResult> get analysisResults => _resultController.stream;
-  bool get hasAnalysisCapability => _cactusAI.isReady;
 
-  /// Initialize the AI analysis service
+  /// On-device LLM analysis (cactus) was removed; local rule-based analysis only.
+  bool get hasAnalysisCapability => false;
+
+  /// Initialize the AI analysis service.
+  /// The on-device LLM (cactus) was removed; analysis uses local pattern rules.
   Future<bool> initialize() async {
-    try {
-      AppLogger.event('Initializing AI Analysis Service...');
-      final initialized = await _cactusAI.initialize();
-      if (initialized) {
-        AppLogger.success('AI Analysis Service initialized successfully');
-      } else {
-        AppLogger.event('AI Analysis Service will use fallback mode');
-      }
-      return initialized;
-    } catch (e) {
-      AppLogger.event('Error initializing AI Analysis Service: $e');
-      return false;
-    }
+    AppLogger.event('AI Analysis Service: on-device LLM unavailable, using local rule analysis');
+    return false;
   }
 
   /// Queue an event for AI analysis
@@ -167,73 +155,47 @@ class AIAnalysisService {
     }
   }
 
-  /// Perform the actual AI analysis using Cactus AI
+  /// Perform the actual analysis. The on-device LLM (cactus) was removed;
+  /// analysis now combines local pattern analysis with rule-based fallback.
   Future<AIAnalysisResult> _performAIAnalysis(Map<String, dynamic> analysisData) async {
     final eventId = analysisData['eventId'] as String;
     final extractedAudioPath = analysisData['extractedAudioPath'] as String?;
 
     try {
-      // Ensure Cactus AI is initialized
-      if (!_cactusAI.isReady) {
-        AppLogger.event('Initializing Cactus AI for event $eventId...');
-        final initialized = await _cactusAI.initialize();
-        if (!initialized) {
-          throw Exception('Failed to initialize Cactus AI service');
-        }
-      }
-
-      // Extract measurement data and analyze patterns
+      // Extract measurement data and analyze patterns locally
       final eventMetrics = analysisData['eventMetrics'] as Map<String, dynamic>? ?? {};
       final classification = analysisData['eventClassification'] as Map<String, dynamic>? ?? {};
       final measurements = analysisData['measurements'] as List<TimestampedSPL>? ?? [];
 
-      // Analyze noise patterns using the pattern analyzer
       final patternData = _patternAnalyzer.analyzePattern(
         measurements: measurements,
         eventStart: DateTime.now().subtract(Duration(seconds: (eventMetrics['durationSeconds'] as int?) ?? 0)),
         eventEnd: DateTime.now(),
       );
 
-      // Determine location and time context
-      final timeContext = '${patternData['time_of_day']} on ${patternData['day_of_week']}';
-      final locationContext = _patternAnalyzer.extractLocationContext(
-        analysisData['location'] as Map<String, dynamic>?
-      );
+      final leqDb = eventMetrics['leqDb'] as double? ?? 50.0;
+      final intensityClass = classification['intensityClass'] as String? ?? 'moderate';
 
-      // Use Cactus AI for intelligent pattern analysis
-      final aiResult = await _cactusAI.analyzeNoisePattern(
-        measurementData: patternData,
-        timeContext: timeContext,
-        locationContext: locationContext,
-      );
-
-      if (aiResult == null) {
-        throw Exception('Cactus AI analysis returned null result');
-      }
-
-      // Convert AI result to our format
       return AIAnalysisResult(
         eventId: eventId,
-        classification: aiResult['classification'] as String,
-        confidence: (aiResult['confidence'] as num).toDouble(),
+        classification: 'general_noise_fallback',
+        confidence: 0.3,
         insights: {
-          'likely_source': aiResult['likely_source'],
-          'health_impact': aiResult['health_impact'],
-          'regulatory_status': aiResult['regulatory_status'],
-          'characteristics': aiResult['characteristics'],
-          'recommendations': aiResult['recommendations'],
+          'likely_source': 'Unable to determine - AI analysis unavailable',
+          'impact_level': intensityClass,
+          'recommendation': 'Manual review recommended',
+          'acoustic_features': ['fallback_analysis'],
+          'regulatory_context': 'Standard noise ordinance applies',
+          'leq_db': leqDb,
           'pattern_analysis': patternData['pattern_summary'],
-          'llm_method': 'cactus_intelligent_analysis',
+          'analysis_method': 'local_pattern_rules',
         },
         processedAt: DateTime.now(),
-        analysisVersion: '3.0-cactus-qwen',
+        analysisVersion: '2.0-local-rules',
         extractedAudioPath: extractedAudioPath,
       );
-
     } catch (e) {
       AppLogger.event('AI analysis failed for event $eventId, using fallback: $e');
-
-      // Fallback to basic classification
       return _createFallbackAnalysis(eventId, analysisData, extractedAudioPath);
     }
   }

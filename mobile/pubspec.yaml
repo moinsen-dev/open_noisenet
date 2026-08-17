@@ -50,9 +50,6 @@ dependencies:
   workmanager: ^0.9.0+3
   tflite_flutter: ^0.11.0
 
-  # AI Processing with Cactus framework
-  cactus: ^0.2.4
-
   # Logging
   talker_flutter: ^5.0.0
 
@@ -75,7 +72,6 @@ flutter:
 
   assets:
     - assets/noisenet-icon.png
-    - assets/models/
 
 # Flutter Launcher Icons Configuration
 flutter_launcher_icons:
@@ -86,8 +82,8 @@ flutter_launcher_icons:
   web:
     generate: true
     image_path: "assets/noisenet-icon.png"
-    background_color: "#hexcode"
-    theme_color: "#hexcode"
+    background_color: "#ffffff"
+    theme_color: "#2E7D32"
   windows:
     generate: true
     image_path: "assets/noisenet-icon.png"

@@ -6,8 +6,6 @@ import FlutterMacOS
 import Foundation
 
 import audio_session
-import device_info_plus
-import flutter_js
 import flutter_sound
 import geolocator_apple
 import just_audio
@@ -18,8 +16,6 @@ import sqflite_darwin
 
 func RegisterGeneratedPlugins(registry: FlutterPluginRegistry) {
   AudioSessionPlugin.register(with: registry.registrar(forPlugin: "AudioSessionPlugin"))
-  DeviceInfoPlusMacosPlugin.register(with: registry.registrar(forPlugin: "DeviceInfoPlusMacosPlugin"))
-  FlutterJsPlugin.register(with: registry.registrar(forPlugin: "FlutterJsPlugin"))
   FlutterSoundPlugin.register(with: registry.registrar(forPlugin: "FlutterSoundPlugin"))
   GeolocatorPlugin.register(with: registry.registrar(forPlugin: "GeolocatorPlugin"))
   JustAudioPlugin.register(with: registry.registrar(forPlugin: "JustAudioPlugin"))

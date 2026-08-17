@@ -89,7 +89,6 @@ export default function DeviceTimelinePage() {
   if (error) return <Alert severity="error" sx={{ mt: 4 }}>{error}</Alert>
   if (!data) return <Alert severity="warning" sx={{ mt: 4 }}>Keine Daten</Alert>
 
-  const maxDb = Math.max(...data.events.map(e => e.leq_db), 80)
   const episodes = data.episodes
 
   return (

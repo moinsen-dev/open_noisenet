@@ -320,3 +320,5 @@
 .onn-consent button:not([role="switch"]) { color: #f8fafc; }
 .onn-consent button[aria-label] { color: #334155; }
 .onn-consent button:has(.lucide-chevron-up) { color: #334155; }
+/* The consent card is light even when the surrounding site is dark. */
+.onn-consent p { color: #475569; }

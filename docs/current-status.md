@@ -2,7 +2,7 @@
 
 ## Website update – 2026-11-04
 
-The public narrative now starts with personal noise burden and an open, privacy-conscious tool for understanding noise episodes. See the [website and GitHub review](website-story-and-github-review-2026-11-04.md) for current release evidence and issue decisions. The technical audit below is historical; it does not certify the newer, separate development branches or the running Pixel field test.
+The public narrative now starts with personal noise burden and an open, privacy-conscious tool for understanding noise episodes. PRs #69 and #70 are merged; 55 issues remain after one verified completion and two duplicate consolidations. See the [website and GitHub review](website-story-and-github-review-2026-11-04.md) for current release evidence and issue decisions. The technical audit below is historical; it does not certify the newer, separate development branches or the running Pixel field test.
 
 
 Last updated: 2026-08-17 (verified audit + stabilization fixes)

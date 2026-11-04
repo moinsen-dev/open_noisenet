@@ -124,3 +124,9 @@ PR #69: drei Dokumentationsdateien, +93/−10, keine Laufzeitänderung; relative
 ### Integrationsgrenze
 
 Am Ende dieses Abgleichs liegt `codex/fieldtest-visual-20261104` mit 35 zusätzlichen Commits außerhalb von develop. Dieser lokale Zweig hat keinen veröffentlichten Remote-Zweig. Seine App-/Backend-Arbeiten und privaten Prüfbelege wurden nicht stillschweigend mit dem öffentlichen Website-Release vermischt. Die Issues #12/#13/#15/#65/#67 bleiben deshalb ausdrücklich offen; vor einer technischen Gesamtrelease sind Inhaltsprüfung, Integration und die jeweiligen Tests erforderlich.
+
+## Abschlussbestätigung
+
+Stand gesichert und nach `develop` sowie `codex/site-story-20261104` gepusht. Website-Inhalt aus `a7ffd8c`, Kontrastkorrektur und Audit aus `5303cb4`. Auch der abschließende [GitHub-Pages-Lauf 41834465398](https://github.com/moinsen-dev/open_noisenet/actions/runs/41834465398) ist erfolgreich. Eigener lokaler Vorschauprozess und Browser-Testsession beendet; veröffentlichter Webcontainer und laufender Pixel-Test unberührt.
+
+Im Ideenkompass: **Stand - OpenNoiseNet zentrale Geschichte Webseite und GitHub 2026-11-04**. Klabauter-Abschnitt erhalten; neue Projektverweise dahinter angehängt.

@@ -23,6 +23,7 @@ export const hasSeenStory = (): boolean => {
 
 export const markStoryAsSeen = (): void => {
   if (typeof window === 'undefined') return;
+  if (!hasConsentFor('functional')) return;
   Cookies.set(COOKIES.HAS_SEEN_STORY, 'true', COOKIE_OPTIONS);
 };
 
@@ -34,6 +35,7 @@ export const hasSkipStoryPreference = (): boolean => {
 
 export const setSkipStoryPreference = (skip: boolean): void => {
   if (typeof window === 'undefined') return;
+  if (!hasConsentFor('functional')) return;
   if (skip) {
     Cookies.set(COOKIES.SKIP_STORY_PREFERENCE, 'true', COOKIE_OPTIONS);
     markStoryAsSeen(); // Also mark story as seen if skipped
@@ -52,6 +54,7 @@ export const clearStoryCookies = (): void => {
 // Check if this is a first-time visitor who should see the story
 export const shouldShowStoryFirst = (): boolean => {
   if (typeof window === 'undefined') return false;
+  if (!hasConsentFor('functional')) return false;
   return !hasSeenStory() && !hasSkipStoryPreference();
 };
 
@@ -66,7 +69,7 @@ export interface CookieConsent {
 export const DEFAULT_CONSENT: CookieConsent = {
   essential: true,       // Always required
   analytics: false,      // Default opt-out
-  functional: true,      // Default opt-in for better UX
+  functional: false,     // Optional cookies require an affirmative choice
   marketing: false,      // Default opt-out
 };
 
@@ -152,11 +155,8 @@ const cleanupNonConsentedCookies = (consent: CookieConsent): void => {
   
   // If functional not consented, remove functional cookies (except essential ones)
   if (!consent.functional) {
-    // Keep essential functional cookies but remove others
-    // Story cookies are considered functional
-    if (!consent.essential) {
-      clearStoryCookies();
-    }
+    // Story preference cookies are optional and must be removed on revocation.
+    clearStoryCookies();
   }
   
   // If marketing not consented, remove marketing cookies

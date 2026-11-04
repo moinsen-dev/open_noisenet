@@ -10,16 +10,19 @@ import {
   setConsentPreferences, 
   acceptAllCookies, 
   acceptEssentialOnly,
+  DEFAULT_CONSENT,
   type CookieConsent 
 } from '@/lib/cookies';
 import { ArrowLeft, Cookie, Shield, BarChart, Zap, Heart, CheckCircle, Info, Trash2 } from 'lucide-react';
 
 export default function CookiePreferencesPage() {
-  const [preferences, setPreferences] = useState<CookieConsent>(getConsentPreferences());
+  const [preferences, setPreferences] = useState<CookieConsent>(DEFAULT_CONSENT);
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
     // Load current preferences on client side
+    // Cookies are unavailable during static rendering; hydrate after mounting.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setPreferences(getConsentPreferences());
   }, []);
 
@@ -222,7 +225,7 @@ export default function CookiePreferencesPage() {
                 <div className="flex items-start gap-2">
                   <Info className="h-4 w-4 mt-0.5 flex-shrink-0" />
                   <div>
-                    <strong>Privacy:</strong> All data is anonymized and aggregated - we never track individual users
+                    <strong>Privacy:</strong> Analytics may process identifiers and usage data; its use depends on your consent and the site configuration.
                   </div>
                 </div>
               </div>

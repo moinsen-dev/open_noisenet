@@ -1,675 +1,103 @@
-'use client';
-
-import Image from 'next/image';
 import Link from 'next/link';
-import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { getAssetPath } from '@/lib/asset-path';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import NoiseVisualization from '@/components/noise-visualization';
-import { shouldShowStoryFirst } from '@/lib/cookies';
-import { 
-  Github, 
-  Smartphone, 
-  Users, 
-  BarChart3, 
-  Shield,
-  Globe,
-  Zap,
-  Heart,
-  MapPin,
-  Headphones,
-  Volume2,
-  Building,
-  Truck
-} from 'lucide-react';
+import { ArrowRight, AudioLines, Github, HeartHandshake, Mail, ShieldCheck } from 'lucide-react';
+import { SiteHeader, SiteFooter } from '@/components/site-frame';
+
+const repository = 'https://github.com/moinsen-dev/open_noisenet';
+const episodes = [
+  { time: '07:00–07:18', length: '18 Min.', label: 'Verkehr vermutet', width: '72%', kind: 'traffic' },
+  { time: '07:18–07:35', length: '17 Min.', label: 'Ruhigere Phase', width: '68%', kind: 'quiet' },
+  { time: '07:35–08:00', length: '25 Min.', label: 'Bauarbeiten vermutet', width: '100%', kind: 'building' },
+];
 
 export default function Home() {
-  const router = useRouter();
-
-  useEffect(() => {
-    // Check if this is a first-time visitor who should see the story
-    if (shouldShowStoryFirst()) {
-      router.push('/story');
-    }
-  }, [router]);
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
-      {/* Navigation */}
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-slate-950/80 backdrop-blur-md border-b border-slate-800">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-2">
-              <NoiseVisualization />
-              <span className="text-xl font-bold text-white">OpenNoiseNet</span>
+    <div className="onn-site">
+      <SiteHeader />
+      <main id="inhalt">
+        <section className="onn-shell onn-hero">
+          <div>
+            <p className="onn-eyebrow"><span /> Aus eigener Betroffenheit. Offen für alle.</p>
+            <h1>Lärm vergeht.<br />Die Belastung <em>bleibt.</em></h1>
+            <p className="onn-lead">Der Verkehr vor dem Fenster. Die Baustelle nebenan. Die nächste laute Nacht. Wer darunter leidet, braucht eine Möglichkeit, die eigene Erfahrung verständlich zu machen.</p>
+            <p className="onn-intro">Wir entwickeln OpenNoiseNet, damit Menschen erkennen können: <strong>Was war laut, wie lange – und wann war endlich Ruhe?</strong></p>
+            <div className="onn-actions">
+              <a className="onn-button" href="#mitmachen">Das Projekt unterstützen <ArrowRight size={18} /></a>
+              <Link className="onn-text-link" href="/story">Warum ich das baue <ArrowRight size={16} /></Link>
             </div>
-            <div className="hidden md:flex items-center space-x-6">
-              <Link href="/story" className="text-slate-300 hover:text-white transition-colors">
-                Our Story
-              </Link>
-              <Link href="/technology" className="text-slate-300 hover:text-white transition-colors">
-                Technology
-              </Link>
-              <Link href="#platform" className="text-slate-300 hover:text-white transition-colors">
-                Platform
-              </Link>
-              <Link href="#access" className="text-slate-300 hover:text-white transition-colors">
-                Access
-              </Link>
-              <Link href="#contribute" className="text-slate-300 hover:text-white transition-colors">
-                Contribute
-              </Link>
-              <Link href="#progress" className="text-slate-300 hover:text-white transition-colors">
-                Progress
-              </Link>
+            <p className="onn-small">Open Source · Aus Hamburg · In Entwicklung</p>
+          </div>
+          <figure className="onn-timeline">
+            <div className="onn-timeline-top"><span className="onn-label">Ein Morgen wird verständlich</span><AudioLines size={26} aria-hidden="true" /></div>
+            <div className="onn-timeline-heading">Mehr als ein<br /><span>einzelner Dezibelwert.</span></div>
+            <div className="onn-episodes">
+              {episodes.map(episode => (
+                <div key={episode.time} className={`onn-episode ${episode.kind}`}>
+                  <div><span>{episode.time}</span><span>{episode.length}</span></div>
+                  <div className="onn-episode-track"><div style={{ width: episode.width }} /></div>
+                  <p>{episode.label}</p>
+                </div>
+              ))}
+            </div>
+            <figcaption><strong>Illustration, keine Messdaten.</strong> So sollen zusammenhängende Zeiträume sichtbar werden. Ursache und Pegel müssen mit ihrer Unsicherheit ausgewiesen werden.</figcaption>
+          </figure>
+        </section>
+
+        <section id="geschichte" className="onn-band">
+          <div className="onn-shell onn-split">
+            <div><p className="onn-eyebrow">Warum es OpenNoiseNet gibt</p><h2>Ich kenne dieses Gefühl selbst.</h2></div>
+            <div className="onn-prose">
+              <p>Ich bin Udi, der Entwickler hinter Moinsen Development. Ich fühle mich selbst durch Lärm belästigt und gestresst. Und wenn ich durch manche Hamburger Straßen gehe, frage ich mich: Wie können Menschen hier zur Ruhe kommen?</p>
+              <p>Aus dieser persönlichen Frage ist OpenNoiseNet entstanden. Seit rund anderthalb Jahren beschäftige ich mich mit dem Projekt. Die ersten Versuche mit automatischer Geräuscherkennung zeigen mir, was möglich werden könnte: aus einzelnen lauten Momenten einen nachvollziehbaren Verlauf machen.</p>
+              <p><strong>Ich möchte, dass Betroffene ihre Belastung zeigen können – und mit anderen gemeinsam Wege zu mehr Ruhe finden.</strong></p>
+              <Link className="onn-text-link" href="/story">Die Geschichte hinter dem Projekt <ArrowRight size={16} /></Link>
             </div>
           </div>
-        </div>
-      </nav>
+        </section>
 
-      {/* Hero Section */}
-      <section className="pt-32 pb-20 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-            <div className="space-y-8">
-              <div className="space-y-4">
-                <div className="inline-flex items-center rounded-full border border-warn-500/30 bg-warn-500/10 px-4 py-2 text-sm font-medium text-warn-300">
-                  Stabilization gate active • Pro foundations implemented • Hardening in progress
-                </div>
-                <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white leading-tight">
-                  Privacy-First
-                  <span className="text-warn-400 block">Noise Monitoring</span>
-                  <span className="text-noise-400">for Public + Pro</span>
-                </h1>
-                <p className="text-xl text-slate-300 leading-relaxed">
-                  OpenNoiseNet is evolving into a Hybrid Public + Pro platform: smartphone field nodes and public map visibility on one side, operator workflows for episodes, cases, and exports on the other.
-                </p>
-              </div>
-              
-              <div className="flex flex-col sm:flex-row gap-4">
-                <Button 
-                  variant="noise" 
-                  size="lg" 
-                  className="text-lg px-8 py-6 h-auto"
-                  asChild
-                >
-                  <Link href="#platform">
-                    <BarChart3 className="w-5 h-5" />
-                    See the Current Platform
-                  </Link>
-                </Button>
-                
-                <Button 
-                  variant="outline" 
-                  size="lg" 
-                  className="text-lg px-8 py-6 h-auto border-slate-600 hover:bg-slate-800"
-                  asChild
-                >
-                  <Link href="https://github.com/moinsen-dev/open_noisenet" target="_blank">
-                    <Github className="w-5 h-5" />
-                    View on GitHub
-                  </Link>
-                </Button>
-              </div>
+        <section id="belastung" className="onn-shell onn-section">
+          <p className="onn-eyebrow">Es geht um den Alltag von Menschen</p>
+          <h2>Ein Zuhause. Ein Arbeitsplatz.<br />Ein Ort zum Durchatmen.</h2>
+          <p className="onn-section-intro">Straßen- und Flugverkehr, Baustellen, Musik oder Geräusche aus der Nachbarschaft: Die Quellen unterscheiden sich. Die Frage der Betroffenen ist oft ähnlich: Wie kann ich verständlich machen, was hier immer wieder passiert?</p>
+          <div className="onn-three">
+            <article className="onn-story-card"><span className="onn-number">01 / Erleben</span><h3>Unterbrochene Ruhe</h3><p>Das Gespräch stockt. Konzentration geht verloren. Die Erholung kommt zu kurz. Auch wiederkehrende Unterbrechungen gehören zur Geschichte eines Ortes.</p></article>
+            <article className="onn-story-card"><span className="onn-number">02 / Verstehen</span><h3>Das Muster erkennen</h3><p>Wann begann es? Wie lange hielt es an? Was könnte die Ursache gewesen sein? Ein Verlauf soll zeigen, was eine Momentaufnahme offenlässt.</p></article>
+            <article className="onn-story-card"><span className="onn-number">03 / Besprechen</span><h3>Eine gemeinsame Grundlage</h3><p>Eine verständliche Übersicht kann Gespräche mit Nachbarn, Initiativen, Fachleuten oder der Verwaltung erleichtern. Welche Veränderung hilft, muss vor Ort geklärt werden.</p></article>
+          </div>
+          <aside className="onn-research">
+            <div><span className="onn-label">Die Forschung nimmt Lärm ernst</span><p>Das Umweltbundesamt beschreibt Auswirkungen auf Erholung, Konzentration und Wohlbefinden. Die Europäische Umweltagentur ordnet langfristigen Verkehrslärm als relevantes Gesundheitsproblem ein. Diese Forschung erklärt die gesellschaftliche Bedeutung – sie bewertet keine einzelne Wohnung und keine App-Messung.</p></div>
+            <div className="onn-source-links"><a href="https://www.umweltbundesamt.de/themen/laerm/laermwirkungen/laermbelaestigung">Umweltbundesamt ↗</a><a href="https://www.eea.europa.eu/en/analysis/publications/environmental-noise-in-europe-2025">Europäische Umweltagentur ↗</a></div>
+          </aside>
+        </section>
 
-              <div className="flex items-center space-x-6 text-sm text-slate-400">
-                <div className="flex items-center space-x-2">
-                  <Users className="w-4 h-4" />
-                  <span>Hybrid Public + Pro</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Shield className="w-4 h-4" />
-                  <span>Privacy First</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Globe className="w-4 h-4" />
-                  <span>Open Source Core</span>
-                </div>
-              </div>
+        <section id="idee" className="onn-band">
+          <div className="onn-shell onn-section">
+            <p className="onn-eyebrow">Die Idee</p><h2>Aus Geräuschen wird<br />eine lesbare Geschichte.</h2>
+            <div className="onn-three onn-principles">
+              <article><AudioLines aria-hidden="true" /><h3>Zusammenhänge sehen</h3><p>Ein Smartphone soll Geräuschphasen mit Dauer, geschätztem Pegel und möglichen Ursachen erfassen. Ruhige Phasen und fehlende Daten müssen unterscheidbar bleiben.</p></article>
+              <article><ShieldCheck aria-hidden="true" /><h3>Die Privatsphäre achten</h3><p>Unser Ansatz: Geräusche auf dem Gerät auswerten und abgeleitete Werte nutzen. Private Tagebucheinträge gehören nicht automatisch auf eine öffentliche Karte.</p></article>
+              <article><Github aria-hidden="true" /><h3>Gemeinsam verbessern</h3><p>Der Quellcode ist offen. Menschen sollen die Methoden prüfen, Fehler finden und das Werkzeug für ihre eigenen Fragen weiterentwickeln können.</p></article>
             </div>
-
-            <div className="relative">
-              <div className="relative bg-gradient-to-br from-slate-800 to-slate-900 rounded-2xl p-8 shadow-2xl">
-                {/* Phone mockup representing the app */}
-                <div className="bg-slate-950 rounded-2xl p-4 mx-auto max-w-sm">
-                  <div className="bg-gradient-to-br from-noise-900 to-slate-900 rounded-xl p-6 space-y-6">
-                    <div className="flex items-center justify-between">
-                      <Volume2 className="w-6 h-6 text-warn-400" />
-                      <div className="text-right">
-                        <div className="text-2xl font-bold text-white">52 dB</div>
-                        <div className="text-xs text-slate-400">Current Level</div>
-                      </div>
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <div className="flex justify-between items-center text-sm">
-                        <span className="text-slate-300">15-min Avg</span>
-                        <span className="text-warn-400 font-medium">48 dB</span>
-                      </div>
-                      <div className="w-full bg-slate-800 rounded-full h-2">
-                        <div className="bg-gradient-to-r from-warn-500 to-warn-400 h-2 rounded-full" style={{width: '65%'}}></div>
-                      </div>
-                    </div>
-
-                    <NoiseVisualization />
-
-                    <div className="grid grid-cols-3 gap-3 text-center text-xs">
-                      <div className="bg-slate-800 rounded-lg p-2">
-                        <Building className="w-4 h-4 mx-auto mb-1 text-slate-400" />
-                        <div className="text-white">Urban</div>
-                      </div>
-                      <div className="bg-slate-800 rounded-lg p-2">
-                        <Truck className="w-4 h-4 mx-auto mb-1 text-slate-400" />
-                        <div className="text-white">Traffic</div>
-                      </div>
-                      <div className="bg-slate-800 rounded-lg p-2">
-                        <MapPin className="w-4 h-4 mx-auto mb-1 text-slate-400" />
-                        <div className="text-white">Active</div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              
-              {/* Floating elements */}
-              <div className="absolute -top-4 -left-4 bg-warn-500 p-3 rounded-full shadow-lg noise-pulse">
-                <Headphones className="w-6 h-6 text-white" />
-              </div>
-              
-              <div className="absolute -bottom-4 -right-4 bg-noise-500 p-3 rounded-full shadow-lg noise-pulse">
-                <BarChart3 className="w-6 h-6 text-white" />
-              </div>
+            <div id="stand" className="onn-status">
+              <div><span className="onn-status-dot" /> <strong>Entwicklungsstand · November 2026</strong></div>
+              <p>Die Geräuscherkennung wird auf Smartphones erprobt. An privater Geräuschhistorie, Lärmtagebuch und Export wird gearbeitet. Kalibrierung, zuverlässiger Dauerbetrieb und Datenschutzprüfungen bleiben wichtige offene Aufgaben.</p>
+              <p className="onn-small">Die Smartphone-Pegel sind Schätzwerte, keine validierten dB(A)-Messungen. Erkannte Geräuscharten sind Hinweise. Die App ersetzt weder eine fachliche Begutachtung noch eine medizinische oder rechtliche Bewertung. Ein allgemeiner App-Download wird noch nicht angeboten.</p>
+              <a className="onn-text-link" href={`${repository}/issues`}>Entwicklung und offene Aufgaben ansehen <ArrowRight size={16} /></a>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* Problem Statement Section */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-slate-900/50">
-        <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl sm:text-4xl font-bold text-white mb-6">
-              Noise Pollution Is Everywhere
-            </h2>
-            <p className="text-xl text-slate-300 max-w-3xl mx-auto">
-              Millions suffer from noise-related health issues, sleep disruption, and reduced quality of life. 
-              Traditional monitoring is expensive and limited to specific locations.
-            </p>
+        <section id="mitmachen" className="onn-shell onn-section onn-support">
+          <p className="onn-eyebrow">Warum deine Unterstützung zählt</p><h2>Damit aus einer persönlichen<br />Frage ein gemeinsames Werkzeug wird.</h2>
+          <p className="onn-section-intro">OpenNoiseNet entsteht als offenes Projekt bei Moinsen Development. Hilfe bringt uns dort weiter, wo Software allein nicht genügt: beim Verstehen echter Situationen, bei belastbaren Messungen und beim Erproben im Alltag.</p>
+          <div className="onn-three">
+            <article className="onn-support-card"><span className="onn-label">Für Betroffene</span><h3>Deine Erfahrung zählt.</h3><p>Was belastet dich? Welche Übersicht würde dir helfen? Wir möchten solche Erfahrungen für die weitere Entwicklung verstehen.</p><a href="mailto:business@moinsen.dev?subject=OpenNoiseNet%20%E2%80%93%20meine%20Erfahrung">Erfahrung per E-Mail teilen <Mail size={16} /></a><small>Bitte keine Namen anderer Personen, privaten Tonaufnahmen oder genauen Wohnadressen senden.</small></article>
+            <article className="onn-support-card"><span className="onn-label">Für Mitentwickler</span><h3>Offen bauen und prüfen.</h3><p>Hilf bei App, Darstellung oder Dokumentation. Besonders wertvoll sind nachvollziehbare Tests und verständliche Rückmeldungen.</p><a href={`${repository}/blob/develop/CONTRIBUTING.md`}>Auf GitHub mitarbeiten <Github size={16} /></a></article>
+            <article className="onn-support-card"><span className="onn-label">Für Fachleute & Unterstützer</span><h3>Wissen und Möglichkeiten teilen.</h3><p>Akustik, Forschung, Bürgerinitiativen oder Förderung: Gesucht sind Fachwissen, Zugang zu Referenzmessungen und Partner für verantwortungsvolle Erprobungen.</p><a href="mailto:business@moinsen.dev?subject=OpenNoiseNet%20%E2%80%93%20mitwirken">Unterstützung besprechen <HeartHandshake size={16} /></a></article>
           </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
-            <div className="space-y-6">
-              <div className="bg-slate-800/50 rounded-xl p-6 border border-slate-700">
-                <div className="flex items-center space-x-3 mb-4">
-                  <div className="bg-red-500 p-2 rounded-lg">
-                    <Building className="w-6 h-6 text-white" />
-                  </div>
-                  <h3 className="text-xl font-semibold text-white">Urban Noise Crisis</h3>
-                </div>
-                <p className="text-slate-300">
-                  Studies show that 65% of city residents are exposed to noise levels exceeding WHO recommendations, 
-                  leading to stress, cardiovascular issues, and sleep disorders.
-                </p>
-              </div>
-
-              <div className="bg-slate-800/50 rounded-xl p-6 border border-slate-700">
-                <div className="flex items-center space-x-3 mb-4">
-                  <div className="bg-orange-500 p-2 rounded-lg">
-                    <Truck className="w-6 h-6 text-white" />
-                  </div>
-                  <h3 className="text-xl font-semibold text-white">Limited Monitoring</h3>
-                </div>
-                <p className="text-slate-300">
-                  Professional noise monitoring equipment costs thousands of euros and provides limited geographic coverage, 
-                  leaving communities without adequate data for advocacy.
-                </p>
-              </div>
-            </div>
-
-            <div className="relative">
-              {/* Using onn-2.png concept - person affected by noise at night */}
-              <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-2xl p-8 shadow-2xl">
-                <div className="aspect-square bg-gradient-to-br from-slate-700 to-slate-800 rounded-xl flex items-center justify-center">
-                  <div className="text-center space-y-4 p-6">
-                    <div className="bg-red-500/20 p-6 rounded-full mx-auto w-fit">
-                      <Volume2 className="w-12 h-12 text-red-400" />
-                    </div>
-                    <div className="space-y-2">
-                      <div className="text-3xl font-bold text-red-400">80+ dB</div>
-                      <div className="text-sm text-slate-300">Average city noise</div>
-                      <div className="text-xs text-slate-400">WHO recommends ≤55 dB</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Solution Section */}
-      <section id="platform" className="py-20 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl sm:text-4xl font-bold text-white mb-6">
-              Current Platform Direction
-            </h2>
-            <p className="text-xl text-slate-300 max-w-3xl mx-auto">
-              The repo already contains the first end-to-end slices. The active work now is to close the stabilization gate and harden the platform for pilots and early Pro use.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <Card className="bg-slate-800/50 border-slate-700 hover:bg-slate-800/70 transition-colors">
-              <CardHeader>
-                <div className="bg-warn-500 p-3 rounded-lg w-fit">
-                  <Zap className="w-6 h-6 text-white" />
-                </div>
-                <CardTitle className="text-white">Smartphone Field Nodes</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <CardDescription className="text-slate-300">
-                  The mobile stack is being hardened into a long-running, privacy-first field node with local monitoring, queueing, receipts, recovery, and real-device validation.
-                </CardDescription>
-              </CardContent>
-            </Card>
-
-            <Card className="bg-slate-800/50 border-slate-700 hover:bg-slate-800/70 transition-colors">
-              <CardHeader>
-                <div className="bg-noise-500 p-3 rounded-lg w-fit">
-                  <Globe className="w-6 h-6 text-white" />
-                </div>
-                <CardTitle className="text-white">Public Visibility Layer</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <CardDescription className="text-slate-300">
-                  Live event ingestion and map visibility remain the open layer. Public access stays separate from tenant-bound operator workflows and evidence handling.
-                </CardDescription>
-              </CardContent>
-            </Card>
-
-            <Card className="bg-slate-800/50 border-slate-700 hover:bg-slate-800/70 transition-colors">
-              <CardHeader>
-                <div className="bg-green-500 p-3 rounded-lg w-fit">
-                  <Shield className="w-6 h-6 text-white" />
-                </div>
-                <CardTitle className="text-white">Operator Evidence Workflow</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <CardDescription className="text-slate-300">
-                  Organizations, sites, zones, episodes, cases, and exports already exist in the repo as pre-release foundations for housing and property operators.
-                </CardDescription>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      </section>
-
-      {/* Access Section */}
-      <section id="access" className="py-20 px-4 sm:px-6 lg:px-8 bg-slate-900/50">
-        <div className="max-w-4xl mx-auto text-center">
-          <h2 className="text-3xl sm:text-4xl font-bold text-white mb-6">
-            Current Access Paths
-          </h2>
-          <p className="text-xl text-slate-300 mb-12">
-            What exists today is source-first and pilot-oriented. We are not claiming App Store readiness or self-serve SaaS yet.
-          </p>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 max-w-2xl mx-auto">
-            <Button 
-              variant="outline" 
-              size="lg" 
-              className="h-auto py-6 px-8 border-slate-600 hover:bg-slate-800 group"
-              asChild
-            >
-              <Link href="/technology" className="flex flex-col items-center space-y-2">
-                <div className="bg-slate-800 rounded-xl p-3 group-hover:scale-110 transition-transform">
-                  <Smartphone className="w-8 h-8 text-white" />
-                </div>
-                <div>
-                  <div className="text-lg font-semibold text-white">Review the Architecture</div>
-                  <div className="text-sm text-slate-400">Public + Pro platform direction</div>
-                </div>
-              </Link>
-            </Button>
-
-            <Button 
-              variant="outline" 
-              size="lg" 
-              className="h-auto py-6 px-8 border-slate-600 hover:bg-slate-800 group"
-              asChild
-            >
-              <Link href="https://github.com/moinsen-dev/open_noisenet" target="_blank" className="flex flex-col items-center space-y-2">
-                <div className="bg-green-600 rounded-xl p-3 group-hover:scale-110 transition-transform">
-                  <Github className="w-8 h-8 text-white" />
-                </div>
-                <div>
-                  <div className="text-lg font-semibold text-white">Run From Source</div>
-                  <div className="text-sm text-slate-400">Backend, dashboard, landing, and mobile</div>
-                </div>
-              </Link>
-            </Button>
-          </div>
-        </div>
-      </section>
-
-      {/* GitHub/Contribute Section */}
-      <section id="contribute" className="py-20 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl sm:text-4xl font-bold text-white mb-6">
-              Contribute or Pilot With Us
-            </h2>
-            <p className="text-xl text-slate-300 max-w-3xl mx-auto">
-              OpenNoiseNet is still open source and community-aligned, but the active build is now focused on a trustworthy public layer and a pre-release Pro workflow for housing and property teams.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
-            <div className="space-y-6">
-              <Card className="bg-slate-800/50 border-slate-700">
-                <CardHeader>
-                  <CardTitle className="text-white flex items-center space-x-3">
-                    <Github className="w-6 h-6" />
-                    <span>Open Source Development</span>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <CardDescription className="text-slate-300 mb-4">
-                    Contribute to backend APIs, mobile field-node reliability, dashboard UX, operator workflows, or deployment hardening. The open-source core remains the fastest way to follow real progress.
-                  </CardDescription>
-                  <Button variant="outline" className="border-slate-600" asChild>
-                    <Link href="https://github.com/moinsen-dev/open_noisenet" target="_blank">
-                      <Github className="w-4 h-4" />
-                      View Repository
-                    </Link>
-                  </Button>
-                </CardContent>
-              </Card>
-
-              <Card className="bg-slate-800/50 border-slate-700">
-                <CardHeader>
-                  <CardTitle className="text-white flex items-center space-x-3">
-                    <Heart className="w-6 h-6 text-red-400" />
-                    <span>Pilot Collaboration</span>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <CardDescription className="text-slate-300">
-                    Help validate the smartphone node, pressure-test operator workflows, and turn the existing public + Pro slices into a reliable pilot baseline.
-                  </CardDescription>
-                </CardContent>
-              </Card>
-            </div>
-
-            <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-2xl p-8 shadow-2xl">
-              <h3 className="text-2xl font-bold text-white mb-6">Get Involved</h3>
-              <div className="space-y-4">
-                <div className="flex items-center space-x-3 text-slate-300">
-                  <div className="bg-warn-500 rounded-full p-1">
-                    <div className="w-2 h-2 bg-white rounded-full"></div>
-                  </div>
-                  <span>Validate the smartphone field node in real conditions</span>
-                </div>
-                <div className="flex items-center space-x-3 text-slate-300">
-                  <div className="bg-warn-500 rounded-full p-1">
-                    <div className="w-2 h-2 bg-white rounded-full"></div>
-                  </div>
-                  <span>Harden backend, dashboard, and operator workflows</span>
-                </div>
-                <div className="flex items-center space-x-3 text-slate-300">
-                  <div className="bg-warn-500 rounded-full p-1">
-                    <div className="w-2 h-2 bg-white rounded-full"></div>
-                  </div>
-                  <span>Keep the public map and privacy model trustworthy</span>
-                </div>
-                <div className="flex items-center space-x-3 text-slate-300">
-                  <div className="bg-warn-500 rounded-full p-1">
-                    <div className="w-2 h-2 bg-white rounded-full"></div>
-                  </div>
-                  <span>Prepare the platform for pilots and early property operators</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Story Preview Section */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-r from-slate-900 to-slate-800">
-        <div className="max-w-6xl mx-auto">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-            <div className="space-y-6">
-              <div className="space-y-4">
-                <div className="inline-block px-4 py-2 bg-warn-500/20 rounded-full border border-warn-500/30">
-                  <span className="text-warn-400 text-sm font-medium">The Silent Epidemic</span>
-                </div>
-                <h2 className="text-3xl sm:text-4xl font-bold text-white">
-                  Every Night, Millions 
-                  <span className="text-warn-400 block">Struggle to Sleep</span>
-                </h2>
-                <p className="text-xl text-slate-300 leading-relaxed">
-                  Sarah covers her ears as the garbage truck rumbles by at 3 AM. Marc holds his aching head as traffic noise pierces through his window. 
-                  These aren&apos;t just inconveniences—they&apos;re public health crises.
-                </p>
-              </div>
-
-              <div className="bg-slate-800/50 rounded-xl p-6 border border-slate-700">
-                <div className="grid grid-cols-3 gap-4 text-center">
-                  <div>
-                    <div className="text-2xl font-bold text-red-400">125M</div>
-                    <div className="text-xs text-slate-400">Affected Europeans</div>
-                  </div>
-                  <div>
-                    <div className="text-2xl font-bold text-warn-400">48K</div>
-                    <div className="text-xs text-slate-400">Heart Disease Cases</div>
-                  </div>
-                  <div>
-                    <div className="text-2xl font-bold text-blue-400">€40B</div>
-                    <div className="text-xs text-slate-400">Annual Health Costs</div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex flex-col sm:flex-row gap-4">
-                <Button 
-                  variant="noise" 
-                  size="lg" 
-                  className="text-lg px-8 py-6 h-auto group"
-                  asChild
-                >
-                  <Link href="/story" className="flex items-center space-x-2">
-                    <span>Read Their Stories</span>
-                    <div className="w-5 h-5 group-hover:translate-x-1 transition-transform">
-                      →
-                    </div>
-                  </Link>
-                </Button>
-                <Button 
-                  variant="ghost" 
-                  size="lg" 
-                  className="text-lg px-8 py-6 h-auto text-slate-400 hover:text-white"
-                  asChild
-                >
-                  <Link href="#platform">
-                    See the Platform
-                  </Link>
-                </Button>
-              </div>
-            </div>
-
-            <div className="relative">
-              <div className="relative bg-gradient-to-br from-slate-800 to-slate-900 rounded-2xl p-8 shadow-2xl overflow-hidden">
-                {/* Background image with overlay */}
-                <div className="absolute inset-0 opacity-40">
-                  <Image
-                    src={getAssetPath('/onn-2.png')}
-                    alt="Person affected by urban noise pollution"
-                    fill
-                    className="object-cover rounded-2xl"
-                  />
-                  <div className="absolute inset-0 bg-slate-950/60 rounded-2xl"></div>
-                </div>
-                
-                <div className="relative z-10 space-y-6">
-                  <div className="text-center">
-                    <h3 className="text-2xl font-bold text-white mb-2">The Silent Epidemic</h3>
-                    <p className="text-slate-300 text-sm">A story of urban noise and human resilience</p>
-                  </div>
-                  
-                  <div className="bg-slate-900/80 rounded-lg p-4 backdrop-blur-sm">
-                    <div className="flex items-center space-x-3 mb-3">
-                      <div className="w-3 h-3 bg-red-400 rounded-full animate-pulse"></div>
-                      <span className="text-white font-medium text-sm">Live Impact</span>
-                    </div>
-                    <div className="space-y-2">
-                      <div className="flex justify-between text-sm">
-                        <span className="text-slate-300">Current noise level</span>
-                        <span className="text-red-400 font-mono">73.2 dB</span>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-slate-300">Sleep disruption</span>
-                        <span className="text-warn-400">High Risk</span>
-                      </div>
-                      <div className="w-full bg-slate-800 rounded-full h-2">
-                        <div className="bg-gradient-to-r from-warn-400 to-red-400 h-2 rounded-full" style={{width: '78%'}}></div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="text-center">
-                    <Link 
-                      href="/story" 
-                      className="text-warn-400 hover:text-warn-300 transition-colors text-sm font-medium inline-flex items-center space-x-1"
-                    >
-                      <span>Discover the full story</span>
-                      <div className="w-4 h-4">→</div>
-                    </Link>
-                  </div>
-                </div>
-              </div>
-
-              {/* Floating quote */}
-              <div className="absolute -bottom-6 -right-6 bg-slate-950 p-4 rounded-xl border border-slate-700 max-w-xs shadow-xl">
-                <blockquote className="text-slate-300 text-sm italic">
-                  &quot;I haven&apos;t slept through the night in months...&quot;
-                </blockquote>
-                <cite className="text-slate-500 text-xs mt-2 block">— Sarah, Berlin resident</cite>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Progress Section */}
-      <section id="progress" className="py-20 px-4 sm:px-6 lg:px-8 bg-slate-900/50">
-        <div className="max-w-4xl mx-auto text-center">
-          <h2 className="text-3xl sm:text-4xl font-bold text-white mb-6">
-            Track Progress Honestly
-          </h2>
-          <p className="text-xl text-slate-300 mb-12">
-            The repo has moved far beyond a blank concept, but the stabilization gate is still open. The best way to follow progress right now is through the source, architecture pages, and roadmap work.
-          </p>
-
-          <Card className="bg-slate-800/50 border-slate-700 max-w-2xl mx-auto">
-            <CardContent className="p-8">
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <Button variant="noise" className="h-auto py-4" asChild>
-                  <Link href="https://github.com/moinsen-dev/open_noisenet" target="_blank">
-                    View GitHub
-                  </Link>
-                </Button>
-                <Button variant="outline" className="h-auto py-4 border-slate-600 hover:bg-slate-800" asChild>
-                  <Link href="/technology">
-                    Read Technology
-                  </Link>
-                </Button>
-                <Button variant="outline" className="h-auto py-4 border-slate-600 hover:bg-slate-800" asChild>
-                  <Link href="/story">
-                    Read the Story
-                  </Link>
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </section>
-
-      {/* Footer */}
-      <footer className="bg-slate-950 py-12 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-6xl mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-            <div className="space-y-4">
-              <div className="flex items-center space-x-2">
-                <NoiseVisualization />
-                <span className="text-xl font-bold text-white">OpenNoiseNet</span>
-              </div>
-              <p className="text-slate-400 text-sm">
-                Privacy-first public + Pro noise monitoring with an open-source core.
-              </p>
-            </div>
-
-            <div>
-              <h4 className="text-white font-semibold mb-4">Project</h4>
-              <div className="space-y-2 text-sm">
-                <Link href="#platform" className="block text-slate-400 hover:text-white transition-colors">
-                  Platform
-                </Link>
-                <Link href="https://github.com/moinsen-dev/open_noisenet" className="block text-slate-400 hover:text-white transition-colors">
-                  GitHub
-                </Link>
-                <Link href="#access" className="block text-slate-400 hover:text-white transition-colors">
-                  Access Paths
-                </Link>
-              </div>
-            </div>
-
-            <div>
-              <h4 className="text-white font-semibold mb-4">Resources</h4>
-              <div className="space-y-2 text-sm">
-                <Link href="#contribute" className="block text-slate-400 hover:text-white transition-colors">
-                  Contribute
-                </Link>
-                <Link href="/technology" className="block text-slate-400 hover:text-white transition-colors">
-                  Technology
-                </Link>
-                <Link href="/privacy" className="block text-slate-400 hover:text-white transition-colors">
-                  Privacy Policy
-                </Link>
-                <Link href="/terms" className="block text-slate-400 hover:text-white transition-colors">
-                  Terms of Service
-                </Link>
-              </div>
-            </div>
-
-            <div>
-              <h4 className="text-white font-semibold mb-4">Legal</h4>
-              <div className="space-y-2 text-sm">
-                <Link href="/imprint" className="block text-slate-400 hover:text-white transition-colors">
-                  Impressum
-                </Link>
-                <Link href="/security" className="block text-slate-400 hover:text-white transition-colors">
-                  Sicherheit / Security
-                </Link>
-                <Link href="/privacy" className="block text-slate-400 hover:text-white transition-colors">
-                  Datenschutz
-                </Link>
-                <div className="text-slate-400">
-                  GDPR/DSGVO Compliant
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="border-t border-slate-800 mt-8 pt-8 text-center text-sm text-slate-400">
-            <p>
-              © 2026 OpenNoiseNet. Licensed under MIT. Data licensed under ODC-ODbL.
-            </p>
-          </div>
-        </div>
-      </footer>
+          <p className="onn-support-note">Unser Ziel: ein zugängliches Werkzeug, mit dem Menschen ihre Umgebung besser verstehen und sich für mehr Lebensqualität einsetzen können.</p>
+        </section>
+      </main>
+      <SiteFooter />
     </div>
   );
 }

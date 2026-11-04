@@ -1,0 +1,336 @@
+{
+  "git" : {
+    "current_branch" : "codex\/wiederaufnahme-2026-11-03",
+    "github_url" : "https:\/\/github.com\/moinsen-dev\/open_noisenet",
+    "has_uncommitted_changes" : true,
+    "is_repo" : true,
+    "last_commit_author" : "Ulrich Diedrichsen",
+    "last_commit_date" : "2026-11-03T21:31:54Z",
+    "last_commit_message" : "Document Android 16 KB crypto library smoke check",
+    "local_secret_files" : 2,
+    "stale_days" : 0,
+    "stash_count" : 0,
+    "total_commits" : 95,
+    "uncommitted_files_count" : 17,
+    "unpushed_commits" : 25
+  },
+  "last_scanned" : "2026-11-04T00:41:50Z",
+  "project_path" : "\/Users\/udi\/work\/moinsen\/ideas\/open_noisenet",
+  "pumuckl_version" : 1,
+  "rekindled_at" : "2026-11-03T16:40:13Z",
+  "report" : {
+    "accent" : "#2E7D6B",
+    "ai_note" : "Das Projekt ist erst vor Kurzem bearbeitet worden, hat 95 Commits und eine klare Status-Doku, also ist der Wiedereinstieg leicht.",
+    "ai_suggestion" : "Starte lokal das Backend, führe die Tests aus und prüfe, ob die MVP-Endpunkte (Auth, Geräte-Heartbeat, Event-Ingestion, öffentliche Karte) wie in docs\/current-status.md beschrieben laufen.",
+    "architecture" : [
+      {
+        "lbl" : "Landing Site",
+        "mods" : [
+          "Next.js",
+          "Tailwind",
+          "Radix UI"
+        ]
+      },
+      {
+        "lbl" : "Dashboard",
+        "mods" : [
+          "React",
+          "Vite",
+          "MUI",
+          "Leaflet",
+          "Recharts"
+        ]
+      },
+      {
+        "lbl" : "Mobile App",
+        "mods" : [
+          "Flutter",
+          "Bloc",
+          "tflite_flutter",
+          "noise_meter"
+        ]
+      },
+      {
+        "lbl" : "API Layer",
+        "mods" : [
+          "FastAPI",
+          "Pydantic",
+          "JWT Auth",
+          "Rate Limit"
+        ]
+      },
+      {
+        "lbl" : "Domain Services",
+        "mods" : [
+          "episode_engine",
+          "anonymous_episode_engine",
+          "spl_calculation_service",
+          "threshold_detection_service"
+        ]
+      },
+      {
+        "lbl" : "Background Workers",
+        "mods" : [
+          "Celery",
+          "Redis",
+          "noise_processing_tasks",
+          "episode_detection_tasks",
+          "ai_processing_tasks"
+        ]
+      },
+      {
+        "lbl" : "Data Layer",
+        "mods" : [
+          "SQLAlchemy",
+          "PostgreSQL",
+          "Alembic",
+          "TimescaleDB\/Geo"
+        ]
+      },
+      {
+        "lbl" : "Infrastructure",
+        "mods" : [
+          "Docker Compose",
+          "Nginx",
+          "Prometheus",
+          "Grafana"
+        ]
+      }
+    ],
+    "dimensions" : [
+      {
+        "g" : "MVP-Endpoints laufen, Pro-Domains sind als Pre-Release implementiert, aber keine vollständige episode→case→export Self-Serve-Freigabe.",
+        "k" : "funktion",
+        "l" : "Funktion",
+        "v" : 65
+      },
+      {
+        "g" : "Backend ist modular (API\/Services\/Workers\/Models), aber Frontend- und Mobile-Tests fehlen größtenteils und einige Pro-Slices sind noch nicht release-reif.",
+        "k" : "code",
+        "l" : "Code & Struktur",
+        "v" : 70
+      },
+      {
+        "g" : "Backend hat 69 Tests, doch Frontend und Mobile haben praktisch keine Testabdeckung – das ist die größte Lücke für ein stabiles Phase-0-Exit.",
+        "k" : "tests",
+        "l" : "Tests & Stabilität",
+        "v" : 32
+      },
+      {
+        "g" : "Hervorragende Status-\/Roadmap-\/Plan-Doku, aber einige Code-Kommentare und Frontend\/Mobile-READMEs könnten näher am aktuellen Pro-Domain-Stand sein.",
+        "k" : "doku",
+        "l" : "Dokumentation",
+        "v" : 79
+      },
+      {
+        "g" : "Landing und Dashboard sind vorhanden, Mobile ist aber noch nicht real-geräte-erprobt und einige Pro-UI-Flows brauchen Polishing.",
+        "k" : "design",
+        "l" : "Usability & Design",
+        "v" : 58
+      },
+      {
+        "g" : "Phase 0 ist nicht geschlossen: Android-Build broken, 24h-Feldtests ausstehend, Pro-Slices noch als Pre-Release markiert.",
+        "k" : "release",
+        "l" : "Release-Reife",
+        "v" : 41
+      }
+    ],
+    "edges" : [
+      {
+        "f" : "Landing Site",
+        "t" : "API Layer"
+      },
+      {
+        "f" : "Dashboard",
+        "t" : "API Layer"
+      },
+      {
+        "f" : "Mobile App",
+        "t" : "API Layer"
+      },
+      {
+        "f" : "API Layer",
+        "t" : "Domain Services"
+      },
+      {
+        "f" : "API Layer",
+        "t" : "Data Layer"
+      },
+      {
+        "f" : "Domain Services",
+        "t" : "Background Workers"
+      },
+      {
+        "f" : "Domain Services",
+        "t" : "Data Layer"
+      },
+      {
+        "f" : "Background Workers",
+        "t" : "Data Layer"
+      },
+      {
+        "f" : "Infrastructure",
+        "t" : "API Layer"
+      },
+      {
+        "f" : "Infrastructure",
+        "t" : "Data Layer"
+      }
+    ],
+    "effort_to_complete" : 65,
+    "history" : [
+      "OpenNoiseNet entstand als Open-Source-Umweltlärm-Monitoring-Plattform mit Bürgerwissenschafts-Fokus und entwickelte sich in 69 Commits zu einem Hybrid-System mit öffentlicher Karte und kommerziellem Pro-Layer für Immobilien.",
+      "Der letzte Commit richtete den Go-to-Market auf einen Hamburg-Piloten aus und machte das Repository öffentlich, während Phase 0 (Stabilisierung) noch auf Android-Build-Fix und 24h-Feldtests wartet."
+    ],
+    "impact" : 75,
+    "last_state" : [
+      {
+        "meta" : "GTM-Dokumentation aktualisiert, Repo auf public umgestellt, strategischer Fokus Hamburg-Pilot",
+        "msg" : "go-to-market: Hamburg pilot (not Berlin), repo is public",
+        "wip" : true
+      }
+    ],
+    "overall_gem_score" : 74,
+    "progress" : 55,
+    "re_entry_action" : "Erstelle einen ersten Vitest-Test in `frontend\/src\/pages\/DevicesPage.test.tsx`, der die Komponente mit React Query rendert und prüft, dass die Gerätetabelle angezeigt wird.",
+    "re_entry_effort" : "~1h",
+    "re_entry_why" : "Die Dimension 'Tests & Stabilität' ist mit dem niedrigsten Wert bewertet, weil das Backend zwar 69 Tests hat, Frontend und Mobile aber praktisch leer sind – ein erster gerenderter Smoke-Test baut Vertrauen in den Wiedereinstieg und verhindert Regressionen im Phase-0-Finish.",
+    "recency" : 95,
+    "resumption_ease" : 88,
+    "roadmap" : [
+      {
+        "d" : "Android-Build fixen, 24h-Feldtests iOS\/Android, Docker-Stack stabil halten",
+        "next" : true,
+        "t" : "Phase 0: Stabilization Gate schließen",
+        "tag" : "NEXT"
+      },
+      {
+        "d" : "Tenant Isolation, Case Lifecycle, Export-Qualität, Mobile Domain Alignment",
+        "next" : false,
+        "t" : "Phase 1-3: Pro Slices härten",
+        "tag" : "P1"
+      },
+      {
+        "d" : "Entitlements, Hosted SaaS, Admin\/Audit, Legal\/Privacy für Pro-Layer",
+        "next" : false,
+        "t" : "Phase 4: Self-Serve Beta vorbereiten",
+        "tag" : "P2"
+      }
+    ],
+    "score_breakdown" : [
+      {
+        "c" : "#f59e0b",
+        "k" : "Aktivität",
+        "v" : 43
+      },
+      {
+        "c" : "#22c55e",
+        "k" : "Qualität",
+        "v" : 70
+      },
+      {
+        "c" : "#84cc16",
+        "k" : "Wartung",
+        "v" : 66
+      },
+      {
+        "c" : "#22c55e",
+        "k" : "Doku",
+        "v" : 80
+      },
+      {
+        "c" : "#22c55e",
+        "k" : "Klarheit",
+        "v" : 76
+      }
+    ],
+    "stack" : [
+      {
+        "n" : "Python",
+        "p" : "36%"
+      },
+      {
+        "n" : "TypeScript",
+        "p" : "31%"
+      },
+      {
+        "n" : "Dart",
+        "p" : "24%"
+      },
+      {
+        "n" : "Docker\/Nginx\/Infra",
+        "p" : "9%"
+      }
+    ],
+    "threads" : [
+      {
+        "c" : "#ef4444",
+        "icon" : "📱",
+        "s" : "mobile\/vendor\/audio_streamer (pi-natives Cargo\/NDK)",
+        "t" : "Android APK Build fixen"
+      },
+      {
+        "c" : "#ef4444",
+        "icon" : "🧪",
+        "s" : "docs\/field-test-checklist.md",
+        "t" : "24h Feldtest iOS"
+      },
+      {
+        "c" : "#ef4444",
+        "icon" : "🧪",
+        "s" : "docs\/field-test-checklist.md",
+        "t" : "24h Feldtest Android"
+      },
+      {
+        "c" : "#f59e0b",
+        "icon" : "🏢",
+        "s" : "backend\/app\/api\/v1\/endpoints\/pro_domains.py",
+        "t" : "Tenant Isolation härten"
+      },
+      {
+        "c" : "#f59e0b",
+        "icon" : "📦",
+        "s" : "backend\/app\/api\/v1\/endpoints\/pro_incidents.py",
+        "t" : "Case Lifecycle abschließen"
+      },
+      {
+        "c" : "#3b82f6",
+        "icon" : "🗺️",
+        "s" : "docs\/german-rollout-plan.md",
+        "t" : "Hamburg Pilot vorbereiten"
+      }
+    ],
+    "vision" : "Eine von Gemeinschaften betriebene, datenschutzfreundliche und öffentlich einsehbare Lärmmessplattform, die zuverlässig und selbst hostbar ist."
+  },
+  "scan" : {
+    "capability" : {
+      "at" : "2026-10-25T09:04:23Z",
+      "head" : "4dcc5fc",
+      "mtime" : 1792514444.2741532
+    },
+    "deep" : {
+      "at" : "2026-07-29T06:27:15Z",
+      "head" : "b79fa8f",
+      "mtime" : 1785306209.6088312
+    },
+    "fast" : {
+      "at" : "2026-11-04T00:41:50Z",
+      "head" : "dbfe172",
+      "mtime" : 1793744018.5239723
+    },
+    "git" : {
+      "at" : "2026-11-04T00:41:17Z",
+      "head" : "dbfe172",
+      "mtime" : 1793744018.5239723
+    }
+  },
+  "scoring" : {
+    "ai_note" : "Das Projekt ist erst vor Kurzem bearbeitet worden, hat 95 Commits und eine klare Status-Doku, also ist der Wiedereinstieg leicht.",
+    "ai_suggestion" : "Starte lokal das Backend, führe die Tests aus und prüfe, ob die MVP-Endpunkte (Auth, Geräte-Heartbeat, Event-Ingestion, öffentliche Karte) wie in docs\/current-status.md beschrieben laufen.",
+    "effort_to_complete" : 65,
+    "impact" : 75,
+    "overall_gem_score" : 74,
+    "progress" : 55,
+    "recency" : 95
+  }
+}

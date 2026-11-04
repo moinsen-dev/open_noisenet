@@ -307,7 +307,7 @@ export default function TechnologyPage() {
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <span className="text-slate-300">Public Layer</span>
-                    <span className="text-green-400 font-mono text-lg">Live MVP</span>
+                    <span className="text-green-400 font-mono text-lg">In development</span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-slate-300">Pro Domain</span>

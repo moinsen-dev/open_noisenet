@@ -38,6 +38,8 @@ jobs:
         
       - name: Build Next.js application
         working-directory: ./landing
+        env:
+          NEXT_PUBLIC_BASE_PATH: /open_noisenet
         run: npm run build
         
       - name: Upload build artifacts

@@ -6,9 +6,8 @@ const nextConfig: NextConfig = {
   images: {
     unoptimized: true,
   },
-  // Configure base path for GitHub Pages (if using custom domain, remove this)
-  basePath: process.env.NODE_ENV === 'production' ? '/open_noisenet' : '',
-  assetPrefix: process.env.NODE_ENV === 'production' ? '/open_noisenet' : '',
+  // Root for the custom domain; explicitly set this for GitHub Pages.
+  basePath: process.env.NEXT_PUBLIC_BASE_PATH || '',
 };
 
 export default nextConfig;

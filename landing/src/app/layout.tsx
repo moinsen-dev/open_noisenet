@@ -2,24 +2,25 @@ import type { Metadata } from 'next';
 import './globals.css';
 import CookieConsentBanner from '@/components/cookie-consent-banner';
 import Analytics from '@/components/analytics';
+import { getAssetPath } from '@/lib/asset-path';
 
 export const metadata: Metadata = {
-  title: 'OpenNoiseNet - Public + Pro Noise Monitoring',
-  description: 'OpenNoiseNet is a privacy-first Hybrid Public + Pro noise monitoring platform with smartphone field nodes, public map visibility, and operator evidence workflows for episodes, cases, and exports.',
-  keywords: 'noise monitoring, public map, smartphone field node, privacy-first, property operations, housing, episodes, case export, open source',
-  authors: [{ name: 'OpenNoiseNet Community' }],
+  icons: { icon: getAssetPath('/icon.svg') },
+  title: 'OpenNoiseNet – Lärm verstehen. Betroffene stärken.',
+  description: 'Aus eigener Betroffenheit entsteht ein offenes Werkzeug: Lärmepisoden, mögliche Ursachen und Ruhezeiten verständlich machen. Unterstütze OpenNoiseNet.',
+  keywords: 'noise monitoring, public map, smartphone sensor, privacy, citizen science, open source',
+  authors: [{ name: 'Moinsen Development' }],
   openGraph: {
-    title: 'OpenNoiseNet - Public + Pro Noise Monitoring',
-    description: 'Privacy-first noise monitoring with smartphone field nodes, public visibility, and operator evidence workflows.',
-    url: 'https://opennoienet.org',
+    title: 'OpenNoiseNet – Lärm verstehen. Betroffene stärken.',
+    description: 'Lärm belastet den Alltag. OpenNoiseNet soll Erfahrungen sichtbar machen – offen entwickelt bei Moinsen Development.',
     siteName: 'OpenNoiseNet',
-    locale: 'en_US',
+    locale: 'de_DE',
     type: 'website',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'OpenNoiseNet - Public + Pro Noise Monitoring',
-    description: 'Public map visibility, smartphone field nodes, and operator evidence workflows.',
+    title: 'OpenNoiseNet – Lärm verstehen. Betroffene stärken.',
+    description: 'Ein offenes Werkzeug für Menschen, die unter Lärm leiden. Die Geschichte und die Idee hinter OpenNoiseNet.',
   },
   robots: {
     index: true,
@@ -43,7 +44,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className="dark">
+    <html lang="de" className="dark">
       <body className="font-sans antialiased">
         {children}
         <CookieConsentBanner />

@@ -2,9 +2,9 @@
 
 OpenNoiseNet is not in a blank planning phase. The repository already contains substantial software, and the current priority is to stabilize that existing codebase before expanding scope.
 
-Read [docs/current-status.md](/Users/udi/work/moinsen/ideas/open_noisenet/docs/current-status.md) before starting work. It defines the supported MVP surface and the intentionally unreleased areas for this milestone.
+Read [docs/current-status.md](docs/current-status.md) before starting work. It defines the supported MVP surface and the intentionally unreleased areas for this milestone.
 
-The commercialization direction is documented in [docs/opennoisenet-pro-roadmap.md](/Users/udi/work/moinsen/ideas/open_noisenet/docs/opennoisenet-pro-roadmap.md). That roadmap does **not** change current repo truth, but it does define what the stabilization phase is preparing for: a Hybrid Public + Pro platform with a tenant-bound Pro layer for housing and property workflows.
+The commercialization direction is documented in [docs/opennoisenet-pro-roadmap.md](docs/opennoisenet-pro-roadmap.md). That roadmap does **not** change current repo truth, but it does define what the stabilization phase is preparing for: a Hybrid Public + Pro platform with a tenant-bound Pro layer for housing and property workflows.
 
 The repo now also contains initial pre-release Pro slices. They still need hardening and do **not** mean the stabilization gate is closed.
 
@@ -95,6 +95,58 @@ docker compose up --build
 3. Make the smallest coherent change that improves stability or consistency.
 4. Run the relevant checks for the surface you changed.
 5. Update docs when the visible behavior or local workflow changes.
+
+Create branches from `develop` and use descriptive names such as
+`docs/contribution-guidelines`, `backend/device-heartbeat-tests`, or
+`mobile/backend-sync-cleanup`. Keep one concern per pull request so review can
+focus on the affected surface.
+
+## Code Style By Surface
+
+### Backend Python
+
+- Use `uv` for dependency and command execution.
+- Prefer Black-compatible formatting and keep Ruff issues addressed for changed files.
+- Add or update pytest coverage for backend behavior changes.
+- Keep migrations and model changes tied to the current MVP surface.
+
+### Frontend And Landing TypeScript
+
+- Keep TypeScript strict enough for `npm run type-check`.
+- Prefer small typed components over broad placeholder screens.
+- Keep dashboard routes aligned to `/auth`, `/devices`, `/events`, and `/map`.
+- For landing changes, preserve the current public narrative and avoid promising unreleased features.
+
+### Mobile Dart
+
+- Follow the Flutter lint rules in `mobile/analysis_options.yaml`.
+- Keep backend-facing flows real; avoid adding placeholder-only paths to active app screens.
+- Run `flutter analyze` and `flutter test` for mobile changes.
+
+## Pull Request Checklist
+
+Before opening a pull request:
+
+- Link the issue or planning document that defines the scope.
+- State whether the change touches backend, dashboard, landing, mobile, docs, or infrastructure.
+- List the checks you ran and any checks you could not run.
+- Update relevant documentation when user-visible behavior, setup, or workflow changes.
+- Note any follow-up work that remains outside the current PR.
+
+Reviewers should check that the PR stays within the stabilization gate, uses the
+right validation commands, and does not describe unreleased work as shipped.
+
+## Issue Reporting Guidelines
+
+When opening an issue, include:
+
+- Which surface is affected: backend, dashboard, landing, mobile, docs, infrastructure, or full stack.
+- The expected behavior and the actual behavior.
+- Steps to reproduce, including commands, URLs, or screen flow where relevant.
+- Environment details such as OS, Python/Node/Flutter versions, and Docker usage.
+- Logs, screenshots, or API responses when they are safe to share.
+
+Do not include secrets, private addresses, production credentials, or personal data in public issues.
 
 ## Verification Expectations
 

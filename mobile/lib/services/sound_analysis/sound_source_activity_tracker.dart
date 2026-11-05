@@ -73,6 +73,7 @@ class SoundSourceActivityTracker {
     if (_active == null && _latestSnapshot == null) return null;
     _completeActive();
     final snapshot = SoundSourceActivitySnapshot(
+      isFinal: true,
       observedAt: observedAt ?? DateTime.now(),
       latestCategory: OpenNoiseCategory.unknownSoundSource,
       latestConfidence: 0,

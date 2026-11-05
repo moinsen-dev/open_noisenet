@@ -28,6 +28,35 @@ NoiseMeasurement minute(int stamp, double level) => NoiseMeasurement(
     createdAt: stamp);
 
 void main() {
+  test(
+      'source phase export is independent of level threshold and clips coverage',
+      () {
+    final start = DateTime.utc(2026, 11, 5);
+    SourceHistoryEntry entry(int a, int b, bool coverage) => SourceHistoryEntry(
+        id: 'private-$a-$coverage',
+        category: coverage ? 'unknown_sound_source' : 'loud_conversation',
+        start: start.add(Duration(seconds: a)),
+        end: start.add(Duration(seconds: b)),
+        confidence: coverage ? 0 : .8,
+        isCoverage: coverage);
+    final data = jsonDecode(historyExportJson(
+        minutes: [],
+        hints: [
+          entry(-10, 500, true),
+          entry(0, 60, false),
+          entry(80, 180, false)
+        ],
+        start: start,
+        end: start.add(const Duration(seconds: 200)),
+        comparisonLine: 100,
+        maxPauseMinutes: 0));
+    expect(data['episodes'], isEmpty);
+    expect(data['source_hints'], hasLength(2));
+    expect(data['analysis_coverage'].single['start_ms'],
+        start.millisecondsSinceEpoch);
+    expect(data['acoustic_phases'].single['active_ms'], 160000);
+    expect(data['acoustic_phases'].single['pause_ms'], 20000);
+  });
   test('export clips the chosen window, joins pauses and excludes identities',
       () {
     final start = DateTime.fromMillisecondsSinceEpoch(60000, isUtc: true);

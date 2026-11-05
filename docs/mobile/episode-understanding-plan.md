@@ -1,12 +1,12 @@
 # Geräuschphasen verstehen: Konzept und Modellvergleich
 
-Stand: 05.11.2026. **Analyse und Vorschlag, noch keine Implementierung oder Modellentscheidung.** Der laufende Pixel-Test R2 bleibt unverändert. Maßgeblicher Arbeitsstand: [current-status](../current-status.md).
+Stand: 05.11.2026. **Zeitlogik inzwischen umgesetzt und kontrolliert geprüft; YAMNet bleibt in der App.** Ergebnis und Grenzen: [durchgeführter Modellvergleich](acoustic-comparison-2026-11-05.md). Die folgenden Abschnitte bewahren die ursprüngliche Diagnose und den vorgeschlagenen Nachweis; nicht jede darin genannte Alltagsszene wurde bereits geprüft. Der laufende Pixel-Test R2 bleibt unverändert. Maßgeblicher Arbeitsstand: [current-status](../current-status.md).
 
 ## Anforderung von Udi
 
 Einzelne Erkennungen und kurze Pegelereignisse erfüllen den Kernnutzen noch nicht. Gesucht sind nachvollziehbare, möglichst große zusammenhängende Geräuschphasen: wann, wie lange, welche möglichen Geräuscharten und welche Pegel. Unterhaltung mit Pausen ist ein wichtiger Prüffall. „Möglichst groß“ heißt unter einer belegbaren Kontinuitätsregel maximal; es darf nicht durch beliebiges Verlängern der Pausentoleranz ein Tagesblock entstehen.
 
-## Belegter Ist-Zustand
+## Diagnose vor dieser Umsetzung
 
 Codebasis: `d39047d` / Implementierung `bdc8290`. Die folgende Diagnose erklärt strukturelle Grenzen; sie ist keine frameweise Auswertung einer konkreten privaten Alltagsszene.
 
@@ -50,7 +50,7 @@ Datensparsame Zielrichtung: lokal, ohne Transkript oder Sprecheridentifikation, 
 4. **Vorgeschlagene erste Abnahmekriterien:** Der 33-Minuten-Prüffall mit kurzen Pausen ergibt einen erklärbaren Elternblock; zwei Szenen mit belegter längerer Ruhe bleiben getrennt; jede Erfassungslücke sichtbar; unbekannte Quelle nicht umbenannt; leise Sprachaktivität bleibt unabhängig von Pegelereignissen auffindbar. Ein Modellwechsel muss auf zurückgehaltenen Szenen gegenüber B nützen, ohne Datenabdeckung zu verschlechtern. Grenzwerte und tolerierte Fehler vor der Prüfmenge festlegen.
 5. **Erst nach dem laufenden Test integrieren:** Eine versionierte Episodenbedeutung für App, Export/Grafik und Server festlegen. Kleine Upload-Pakete sind Transport, nicht automatisch abgeschlossene Episoden; stabile Episoden-ID, Fortsetzungen und endgültiges Ende bei einer späteren Umsetzung berücksichtigen. Danach eigener Geräte- und Dauervergleich. Der aktuelle R2-Lauf bleibt eine Betriebsprüfung des unveränderten Builds.
 
-Das ist die empfohlene Lernfolge, kein neuer Bauauftrag. Noch keine Modelle heruntergeladen, persönlichen Audiodaten verarbeitet oder App-/Serverlogik geändert.
+**Umsetzungsnachtrag:** Udi hat Zeitlogik und isolierten Modellvergleich anschließend ausdrücklich beauftragt. App-/Export-Zeitlogik ist implementiert, Gemma-Gewichte wurden für den lokalen Vergleich geladen. Keine persönlichen Audiodaten verarbeitet, kein Pixel-Eingriff, keine Änderung an Server-Uploads. Natürliche Unterhaltung, TV und längere unabhängige Audioszenen aus der vorgeschlagenen Lernfolge sind weiter offen.
 
 ## Geprüfte Primärquellen (05.11.2026)
 

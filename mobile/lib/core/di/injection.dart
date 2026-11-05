@@ -73,6 +73,7 @@ Future<void> configureDependencies() async {
     store: EncryptedSourceHistoryStore(),
     preferences: sharedPreferences,
     activity: getIt<OnDeviceSoundAnalysisService>().sourceActivity,
+    frames: getIt<OnDeviceSoundAnalysisService>().results,
   ));
 
   // Initialize API client service

@@ -257,3 +257,42 @@ creates an offline chart from completed minute rows and confirmed event
 segments. That automatic chart does **not** represent the full encrypted local
 source history; the explicit JSON export above provides that separate view.
 All run configuration, logs, receipts, archives and reports stay outside Git.
+
+## Source phases independent of level thresholds (2026-11-05)
+
+`acoustic_phase.dart` implements `source_phases_v1`, shared by the history UI,
+JSON export and `scripts/acoustic-phases.dart`. Every accepted category is
+tracked independently through `MultiSourceTracker`, rather than retaining only
+the winning class. Different families can overlap. A short impact therefore
+does not end supported speech activity.
+
+The opt-in history collector also stores successful inference coverage as
+`inference_coverage_v1` records inside the existing encrypted source-history
+payloads. There is no extra PCM retention, transcript, speaker identification
+or persisted embedding. Coverage checkpoints occur every 30 seconds and on
+flush/stop. Uncheckpointed tail data can still be lost on process termination.
+Coverage proves availability of inference windows, not accuracy or silence.
+Old records without `kind` remain readable; old histories without coverage
+cannot establish these new phases. This includes the unchanged Pixel R2 app.
+
+Initial maximum inter-activity gaps: speech/music/appliances 90 s, tools 120 s,
+traffic 45 s, animals 15 s, impacts 3 s. Before joining, recent supported
+activity must occupy at least 20% of the preceding span (up to five minutes).
+This prevents isolated short hints from forming an all-day chain. Real gaps
+in inference coverage always split. These are versioned initial heuristics,
+not validated nuisance thresholds or proof of a common physical source.
+
+Each phase exposes the enclosing span, union of active intervals, remaining
+inter-activity time and boundary reason. The UI uses neutral family labels,
+shows nested short intervals, and attributes available minute levels only to
+the mixed scene. `private_history.v1` gains optional `analysis_coverage`,
+`acoustic_phases` and `analysis.source_phase_algorithm` fields; legacy readers
+can retain `source_hints`. All exported intervals are clipped to the selected
+window. The offline chart displays these phases separately from level blocks.
+Private exports remain plaintext and require deliberate saving.
+
+The existing threshold-triggered event upload and server episode engine are
+unchanged. Phase IDs, continuation/finalization messages and a shared server
+projection are later integration work, not implied by local phase export.
+EmbeddingGemma 2 was tested offline only. See
+[the actual comparison protocol and results](acoustic-comparison-2026-11-05.md).

@@ -7,6 +7,8 @@ import 'package:uuid/uuid.dart';
 
 import '../../../core/database/models/noise_measurement.dart';
 import '../../../services/sound_analysis/sound_analysis_models.dart';
+import '../../../services/sound_analysis/acoustic_phase.dart';
+import '../../../services/sound_analysis/multi_source_tracker.dart';
 import '../../noise_diary/data/diary_repository.dart';
 
 class SourceHistoryEntry {
@@ -15,7 +17,9 @@ class SourceHistoryEntry {
       required this.category,
       required this.start,
       required this.end,
-      required this.confidence});
+      required this.confidence,
+      this.isCoverage = false});
+  final bool isCoverage;
   final String id;
   final String category;
   final DateTime start;
@@ -24,6 +28,7 @@ class SourceHistoryEntry {
 
   Map<String, Object?> toMap() => {
         'id': id,
+        'kind': isCoverage ? 'inference_coverage_v1' : 'source_v1',
         'category': category,
         'start': start.toUtc().millisecondsSinceEpoch,
         'end': end.toUtc().millisecondsSinceEpoch,
@@ -38,8 +43,14 @@ class SourceHistoryEntry {
             isUtc: true),
         end:
             DateTime.fromMillisecondsSinceEpoch(map['end'] as int, isUtc: true),
-        confidence: (map['confidence'] as num).toDouble());
+        confidence: (map['confidence'] as num).toDouble(),
+        isCoverage: map['kind'] == 'inference_coverage_v1');
     if (result.id.isEmpty ||
+        (map['kind'] != null &&
+            map['kind'] != 'source_v1' &&
+            map['kind'] != 'inference_coverage_v1') ||
+        (result.isCoverage &&
+            result.category != OpenNoiseCategory.unknownSoundSource) ||
         !OpenNoiseCategory.values.contains(result.category) ||
         !result.end.isAfter(result.start) ||
         !result.confidence.isFinite ||
@@ -80,28 +91,37 @@ class SoundHistoryCollector extends ChangeNotifier {
       {required this.store,
       required this.preferences,
       required Stream<SoundSourceActivitySnapshot> activity,
+      Stream<SoundClassificationFrame>? frames,
       DateTime Function()? now})
-      : _now = now ?? DateTime.now {
+      : _now = now ?? DateTime.now,
+        _multiSource = frames != null {
     _enabled = preferences.getBool(_setting) ?? false;
     _enabledAt = _now();
     _subscription = activity.listen(_onActivity);
+    _frameSubscription = frames?.listen(_onFrame);
   }
   static const _setting = 'private_source_history_enabled_v1';
   final SourceHistoryStore store;
   final SharedPreferences preferences;
   final DateTime Function() _now;
   late StreamSubscription<SoundSourceActivitySnapshot> _subscription;
+  StreamSubscription<SoundClassificationFrame>? _frameSubscription;
+  final bool _multiSource;
+  final MultiSourceTracker _tracks = MultiSourceTracker();
+  SourceHistoryEntry? _coverage;
+  DateTime? _coverageSavedUntil;
   late bool _enabled;
   late DateTime _enabledAt;
   Future<void> _pending = Future.value();
   final Map<String, String> _ids = {};
   final Map<String, DateTime> _savedUntil = {};
-  String? _lastCompleted;
+  final Map<String, String> _lastCompleted = {};
   Object? error;
   bool get enabled => _enabled;
 
   Future<void> setEnabled(bool enabled) async {
     if (!enabled) {
+      _finishTracks();
       _enabled = false;
       await flush();
     }
@@ -111,23 +131,80 @@ class SoundHistoryCollector extends ChangeNotifier {
     _enabledAt = _now();
     _ids.clear();
     _savedUntil.clear();
-    _lastCompleted = null;
+    _lastCompleted.clear();
+    _coverage = null;
+    _coverageSavedUntil = null;
     _enabled = enabled;
     notifyListeners();
   }
 
   void _onActivity(SoundSourceActivitySnapshot snapshot) {
     if (!_enabled) return;
+    if (_multiSource) {
+      if (snapshot.isFinal) _finishTracks();
+      return;
+    }
+    _recordSnapshot(snapshot);
+  }
+
+  void _recordSnapshot(SoundSourceActivitySnapshot snapshot) {
     final completed = snapshot.lastCompletedSegment;
     if (completed != null) {
       final signature = _signature(completed);
-      if (_lastCompleted != signature) {
-        _lastCompleted = signature;
+      if (_lastCompleted[completed.category] != signature) {
+        _lastCompleted[completed.category] = signature;
         _record(completed, completed: true);
       }
     }
     final active = snapshot.activeSegment;
     if (active != null) _record(active, completed: false);
+  }
+
+  void _onFrame(SoundClassificationFrame frame) {
+    if (!_enabled || !frame.windowEnd.isAfter(_enabledAt)) return;
+    if (_coverage != null && !frame.windowEnd.isAfter(_coverage!.end)) return;
+    for (final snapshot in _tracks.add(frame)) {
+      _recordSnapshot(snapshot);
+    }
+    final old = _coverage;
+    final contiguous = old != null && !frame.windowStart.isAfter(old.end);
+    if (!contiguous) {
+      _checkpointCoverage();
+      _coverageSavedUntil = null;
+    }
+    _coverage = SourceHistoryEntry(
+      id: contiguous ? old.id : const Uuid().v4(),
+      category: OpenNoiseCategory.unknownSoundSource,
+      start: contiguous
+          ? old.start
+          : (frame.windowStart.isBefore(_enabledAt)
+              ? _enabledAt
+              : frame.windowStart),
+      end: frame.windowEnd,
+      confidence: 0,
+      isCoverage: true,
+    );
+    if (_coverageSavedUntil == null ||
+        frame.windowEnd.difference(_coverageSavedUntil!) >=
+            const Duration(seconds: 30)) {
+      _checkpointCoverage();
+    }
+  }
+
+  void _checkpointCoverage() {
+    final entry = _coverage;
+    if (entry == null || entry.end == _coverageSavedUntil) return;
+    _coverageSavedUntil = entry.end;
+    _save(entry);
+  }
+
+  void _finishTracks() {
+    for (final snapshot in _tracks.finish()) {
+      _recordSnapshot(snapshot);
+    }
+    _checkpointCoverage();
+    _coverage = null;
+    _coverageSavedUntil = null;
   }
 
   String _signature(SoundSourceSegment segment) =>
@@ -155,6 +232,14 @@ class SoundHistoryCollector extends ChangeNotifier {
         end: segment.end,
         confidence: segment.confidence);
     _savedUntil[signature] = segment.end;
+    _save(entry);
+    if (completed) {
+      _ids.remove(signature);
+      _savedUntil.remove(signature);
+    }
+  }
+
+  void _save(SourceHistoryEntry entry) {
     _pending = _pending.then((_) async {
       try {
         await store.save(entry);
@@ -167,24 +252,26 @@ class SoundHistoryCollector extends ChangeNotifier {
         notifyListeners();
       }
     });
-    if (completed) {
-      _ids.remove(signature);
-      _savedUntil.remove(signature);
-    }
   }
 
-  Future<void> flush() => _pending;
+  Future<void> flush() {
+    _checkpointCoverage();
+    return _pending;
+  }
 
   /// Prevent queued writes from reappearing after a user-initiated clear.
   Future<void> clear() async {
     final wasEnabled = _enabled;
     _enabled = false;
+    _tracks.finish();
     try {
       await flush();
       await store.clear();
       _ids.clear();
       _savedUntil.clear();
-      _lastCompleted = null;
+      _lastCompleted.clear();
+      _coverage = null;
+      _coverageSavedUntil = null;
       _enabledAt = _now();
       error = null;
     } finally {
@@ -196,6 +283,7 @@ class SoundHistoryCollector extends ChangeNotifier {
   @override
   void dispose() {
     _subscription.cancel();
+    _frameSubscription?.cancel();
     super.dispose();
   }
 }
@@ -218,7 +306,8 @@ class SourceHistoryBlock {
 
 List<SourceHistoryBlock> groupSourceHistory(List<SourceHistoryEntry> entries,
     {Duration maxGap = const Duration(minutes: 1)}) {
-  final sorted = [...entries]..sort((a, b) => a.start.compareTo(b.start));
+  final sorted = entries.where((e) => !e.isCoverage).toList()
+    ..sort((a, b) => a.start.compareTo(b.start));
   final result = <SourceHistoryBlock>[];
   for (final entry in sorted) {
     if (result.isNotEmpty &&
@@ -368,5 +457,18 @@ Duration sourceCoverage(
 List<SourceHistoryEntry> overlappingSources(
         LevelHistoryBlock block, List<SourceHistoryEntry> entries) =>
     entries
-        .where((e) => e.start.isBefore(block.end) && e.end.isAfter(block.start))
+        .where((e) =>
+            !e.isCoverage &&
+            e.start.isBefore(block.end) &&
+            e.end.isAfter(block.start))
         .toList();
+
+List<AcousticPhase> sourcePhases(List<SourceHistoryEntry> entries) =>
+    buildAcousticPhases(
+      evidence: entries.where((e) => !e.isCoverage).map((e) => AcousticEvidence(
+          e.start.millisecondsSinceEpoch,
+          e.end.millisecondsSinceEpoch,
+          e.category)),
+      coverage: entries.where((e) => e.isCoverage).map((e) => AcousticInterval(
+          e.start.millisecondsSinceEpoch, e.end.millisecondsSinceEpoch)),
+    );

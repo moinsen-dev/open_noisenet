@@ -17,6 +17,37 @@ PACKAGE = 'dev.moinsen.noisenet_mobile.fieldtest'
 BERLIN = ZoneInfo('Europe/Berlin')
 
 
+def clipped_source_phases(exported, start, end):
+    """Display the app's versioned phase result, clipped to the report window.
+
+    Does not reinterpret legacy hints as complete analysis coverage.
+    """
+    result = []
+    families = {'speech', 'music', 'tools', 'traffic', 'appliance', 'animals', 'impact'}
+    for phase in exported.get('acoustic_phases', []):
+        if phase.get('algorithm') != 'source_phases_v1' or phase.get('family') not in families:
+            raise ValueError('Unsupported acoustic phase')
+        intervals = []
+        previous_end = None
+        for item in phase['activity']:
+            a, b = item['start_ms'], item['end_ms']
+            if (type(a) is not int or type(b) is not int or b <= a or
+                    (previous_end is not None and a < previous_end)):
+                raise ValueError('Invalid acoustic activity intervals')
+            previous_end = b
+            a, b = max(a, round(start.timestamp() * 1000)), min(b, round(end.timestamp() * 1000))
+            if b > a:
+                intervals.append({'start_ms': a, 'end_ms': b})
+        if not intervals:
+            continue
+        a, b = intervals[0]['start_ms'], intervals[-1]['end_ms']
+        active = sum(p['end_ms'] - p['start_ms'] for p in intervals)
+        result.append({'family': phase['family'], 'start_ms': a, 'end_ms': b,
+                       'active_ms': active, 'pause_ms': b - a - active,
+                       'activity': intervals, 'algorithm': 'source_phases_v1'})
+    return sorted(result, key=lambda p: p['end_ms'] - p['start_ms'], reverse=True)
+
+
 def read_snapshot(serial):
     result = subprocess.run(
         ['adb', '-s', serial, 'exec-out', 'run-as', PACKAGE,
@@ -113,7 +144,8 @@ def load_hints(path, start, end):
 
 
 def make_html(rows, start, end, hints=None, measurement_method='legacy_peak',
-              hint_origin='diagnostic_excerpt', comparison_line=None, max_pause_minutes=5):
+              hint_origin='diagnostic_excerpt', comparison_line=None, max_pause_minutes=5,
+              acoustic_phases=None):
     if measurement_method not in ('legacy_peak', 'pcm_rms_unweighted_v1', 'not_recorded_per_minute'):
         raise ValueError('Unknown measurement method')
     if hint_origin not in ('diagnostic_excerpt', 'event_receipts', 'device_export'):
@@ -124,7 +156,8 @@ def make_html(rows, start, end, hints=None, measurement_method='legacy_peak',
         raise ValueError('Unsupported pause setting')
     data = json.dumps({'rows': rows, 'start': start.isoformat(),
                        'snapshot': end.isoformat(), 'hints': hints or [],
-                       'comparisonLine': comparison_line, 'maxPauseMinutes': max_pause_minutes},
+                       'comparisonLine': comparison_line, 'maxPauseMinutes': max_pause_minutes,
+                       'acousticPhases': acoustic_phases or []},
                       separators=(',', ':'))
     data = data.replace('<', '\\u003c')
     page = PAGE.replace('__DATA__', data).replace('__EPISODE_LOGIC__', Path(__file__).with_name('noise-episodes.js').read_text())
@@ -219,8 +252,9 @@ def main():
     hints = load_hints(hint_path.expanduser() if hint_path else None, start, end)
     method = args.measurement_method or ('not_recorded_per_minute' if args.history_export else 'legacy_peak')
     origin = args.hint_origin or ('device_export' if args.history_export else 'diagnostic_excerpt')
+    phases = clipped_source_phases(exported or {}, start, end)
     document = make_html(rows, start, end, hints, method, origin, args.comparison_line,
-                         5 if args.max_pause_minutes is None else args.max_pause_minutes)
+                         5 if args.max_pause_minutes is None else args.max_pause_minutes, phases)
     fd, temp_path = tempfile.mkstemp(prefix='.noisenet-chart-', dir=destination.parent)
     try:
         os.fchmod(fd, 0o600)
@@ -242,6 +276,7 @@ PAGE = '''<!doctype html>
 <p class="small">OPEN NOISENET · PRIVATER FELDTEST · PIXEL 10A</p><h1>Geräuschverlauf im Testzeitraum</h1><p class="sub" id="period"></p>
 <div class="warn"><strong>Orientierung, keine Schallpegelmessung:</strong> Dieser Pixel-Test nutzt eine ältere, ungeeichte Pegelberechnung mit pegelabhängiger Korrektur. Sie ist keine normgerechte A-Bewertung und kann auch Abstände zwischen leisen und lauten Phasen verzerren. Niedrige Werte deuten auf relativ ruhigere Abschnitte, nicht auf Stille. Weder absolute Schalldruckwerte, dB(A), Geräuschquellen noch Rechtsgrenzwerte lassen sich daraus sicher ableiten.</div>
 <div class="box"><div class="cards" id="cards"></div></div>
+<div class="box"><h2>Zusammenhängende Geräuschphasen</h2><p class="small">Quellenphasen aus der dokumentierten Analyseabdeckung, unabhängig von der Pegellinie. Überlappende Quellen bleiben möglich. Pausen bedeuten fehlenden passenden Quellenhinweis, keine nachgewiesene Stille. Quellen bleiben ungeprüft.</p><div id="source-phases"></div></div>
 <div class="box"><h2>Zusammenhängende Episoden mit kurzen Pausen</h2><p>Wiederkehrende erhöhte Minuten gehören zu einer Episode, solange die gemessenen Pausen nicht länger als gewählt sind. Fehlende Messminuten trennen immer. Die gesamte Zeitspanne und die Minuten über der Linie werden getrennt gezählt. Eine solche Gruppe beweist weder dieselbe Ursache noch eine Belästigung.</p>
 <label for="scope">Zeitraum ansehen:</label> <select id="scope"><option value="all">Gesamter Testzeitraum</option></select><br><br>
 <label for="cutoff">Vergleichslinie: <strong id="cutoff-value"></strong></label> <input id="cutoff" type="range" step="1" aria-describedby="cutoff-help"><br>
@@ -265,6 +300,16 @@ const missing=Math.max(0,Math.round((rows[rows.length-1][0]-rows[0][0])/60)+1-ro
 document.getElementById('period').textContent='Testfenster: '+new Date(data.start).toLocaleString('de-DE',{timeZone:'Europe/Berlin'})+' bis '+new Date(data.snapshot).toLocaleString('de-DE',{timeZone:'Europe/Berlin'})+' Uhr · dargestellte Minuten: '+f(rows[0][0],{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})+' bis '+f(rows[rows.length-1][0]+60,{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})+' Uhr';
 const cards=[['Gespeicherte Minuten',rows.length.toLocaleString('de-DE')],['Niedrigster Minutenwert',time(min[0])+' · '+value(min[1])],['Höchster Minutenwert',time(max[0])+' · '+value(max[1])],['Lücken zwischen Messungen',String(missing)]];
 document.getElementById('cards').innerHTML=cards.map(([a,b])=>'<div class="card">'+a+'<strong>'+b+'</strong></div>').join('');
+const phaseNames={speech:'Sprachaktivität',music:'Musik / Medien',tools:'Werkzeuggeräusche',traffic:'Straßenverkehr',appliance:'Haushaltsgeräte',animals:'Tiergeräusche',impact:'Schritte / Stoßgeräusche'};
+const phaseHost=document.getElementById('source-phases');
+if(!data.acousticPhases.length)phaseHost.textContent='Keine Quellenphasen mit dokumentierter Analyseabdeckung im Export. Fehlende alte Abdeckung wird nicht nachträglich angenommen.';
+for(const phase of data.acousticPhases){
+ const item=document.createElement('details'),title=document.createElement('summary');
+ title.textContent=(phaseNames[phase.family]||'Ungeklärt')+' · '+time(phase.start_ms/1000)+' – '+time(phase.end_ms/1000)+' · '+value((phase.end_ms-phase.start_ms)/60000)+' Min.';item.appendChild(title);
+ const info=document.createElement('p');info.textContent='Aktiv '+value(phase.active_ms/60000)+' Min. · dazwischen '+value(phase.pause_ms/60000)+' Min. ohne passenden Quellenhinweis.';item.appendChild(info);
+ const band=document.createElement('div');band.style.cssText='position:relative;height:26px;background:#e5e9e7';band.setAttribute('role','img');band.setAttribute('aria-label','Aktivität grün, Zwischenräume grau');
+ for(const part of phase.activity){const bar=document.createElement('span');bar.style.cssText='position:absolute;top:0;height:100%;background:#168460;left:'+((part.start_ms-phase.start_ms)/(phase.end_ms-phase.start_ms)*100)+'%;width:'+((part.end_ms-part.start_ms)/(phase.end_ms-phase.start_ms)*100)+'%';band.appendChild(bar)}item.appendChild(band);phaseHost.appendChild(item);
+}
 const cutoff=document.getElementById('cutoff'),pause=document.getElementById('pause'),scope=document.getElementById('scope');cutoff.min=Math.floor(Math.min(min[1],data.comparisonLine??min[1]));cutoff.max=Math.ceil(Math.max(max[1],data.comparisonLine??max[1]));cutoff.value=data.comparisonLine??Math.min(Number(cutoff.max),Math.round(med(rows.map(r=>r[1]))+10));
 pause.value=String(data.maxPauseMinutes);
 const hourKey=r=>f(r[0],{day:'2-digit',month:'2-digit',hour:'2-digit'});

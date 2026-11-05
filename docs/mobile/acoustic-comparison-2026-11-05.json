@@ -1,0 +1,724 @@
+{
+  "date": "2026-11-05",
+  "classification": {
+    "protocol": "closed-set six-class nearest-centroid; two development clips per class",
+    "same_audio_samples": 77040,
+    "sample_rate": 16000,
+    "temporal_test": "separate score replay through the exact Dart app engine",
+    "limitations": [
+      "Small diagnostic set, not general accuracy",
+      "Speech is synthetic monologue, not natural conversation or TV",
+      "YAMNet features are mean class scores, not hidden embeddings",
+      "CPU desktop timings are not Pixel energy, thermal or runtime evidence",
+      "Model pretraining may include public evaluation material; unknown"
+    ],
+    "models": {
+      "yamnet": {
+        "correct": 10,
+        "total": 12,
+        "predictions": [
+          {
+            "id": "5-203128-A-0.wav",
+            "expected": "animals",
+            "predicted": "animals",
+            "similarity": 0.4367246981681883,
+            "margin": 0.4064721920593554
+          },
+          {
+            "id": "5-208030-A-0.wav",
+            "expected": "animals",
+            "predicted": "animals",
+            "similarity": 0.4358685816239726,
+            "margin": 0.4079736363638584
+          },
+          {
+            "id": "5-250258-A-49.wav",
+            "expected": "sawing",
+            "predicted": "sawing",
+            "similarity": 0.8075208824204814,
+            "margin": 0.6384708858581831
+          },
+          {
+            "id": "5-253094-A-49.wav",
+            "expected": "sawing",
+            "predicted": "sawing",
+            "similarity": 0.9443227485897284,
+            "margin": 0.9274515589061829
+          },
+          {
+            "id": "5-218980-A-30.wav",
+            "expected": "door_or_impact",
+            "predicted": "road_traffic",
+            "similarity": 0.891289581361685,
+            "margin": 0.011315800837135237
+          },
+          {
+            "id": "5-218981-A-30.wav",
+            "expected": "door_or_impact",
+            "predicted": "road_traffic",
+            "similarity": 0.9064497070800818,
+            "margin": 0.01614640893467645
+          },
+          {
+            "id": "5-181766-A-10.wav",
+            "expected": "unknown_sound_source",
+            "predicted": "unknown_sound_source",
+            "similarity": 0.9189241690485532,
+            "margin": 0.8962903837135944
+          },
+          {
+            "id": "5-188655-A-10.wav",
+            "expected": "unknown_sound_source",
+            "predicted": "unknown_sound_source",
+            "similarity": 0.9119540660398313,
+            "margin": 0.8987677629269922
+          },
+          {
+            "id": "synthetic-speech-2.aiff",
+            "expected": "loud_conversation",
+            "predicted": "loud_conversation",
+            "similarity": 0.997808908754388,
+            "margin": 0.9679387819363767
+          },
+          {
+            "id": "synthetic-speech-3.aiff",
+            "expected": "loud_conversation",
+            "predicted": "loud_conversation",
+            "similarity": 0.9989498244304579,
+            "margin": 0.9691402277713893
+          },
+          {
+            "id": "5-179860-A-43.wav",
+            "expected": "road_traffic",
+            "predicted": "road_traffic",
+            "similarity": 0.9195486944034784,
+            "margin": 0.07002580358991639
+          },
+          {
+            "id": "5-179863-A-43.wav",
+            "expected": "road_traffic",
+            "predicted": "road_traffic",
+            "similarity": 0.8866657558246279,
+            "margin": 0.09404062402893543
+          }
+        ],
+        "runtime": {
+          "device": "macOS CPU, two threads, float32",
+          "load_seconds": 12.304425792011898,
+          "median_seconds_per_4_815s_clip": 0.004834563034819439,
+          "p95_seconds": 0.006581887451466172,
+          "process_peak_rss_bytes": 444776448
+        }
+      },
+      "gemma": {
+        "correct": 12,
+        "total": 12,
+        "predictions": [
+          {
+            "id": "5-203128-A-0.wav",
+            "expected": "animals",
+            "predicted": "animals",
+            "similarity": 0.913841222385555,
+            "margin": 0.049033333060530704
+          },
+          {
+            "id": "5-208030-A-0.wav",
+            "expected": "animals",
+            "predicted": "animals",
+            "similarity": 0.9151733852146814,
+            "margin": 0.03077684772323852
+          },
+          {
+            "id": "5-250258-A-49.wav",
+            "expected": "sawing",
+            "predicted": "sawing",
+            "similarity": 0.9064236816086391,
+            "margin": 0.0034575599193255036
+          },
+          {
+            "id": "5-253094-A-49.wav",
+            "expected": "sawing",
+            "predicted": "sawing",
+            "similarity": 0.9434733642306605,
+            "margin": 0.05785167218463738
+          },
+          {
+            "id": "5-218980-A-30.wav",
+            "expected": "door_or_impact",
+            "predicted": "door_or_impact",
+            "similarity": 0.943442511882821,
+            "margin": 0.04882863788465397
+          },
+          {
+            "id": "5-218981-A-30.wav",
+            "expected": "door_or_impact",
+            "predicted": "door_or_impact",
+            "similarity": 0.939665678697308,
+            "margin": 0.036622862694717706
+          },
+          {
+            "id": "5-181766-A-10.wav",
+            "expected": "unknown_sound_source",
+            "predicted": "unknown_sound_source",
+            "similarity": 0.9605900317640316,
+            "margin": 0.09911142542963125
+          },
+          {
+            "id": "5-188655-A-10.wav",
+            "expected": "unknown_sound_source",
+            "predicted": "unknown_sound_source",
+            "similarity": 0.9460265400541008,
+            "margin": 0.09221948290970361
+          },
+          {
+            "id": "synthetic-speech-2.aiff",
+            "expected": "loud_conversation",
+            "predicted": "loud_conversation",
+            "similarity": 0.7657391664916301,
+            "margin": 0.036185168352163566
+          },
+          {
+            "id": "synthetic-speech-3.aiff",
+            "expected": "loud_conversation",
+            "predicted": "loud_conversation",
+            "similarity": 0.8085291476459294,
+            "margin": 0.07392110064178636
+          },
+          {
+            "id": "5-179860-A-43.wav",
+            "expected": "road_traffic",
+            "predicted": "road_traffic",
+            "similarity": 0.9358161912935445,
+            "margin": 0.04848036787520549
+          },
+          {
+            "id": "5-179863-A-43.wav",
+            "expected": "road_traffic",
+            "predicted": "road_traffic",
+            "similarity": 0.945328129304461,
+            "margin": 0.06793505920904064
+          }
+        ],
+        "runtime": {
+          "device": "macOS CPU, two threads, float32",
+          "load_seconds": 41.42092233302537,
+          "median_seconds_per_4_815s_clip": 0.4000944375002291,
+          "p95_seconds": 0.4946570652362425,
+          "process_peak_rss_bytes": 2922987520
+        }
+      }
+    }
+  },
+  "score_replay": [
+    {
+      "id": "yamnet:speech_33m",
+      "speech_phases": 1,
+      "longest_speech_seconds": 1979.535,
+      "source_segments": 66
+    },
+    {
+      "id": "yamnet:speech_long_pause",
+      "speech_phases": 2,
+      "longest_speech_seconds": 419.535,
+      "source_segments": 2
+    },
+    {
+      "id": "yamnet:speech_inference_gap",
+      "speech_phases": 2,
+      "longest_speech_seconds": 489.135,
+      "source_segments": 2
+    },
+    {
+      "id": "yamnet:sparse_speech",
+      "speech_phases": 10,
+      "longest_speech_seconds": 1.935,
+      "source_segments": 10
+    },
+    {
+      "id": "gemma:speech_33m",
+      "speech_phases": 1,
+      "longest_speech_seconds": 1979.535,
+      "source_segments": 66
+    },
+    {
+      "id": "gemma:speech_long_pause",
+      "speech_phases": 2,
+      "longest_speech_seconds": 419.535,
+      "source_segments": 2
+    },
+    {
+      "id": "gemma:speech_inference_gap",
+      "speech_phases": 2,
+      "longest_speech_seconds": 489.135,
+      "source_segments": 2
+    },
+    {
+      "id": "gemma:sparse_speech",
+      "speech_phases": 10,
+      "longest_speech_seconds": 1.935,
+      "source_segments": 10
+    }
+  ],
+  "yamnet_existing_head_family_correct": 8,
+  "audio_scenes": [
+    {
+      "id": "yamnet:audio_5m",
+      "speech_spans_seconds": [
+        [
+          209.28,
+          290.895
+        ],
+        [
+          0.0,
+          80.655
+        ]
+      ],
+      "families": [
+        "impact",
+        "speech",
+        "traffic"
+      ],
+      "traffic_active_seconds": 1.455
+    },
+    {
+      "id": "yamnet:audio_5m_gap",
+      "speech_spans_seconds": [
+        [
+          0.0,
+          80.655
+        ],
+        [
+          209.28,
+          250.575
+        ],
+        [
+          255.36,
+          290.895
+        ]
+      ],
+      "families": [
+        "impact",
+        "speech",
+        "traffic"
+      ],
+      "traffic_active_seconds": 1.455
+    },
+    {
+      "id": "yamnet_existing_app:audio_5m",
+      "speech_spans_seconds": [
+        [
+          209.28,
+          290.895
+        ],
+        [
+          0.0,
+          80.655
+        ]
+      ],
+      "families": [
+        "impact",
+        "speech"
+      ],
+      "traffic_active_seconds": 0.0
+    },
+    {
+      "id": "gemma:audio_5m",
+      "speech_spans_seconds": [
+        [
+          209.28,
+          290.415
+        ],
+        [
+          0.0,
+          80.655
+        ]
+      ],
+      "families": [
+        "impact",
+        "speech",
+        "traffic"
+      ],
+      "traffic_active_seconds": 59.805
+    },
+    {
+      "id": "gemma:audio_5m_gap",
+      "speech_spans_seconds": [
+        [
+          0.0,
+          80.655
+        ],
+        [
+          209.28,
+          250.575
+        ],
+        [
+          256.8,
+          290.415
+        ]
+      ],
+      "families": [
+        "impact",
+        "speech",
+        "traffic"
+      ],
+      "traffic_active_seconds": 56.445
+    }
+  ],
+  "fixtures": [
+    {
+      "id": "1-100032-A-0.wav",
+      "split": "development",
+      "category": "animals",
+      "source_label": "dog",
+      "source": "https://raw.githubusercontent.com/karolpiczak/ESC-50/master/audio/1-100032-A-0.wav",
+      "source_recording": "100032",
+      "license": "ESC-50 CC BY-NC 3.0; local research only; not redistributed",
+      "sha256": "f40a849a2375c8c63312a73dd2dd6c74007301fcc21b4be2ece29a642831e3d8"
+    },
+    {
+      "id": "1-110389-A-0.wav",
+      "split": "development",
+      "category": "animals",
+      "source_label": "dog",
+      "source": "https://raw.githubusercontent.com/karolpiczak/ESC-50/master/audio/1-110389-A-0.wav",
+      "source_recording": "110389",
+      "license": "ESC-50 CC BY-NC 3.0; local research only; not redistributed",
+      "sha256": "4a18f3f834eb184b9f02595ac74c7de37ef8048a3da92f58f27018fec580b36a"
+    },
+    {
+      "id": "5-203128-A-0.wav",
+      "split": "heldout",
+      "category": "animals",
+      "source_label": "dog",
+      "source": "https://raw.githubusercontent.com/karolpiczak/ESC-50/master/audio/5-203128-A-0.wav",
+      "source_recording": "203128",
+      "license": "ESC-50 CC BY-NC 3.0; local research only; not redistributed",
+      "sha256": "435e476d5d429aa1cc51c23c9b5e5f8f472faf022846996ade18a457621d0552"
+    },
+    {
+      "id": "5-208030-A-0.wav",
+      "split": "heldout",
+      "category": "animals",
+      "source_label": "dog",
+      "source": "https://raw.githubusercontent.com/karolpiczak/ESC-50/master/audio/5-208030-A-0.wav",
+      "source_recording": "208030",
+      "license": "ESC-50 CC BY-NC 3.0; local research only; not redistributed",
+      "sha256": "8b3f5052dad5383ea171aa8feaead47879bf7b5ae3acaf5a26c5167838a49494"
+    },
+    {
+      "id": "1-18810-A-49.wav",
+      "split": "development",
+      "category": "sawing",
+      "source_label": "hand_saw",
+      "source": "https://raw.githubusercontent.com/karolpiczak/ESC-50/master/audio/1-18810-A-49.wav",
+      "source_recording": "18810",
+      "license": "ESC-50 CC BY-NC 3.0; local research only; not redistributed",
+      "sha256": "f3597d925f71cc6a85f03cd08edeed6657b5433d70c229484d8f6cc0236e9df8"
+    },
+    {
+      "id": "1-23706-A-49.wav",
+      "split": "development",
+      "category": "sawing",
+      "source_label": "hand_saw",
+      "source": "https://raw.githubusercontent.com/karolpiczak/ESC-50/master/audio/1-23706-A-49.wav",
+      "source_recording": "23706",
+      "license": "ESC-50 CC BY-NC 3.0; local research only; not redistributed",
+      "sha256": "578e665791e50b49fd105745ee79e3974b5fe323c7712aad4cd8bce67e21bf76"
+    },
+    {
+      "id": "5-250258-A-49.wav",
+      "split": "heldout",
+      "category": "sawing",
+      "source_label": "hand_saw",
+      "source": "https://raw.githubusercontent.com/karolpiczak/ESC-50/master/audio/5-250258-A-49.wav",
+      "source_recording": "250258",
+      "license": "ESC-50 CC BY-NC 3.0; local research only; not redistributed",
+      "sha256": "7885b67aab389431fc8b3799d1d6962dce6a6c76f0187a3e98d53f9008a5e7a5"
+    },
+    {
+      "id": "5-253094-A-49.wav",
+      "split": "heldout",
+      "category": "sawing",
+      "source_label": "hand_saw",
+      "source": "https://raw.githubusercontent.com/karolpiczak/ESC-50/master/audio/5-253094-A-49.wav",
+      "source_recording": "253094",
+      "license": "ESC-50 CC BY-NC 3.0; local research only; not redistributed",
+      "sha256": "adef71efcffdbc20d1889b60ad57b15b7b3df8fc10628ca1ccd9fe62f6be98ea"
+    },
+    {
+      "id": "1-101336-A-30.wav",
+      "split": "development",
+      "category": "door_or_impact",
+      "source_label": "door_wood_knock",
+      "source": "https://raw.githubusercontent.com/karolpiczak/ESC-50/master/audio/1-101336-A-30.wav",
+      "source_recording": "101336",
+      "license": "ESC-50 CC BY-NC 3.0; local research only; not redistributed",
+      "sha256": "e738266e395e378102f74e0920b05ff5937543788420d5b2a6b8d3df8bdb3910"
+    },
+    {
+      "id": "1-103995-A-30.wav",
+      "split": "development",
+      "category": "door_or_impact",
+      "source_label": "door_wood_knock",
+      "source": "https://raw.githubusercontent.com/karolpiczak/ESC-50/master/audio/1-103995-A-30.wav",
+      "source_recording": "103995",
+      "license": "ESC-50 CC BY-NC 3.0; local research only; not redistributed",
+      "sha256": "1c1d3e65b7a58658766180d2faeeb9bdd1fe7405119bf100d9cd2f671a6e2b11"
+    },
+    {
+      "id": "5-218980-A-30.wav",
+      "split": "heldout",
+      "category": "door_or_impact",
+      "source_label": "door_wood_knock",
+      "source": "https://raw.githubusercontent.com/karolpiczak/ESC-50/master/audio/5-218980-A-30.wav",
+      "source_recording": "218980",
+      "license": "ESC-50 CC BY-NC 3.0; local research only; not redistributed",
+      "sha256": "c917686cc7048be91d4dec61539344094a01233e649989264187388c9e95f82f"
+    },
+    {
+      "id": "5-218981-A-30.wav",
+      "split": "heldout",
+      "category": "door_or_impact",
+      "source_label": "door_wood_knock",
+      "source": "https://raw.githubusercontent.com/karolpiczak/ESC-50/master/audio/5-218981-A-30.wav",
+      "source_recording": "218981",
+      "license": "ESC-50 CC BY-NC 3.0; local research only; not redistributed",
+      "sha256": "b699b80f84ba074526d993750226ec6723b5679393a92fa3d266ea67767d5cca"
+    },
+    {
+      "id": "1-17367-A-10.wav",
+      "split": "development",
+      "category": "unknown_sound_source",
+      "source_label": "rain",
+      "source": "https://raw.githubusercontent.com/karolpiczak/ESC-50/master/audio/1-17367-A-10.wav",
+      "source_recording": "17367",
+      "license": "ESC-50 CC BY-NC 3.0; local research only; not redistributed",
+      "sha256": "d732acd2e0c7c40405968010f49f250740c86998fc416eff2ed5330fc8c89dea"
+    },
+    {
+      "id": "1-21189-A-10.wav",
+      "split": "development",
+      "category": "unknown_sound_source",
+      "source_label": "rain",
+      "source": "https://raw.githubusercontent.com/karolpiczak/ESC-50/master/audio/1-21189-A-10.wav",
+      "source_recording": "21189",
+      "license": "ESC-50 CC BY-NC 3.0; local research only; not redistributed",
+      "sha256": "5f15ab2d8f6ef9932909b1b75c8ac254cbea46c93b4b2f0f3542abdf09b9abc0"
+    },
+    {
+      "id": "5-181766-A-10.wav",
+      "split": "heldout",
+      "category": "unknown_sound_source",
+      "source_label": "rain",
+      "source": "https://raw.githubusercontent.com/karolpiczak/ESC-50/master/audio/5-181766-A-10.wav",
+      "source_recording": "181766",
+      "license": "ESC-50 CC BY-NC 3.0; local research only; not redistributed",
+      "sha256": "608fcc0bef32512e2a984c7d3d2cac8ea161f6337ec0056850a6d34f07f8db35"
+    },
+    {
+      "id": "5-188655-A-10.wav",
+      "split": "heldout",
+      "category": "unknown_sound_source",
+      "source_label": "rain",
+      "source": "https://raw.githubusercontent.com/karolpiczak/ESC-50/master/audio/5-188655-A-10.wav",
+      "source_recording": "188655",
+      "license": "ESC-50 CC BY-NC 3.0; local research only; not redistributed",
+      "sha256": "9ed876436c72f36c230c275744818829912a2299bcbd8ccca6eccce9df6f8a57"
+    },
+    {
+      "id": "synthetic-speech-0.aiff",
+      "split": "development",
+      "category": "loud_conversation",
+      "source_label": "synthetic spoken monologue, not conversation",
+      "source": "macOS say, locally generated non-personal text",
+      "source_recording": "synthetic-speech-0.aiff",
+      "license": "local test artifact; not redistributed",
+      "sha256": "9c03df2db32791606365455bb44378ceaf1412f2270dc92571844e9881a43737"
+    },
+    {
+      "id": "synthetic-speech-1.aiff",
+      "split": "development",
+      "category": "loud_conversation",
+      "source_label": "synthetic spoken monologue, not conversation",
+      "source": "macOS say, locally generated non-personal text",
+      "source_recording": "synthetic-speech-1.aiff",
+      "license": "local test artifact; not redistributed",
+      "sha256": "73a9ab977a9cd4274f4318bee0eb0dd2eb6878889945e929b375b64534b52b03"
+    },
+    {
+      "id": "synthetic-speech-2.aiff",
+      "split": "heldout",
+      "category": "loud_conversation",
+      "source_label": "synthetic spoken monologue, not conversation",
+      "source": "macOS say, locally generated non-personal text",
+      "source_recording": "synthetic-speech-2.aiff",
+      "license": "local test artifact; not redistributed",
+      "sha256": "c1256f4656443bfef19dc9fd8492d34f054daf1862c4e258648dbe063f58468f"
+    },
+    {
+      "id": "synthetic-speech-3.aiff",
+      "split": "heldout",
+      "category": "loud_conversation",
+      "source_label": "synthetic spoken monologue, not conversation",
+      "source": "macOS say, locally generated non-personal text",
+      "source_recording": "synthetic-speech-3.aiff",
+      "license": "local test artifact; not redistributed",
+      "sha256": "a348d70b50a8edb041ba3b6934d5d57aa305d7a54676a19a3c24ea020f79ecba"
+    },
+    {
+      "id": "1-17124-A-43.wav",
+      "split": "development",
+      "category": "road_traffic",
+      "source_label": "car_horn",
+      "source": "https://raw.githubusercontent.com/karolpiczak/ESC-50/master/audio/1-17124-A-43.wav",
+      "source_recording": "17124",
+      "license": "ESC-50 CC BY-NC 3.0; local research only; not redistributed",
+      "sha256": "9d5e01e07a386ee36c2e73f40817d132a54d91c936eccc01414280abca5a4209"
+    },
+    {
+      "id": "1-19026-A-43.wav",
+      "split": "development",
+      "category": "road_traffic",
+      "source_label": "car_horn",
+      "source": "https://raw.githubusercontent.com/karolpiczak/ESC-50/master/audio/1-19026-A-43.wav",
+      "source_recording": "19026",
+      "license": "ESC-50 CC BY-NC 3.0; local research only; not redistributed",
+      "sha256": "67bb2fe5cf138930eb6a6a84bedeb7284093076738cd47ef73cc8b3b8393ff40"
+    },
+    {
+      "id": "5-179860-A-43.wav",
+      "split": "heldout",
+      "category": "road_traffic",
+      "source_label": "car_horn",
+      "source": "https://raw.githubusercontent.com/karolpiczak/ESC-50/master/audio/5-179860-A-43.wav",
+      "source_recording": "179860",
+      "license": "ESC-50 CC BY-NC 3.0; local research only; not redistributed",
+      "sha256": "9be96b2f8cd6a81053fea7e8be03a5936070490ce3b193b47936140536c0a3c2"
+    },
+    {
+      "id": "5-179863-A-43.wav",
+      "split": "heldout",
+      "category": "road_traffic",
+      "source_label": "car_horn",
+      "source": "https://raw.githubusercontent.com/karolpiczak/ESC-50/master/audio/5-179863-A-43.wav",
+      "source_recording": "179863",
+      "license": "ESC-50 CC BY-NC 3.0; local research only; not redistributed",
+      "sha256": "9a777c790a2476a3de0efd0318e6fb369ad5af8bee0d007193ce08913dd9ae33"
+    }
+  ],
+  "model_revisions": {
+    "yamnet": "4d8b4a53282dc83ef04e3e7dbc4fbc98082e34e44ed798e16c3a0cdd4c584faf",
+    "gemma": "f9972ac22e696a105c482202646979e33e4b5a1e"
+  },
+  "matched_window_audio_scenes": [
+    {
+      "id": "yamnet:audio_5m",
+      "speech_spans_seconds": [
+        [
+          209.28,
+          290.895
+        ],
+        [
+          0.0,
+          80.655
+        ]
+      ],
+      "active_seconds_by_family": {
+        "animals": 1.455,
+        "impact": 2.415,
+        "speech": 127.77
+      },
+      "inference_seconds_per_268_windows": 0.34538459609029815,
+      "centroid_window_ms": 975
+    },
+    {
+      "id": "yamnet:audio_5m_gap",
+      "speech_spans_seconds": [
+        [
+          0.0,
+          80.655
+        ],
+        [
+          209.28,
+          250.575
+        ],
+        [
+          255.36,
+          290.895
+        ]
+      ],
+      "active_seconds_by_family": {
+        "animals": 1.455,
+        "impact": 2.415,
+        "speech": 122.985
+      },
+      "inference_seconds_per_268_windows": 0.34538459609029815,
+      "centroid_window_ms": 975
+    },
+    {
+      "id": "yamnet_existing_app:audio_5m",
+      "speech_spans_seconds": [
+        [
+          209.28,
+          290.895
+        ],
+        [
+          0.0,
+          80.655
+        ]
+      ],
+      "active_seconds_by_family": {
+        "impact": 1.935,
+        "speech": 127.77
+      },
+      "inference_seconds_per_268_windows": 0.34538459609029815,
+      "centroid_window_ms": 975
+    },
+    {
+      "id": "gemma:audio_5m",
+      "speech_spans_seconds": [
+        [
+          209.28,
+          290.415
+        ],
+        [
+          0.0,
+          80.655
+        ]
+      ],
+      "active_seconds_by_family": {
+        "impact": 1.455,
+        "speech": 126.33,
+        "traffic": 1.935
+      },
+      "inference_seconds_per_268_windows": 70.68975817225873,
+      "centroid_window_ms": 975
+    },
+    {
+      "id": "gemma:audio_5m_gap",
+      "speech_spans_seconds": [
+        [
+          0.0,
+          80.655
+        ],
+        [
+          209.28,
+          250.575
+        ],
+        [
+          255.36,
+          290.415
+        ]
+      ],
+      "active_seconds_by_family": {
+        "impact": 1.455,
+        "speech": 121.545,
+        "traffic": 1.935
+      },
+      "inference_seconds_per_268_windows": 70.68975817225873,
+      "centroid_window_ms": 975
+    }
+  ],
+  "matched_window_protocol": "Exploratory follow-up after context mismatch: fit 975ms development windows; same heldout composite reused; no new independent validation; no heldout fitting.",
+  "decision": "Keep YAMNet in the app; new phase logic works with baseline; no clear streaming advantage demonstrated for Gemma; no Pixel installation."
+}

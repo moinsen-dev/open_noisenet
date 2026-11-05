@@ -14,6 +14,23 @@ spec.loader.exec_module(chart)
 
 
 class FieldtestChartTest(unittest.TestCase):
+    def test_source_phases_clip_activity_not_just_parent_and_reject_overlap(self):
+        start = dt.datetime.fromtimestamp(30, dt.timezone.utc)
+        end = dt.datetime.fromtimestamp(150, dt.timezone.utc)
+        exported = {'acoustic_phases': [{'algorithm': 'source_phases_v1', 'family': 'speech',
+            'activity': [{'start_ms': 0, 'end_ms': 60000}, {'start_ms': 80000, 'end_ms': 180000}]}]}
+        phases = chart.clipped_source_phases(exported, start, end)
+        self.assertEqual(phases[0]['active_ms'], 100000)
+        self.assertEqual(phases[0]['pause_ms'], 20000)
+        self.assertEqual(phases[0]['start_ms'], 30000)
+        self.assertEqual(phases[0]['end_ms'], 150000)
+        html = chart.make_html([[60, 20, None, 10]], start, end, acoustic_phases=phases)
+        self.assertIn('source-phases', html)
+        self.assertIn('"active_ms":100000', html)
+        exported['acoustic_phases'][0]['activity'][1]['start_ms'] = 50000
+        with self.assertRaises(ValueError):
+            chart.clipped_source_phases(exported, start, end)
+
     def test_app_export_cli_preserves_parameters_and_requires_no_adb(self):
         with tempfile.TemporaryDirectory() as tmp:
             source, output = Path(tmp) / 'history.json', Path(tmp) / 'report.html'

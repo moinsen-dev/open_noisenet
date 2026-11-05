@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import '../../../core/database/models/noise_measurement.dart';
 import 'noise_history.dart';
+import '../../../services/sound_analysis/acoustic_phase.dart';
 
 /// An explicit, unencrypted export of the selected time window. Do not include
 /// device identifiers, coordinates, diary text, credentials or raw model audio.
@@ -29,7 +30,8 @@ String historyExportJson({
           category: hint.category,
           start: hint.start.isBefore(start) ? start : hint.start,
           end: hint.end.isAfter(end) ? end : hint.end,
-          confidence: hint.confidence))
+          confidence: hint.confidence,
+          isCoverage: hint.isCoverage))
       .toList();
   final episodes = groupLevelHistory(selectedMinutes,
       threshold: comparisonLine, maxPauseMinutes: maxPauseMinutes)
@@ -42,6 +44,7 @@ String historyExportJson({
       'comparison_line': comparisonLine,
       'max_pause_minutes': maxPauseMinutes,
       'semantics': 'temporal_grouping_not_proven_common_cause',
+      'source_phase_algorithm': AcousticPhasePolicy.version,
     },
     'limitations': {
       'levels': 'uncalibrated_estimates; method_not_stored_per_minute',
@@ -56,7 +59,17 @@ String historyExportJson({
               'samples_count': minute.samplesCount,
             })
         .toList(),
+    'analysis_coverage': selectedHints
+        .where((hint) => hint.isCoverage)
+        .map((hint) => {
+              'start_ms': hint.start.millisecondsSinceEpoch,
+              'end_ms': hint.end.millisecondsSinceEpoch
+            })
+        .toList(),
+    'acoustic_phases':
+        sourcePhases(selectedHints).map((p) => p.toJson()).toList(),
     'source_hints': selectedHints
+        .where((hint) => !hint.isCoverage)
         .map((hint) => {
               'start': hint.start.toUtc().toIso8601String(),
               'end': hint.end.toUtc().toIso8601String(),

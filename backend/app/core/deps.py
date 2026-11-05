@@ -17,7 +17,7 @@ security = HTTPBearer(auto_error=False)
 
 async def get_current_user(
     credentials: Optional[HTTPAuthorizationCredentials] = Depends(security),
-    db: AsyncSession = Depends(get_session),
+    db: AsyncSession = Depends(get_session, scope="function"),
 ) -> Optional[User]:
     """Extract and validate user from Bearer token. Returns None if no token provided."""
     if not credentials:

@@ -5,15 +5,16 @@ from uuid import UUID
 from datetime import datetime, timezone
 from uuid import uuid4
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, Header, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func
+from sqlalchemy import and_, or_, select, func
 from sqlalchemy.orm import selectinload
 
-from app.core.deps import require_user
+from app.core.deps import get_current_user, require_superuser
+from app.core.device_auth import can_access_device, require_device_key, visible_device_ids
 from app.db.session import get_session
 from app.db.models.event import Event, EventStatus
-from app.db.models.device import Device, DeviceType
+from app.db.models.device import Device
 from app.db.models.user import User
 from app.schemas.event import (
     EventCreate,
@@ -29,6 +30,28 @@ from app.services.event_analysis import derive_event_analysis
 from app.services.episode_engine import sync_event_to_episode
 
 router = APIRouter()
+
+
+def _visible_events(user, device_key):
+    """Location-free events stay private even on a published device."""
+    authorized = visible_device_ids(user, device_key, include_public=False)
+    public = visible_device_ids(None, None)
+    return or_(
+        Event.device_id.in_(authorized),
+        and_(
+            Event.device_id.in_(public),
+            Event.location_lat.is_not(None),
+            Event.location_lng.is_not(None),
+        ),
+    )
+
+
+def _public_event(event):
+    return bool(
+        event.device.is_public
+        and event.location_lat is not None
+        and event.location_lng is not None
+    )
 
 
 def _serialize_event(event: Event) -> EventResponse:
@@ -202,9 +225,16 @@ def _event_matches_payload(event: Event, event_data: EventCreate) -> bool:
 @router.post("/", response_model=EventReceiptResponse)
 async def create_event(
     event_data: EventCreate,
-    db: AsyncSession = Depends(get_session)
+    db: AsyncSession = Depends(get_session, scope="function"),
+    device_key: Optional[str] = Header(default=None, alias="X-Device-Key"),
 ):
     """Create a new noise event."""
+
+    device_result = await db.execute(select(Device).where(Device.device_id == event_data.device_id))
+    device = device_result.scalar_one_or_none()
+    if not device:
+        raise HTTPException(status_code=404, detail="Device must be registered before event submission")
+    await require_device_key(db, device, device_key)
 
     incoming_event_uuid = event_data.event_uuid or str(uuid4())
 
@@ -227,22 +257,6 @@ async def create_event(
             )
         return _serialize_event_receipt(existing_event)
 
-    # First, find or create the device
-    device_stmt = select(Device).where(Device.device_id == event_data.device_id)
-    device_result = await db.execute(device_stmt)
-    device = device_result.scalar_one_or_none()
-
-    if not device:
-        # Auto-create device if it doesn't exist (for anonymous submissions)
-        device = Device(
-            device_id=event_data.device_id,
-            name=f"Device {event_data.device_id[:8]}",
-            device_type=DeviceType.SMARTPHONE,  # Default to smartphone
-        )
-        db.add(device)
-        await db.flush()
-        await db.refresh(device)
-    
     # Create the event
     analysis = derive_event_analysis(event_data)
     event_dict = event_data.model_dump(
@@ -267,7 +281,16 @@ async def create_event(
     new_event = Event(**event_dict)
     db.add(new_event)
     await db.flush()
-    await sync_event_to_episode(db, new_event)
+    episode = await sync_event_to_episode(db, new_event)
+    if episode is None:
+        # Anonymous sensors still need immediate, device-scoped episodes. The
+        # source-aware engine preserves every raw event and records any gap
+        # instead of implying that the noise was continuous.
+        from app.services.anonymous_episode_engine import (
+            sync_anonymous_event_to_episode,
+        )
+
+        await sync_anonymous_event_to_episode(db, new_event, device=device)
     await db.flush()
     await db.refresh(new_event)
 
@@ -295,7 +318,9 @@ async def create_event(
 @router.get("/status/{event_uuid}", response_model=EventStatusResponse)
 async def get_event_status(
     event_uuid: str,
-    db: AsyncSession = Depends(get_session),
+    db: AsyncSession = Depends(get_session, scope="function"),
+    user: Optional[User] = Depends(get_current_user),
+    device_key: Optional[str] = Header(default=None, alias="X-Device-Key"),
 ):
     """Get the latest lifecycle and analysis state for a submitted event."""
 
@@ -309,8 +334,12 @@ async def get_event_status(
 
     if not event:
         raise HTTPException(status_code=404, detail=f"Event {event_uuid} not found")
+    authorized = await can_access_device(db, event.device, user, device_key)
+    if not authorized and not _public_event(event):
+        raise HTTPException(status_code=404, detail="Event not found")
 
-    return _serialize_event_status(event)
+    status = _serialize_event_status(event)
+    return status if authorized else status.model_copy(update={"episode_id": None})
 
 
 @router.get("/", response_model=EventListResponse)
@@ -324,12 +353,15 @@ async def list_events(
     rule_triggered: Optional[str] = Query(None, description="Filter by rule name"),
     limit: int = Query(default=100, ge=1, le=1000, description="Number of results to return"),
     offset: int = Query(default=0, ge=0, description="Number of results to skip"),
-    db: AsyncSession = Depends(get_session)
+    db: AsyncSession = Depends(get_session, scope="function"),
+    user: Optional[User] = Depends(get_current_user),
+    device_key: Optional[str] = Header(default=None, alias="X-Device-Key"),
 ):
     """List noise events with filtering and pagination."""
     
     # Build the query
-    stmt = select(Event).options(selectinload(Event.device))
+    visible = _visible_events(user, device_key)
+    stmt = select(Event).options(selectinload(Event.device)).where(visible)
     
     # Apply filters
     if device_id:
@@ -355,7 +387,7 @@ async def list_events(
         stmt = stmt.where(Event.rule_triggered == rule_triggered)
     
     # Get total count for pagination
-    count_stmt = select(func.count(Event.id))
+    count_stmt = select(func.count(Event.id)).where(visible)
     if device_id:
         count_stmt = count_stmt.join(Device).where(Device.device_id == device_id)
     if start_time:
@@ -380,8 +412,14 @@ async def list_events(
     result = await db.execute(stmt)
     events = result.scalars().all()
     
+    serialized_events = []
+    for event in events:
+        item = _serialize_event(event)
+        if not await can_access_device(db, event.device, user, device_key):
+            item = item.model_copy(update={"event_metadata": None, "episode_id": None})
+        serialized_events.append(item)
     return EventListResponse(
-        events=[_serialize_event(event) for event in events],
+        events=serialized_events,
         total=total,
         offset=offset,
         limit=limit
@@ -392,12 +430,15 @@ async def list_events(
 async def get_event_stats(
     start_time: Optional[datetime] = Query(None, description="Stats after this time"),
     end_time: Optional[datetime] = Query(None, description="Stats before this time"),
-    db: AsyncSession = Depends(get_session)
+    db: AsyncSession = Depends(get_session, scope="function"),
+    user: Optional[User] = Depends(get_current_user),
+    device_key: Optional[str] = Header(default=None, alias="X-Device-Key"),
 ):
     """Get event statistics."""
 
     # Total events
-    total_stmt = select(func.count(Event.id))
+    visible = _visible_events(user, device_key)
+    total_stmt = select(func.count(Event.id)).where(visible)
     if start_time:
         total_stmt = total_stmt.where(Event.timestamp_start >= start_time)
     if end_time:
@@ -412,7 +453,7 @@ async def get_event_stats(
             func.avg(Event.leq_db).label('avg_leq'),
             func.max(Event.leq_db).label('max_leq'),
             func.min(Event.leq_db).label('min_leq')
-        )
+        ).where(visible)
         if start_time:
             stats_stmt = stats_stmt.where(Event.timestamp_start >= start_time)
         if end_time:
@@ -431,9 +472,11 @@ async def get_event_stats(
     from datetime import timedelta
 
     events_24h_stmt = select(func.count(Event.id)).where(
+        visible,
         Event.timestamp_start >= now - timedelta(hours=24)
     )
     events_7d_stmt = select(func.count(Event.id)).where(
+        visible,
         Event.timestamp_start >= now - timedelta(days=7)
     )
 
@@ -445,6 +488,7 @@ async def get_event_stats(
 
     # Active devices count
     devices_stmt = select(func.count(func.distinct(Event.device_id))).where(
+        visible,
         Event.timestamp_start >= now - timedelta(days=7)
     )
 
@@ -465,7 +509,9 @@ async def get_event_stats(
 @router.get("/{event_id}", response_model=EventResponse)
 async def get_event(
     event_id: UUID,
-    db: AsyncSession = Depends(get_session)
+    db: AsyncSession = Depends(get_session, scope="function"),
+    user: Optional[User] = Depends(get_current_user),
+    device_key: Optional[str] = Header(default=None, alias="X-Device-Key"),
 ):
     """Get specific event details by UUID."""
 
@@ -476,23 +522,30 @@ async def get_event(
     if not event:
         raise HTTPException(status_code=404, detail=f"Event {event_id} not found")
 
-    return _serialize_event(event)
+    authorized = await can_access_device(db, event.device, user, device_key)
+    if not authorized and not _public_event(event):
+        raise HTTPException(status_code=404, detail="Event not found")
+    result = _serialize_event(event)
+    return result if authorized else result.model_copy(update={"event_metadata": None, "episode_id": None})
 
 
 @router.delete("/{event_id}")
 async def delete_event(
     event_id: UUID,
-    user: User = Depends(require_user),
-    db: AsyncSession = Depends(get_session),
+    user: Optional[User] = Depends(get_current_user),
+    db: AsyncSession = Depends(get_session, scope="function"),
+    device_key: Optional[str] = Header(default=None, alias="X-Device-Key"),
 ):
     """Delete a noise event."""
 
-    stmt = select(Event).where(Event.id == event_id)
+    stmt = select(Event).options(selectinload(Event.device)).where(Event.id == event_id)
     result = await db.execute(stmt)
     event = result.scalar_one_or_none()
 
     if not event:
         raise HTTPException(status_code=404, detail=f"Event {event_id} not found")
+    if not await can_access_device(db, event.device, user, device_key):
+        raise HTTPException(status_code=404, detail="Event not found")
 
     await db.delete(event)
     await db.flush()
@@ -503,7 +556,8 @@ async def delete_event(
 @router.post("/detect-episodes", response_model=dict)
 async def detect_episodes(
     device_id: Optional[str] = Query(None, description="Device ID to process. Omit for all devices."),
-    db: AsyncSession = Depends(get_session),
+    db: AsyncSession = Depends(get_session, scope="function"),
+    user: User = Depends(require_superuser),
 ):
     """Run episode detection on unassigned events. Groups temporally adjacent
     events into classified episodes (construction, traffic, conversation, etc.).

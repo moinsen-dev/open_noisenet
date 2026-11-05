@@ -6,6 +6,17 @@ import '../../../../services/location_service.dart';
 
 part 'noise_event_model.g.dart';
 
+DateTime _eventDateTimeFromJson(String value) => DateTime.parse(value);
+
+String _eventDateTimeToUtcJson(DateTime value) =>
+    value.toUtc().toIso8601String();
+
+DateTime? _nullableEventDateTimeFromJson(String? value) =>
+    value == null ? null : DateTime.parse(value);
+
+String? _nullableEventDateTimeToUtcJson(DateTime? value) =>
+    value?.toUtc().toIso8601String();
+
 class EventLifecycleState {
   static const String detectedLocal = 'detected_local';
   static const String segmentedLocal = 'segmented_local';
@@ -37,10 +48,18 @@ class NoiseEventModel {
   final String deviceId;
 
   /// Event timing
-  @JsonKey(name: 'timestamp_start')
+  @JsonKey(
+    name: 'timestamp_start',
+    fromJson: _eventDateTimeFromJson,
+    toJson: _eventDateTimeToUtcJson,
+  )
   final DateTime timestampStart;
 
-  @JsonKey(name: 'timestamp_end')
+  @JsonKey(
+    name: 'timestamp_end',
+    fromJson: _eventDateTimeFromJson,
+    toJson: _eventDateTimeToUtcJson,
+  )
   final DateTime timestampEnd;
 
   /// Noise measurements
@@ -115,7 +134,11 @@ class NoiseEventModel {
   @JsonKey(name: 'threshold_exceedance_ratio')
   final double? thresholdExceedanceRatio;
 
-  @JsonKey(name: 'analysis_updated_at')
+  @JsonKey(
+    name: 'analysis_updated_at',
+    fromJson: _nullableEventDateTimeFromJson,
+    toJson: _nullableEventDateTimeToUtcJson,
+  )
   final DateTime? analysisUpdatedAt;
 
   /// Continuous recording references (new fields for Phase 3)
@@ -247,9 +270,9 @@ class NoiseEventModel {
       leqDb: event.averageLeqDb,
       lmaxDb: event.maxLevelDb,
       lminDb: event.minLevelDb,
-      laeqDb: event
-          .averageLeqDb, // A-weighted equivalent (using same value for now)
-      samplesCount: event.samples.length,
+      // The sensor does not yet compute a frequency-weighted LAeq.
+      laeqDb: null,
+      samplesCount: event.totalSampleCount ?? event.samples.length,
       ruleTriggered: event.ruleTriggered,
       locationLat: location?.latitude,
       locationLng: location?.longitude,
@@ -257,8 +280,9 @@ class NoiseEventModel {
       locationAccuracy: location?.accuracy,
       eventMetadata: {
         'duration_seconds': event.duration.inSeconds,
-        'sample_interval': 1.0, // Assuming 1 second intervals
-        'detection_version': '1.0.0',
+        'sample_timing': 'variable_buffer_intervals',
+        'detection_version': '1.1.0',
+        'level_method': 'pcm_rms_unweighted_v1',
         ...?metadata,
       },
       analysisState: EventAnalysisState.notStarted,

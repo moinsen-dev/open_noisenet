@@ -153,7 +153,7 @@ export default function HomePage() {
         <Grid item xs={12} sm={6} md={3}>
           <StatCard
             title="Avg Noise Level"
-            value={stats?.avg_leq_db ? `${stats.avg_leq_db.toFixed(1)} dB` : '—'}
+            value={stats?.avg_leq_db != null ? `${stats.avg_leq_db.toFixed(1)} dB` : '—'}
             icon={<VolumeUp />}
             color="info"
           />
@@ -186,6 +186,10 @@ export default function HomePage() {
                 <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
                   <CircularProgress />
                 </Box>
+              ) : state.error ? (
+                <Typography variant="body2" color="textSecondary">
+                  Recent events are unavailable until the backend can be reached.
+                </Typography>
               ) : state.recentEvents.length === 0 ? (
                 <Typography variant="body2" color="textSecondary">
                   No events have been ingested yet. Once a device submits an

@@ -1,5 +1,7 @@
 # OpenNoiseNet Execution Backlog
 
+> Historischer Stand von 2026-08-17. Der verbindliche aktuelle Stand und die offenen Phasen stehen in [current-status.md](./current-status.md).
+
 Last updated: 2026-08-17 (verified audit — see [docs/finalization-plan.md](./finalization-plan.md))
 
 ## Resolved Since 2026-06-01

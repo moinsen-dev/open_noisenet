@@ -5,6 +5,7 @@ import 'package:equatable/equatable.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:get_it/get_it.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 import '../../../../core/logging/app_logger.dart';
 import '../../../../services/audio_capture_service.dart';
@@ -16,6 +17,8 @@ import '../../../../services/statistics_service.dart';
 import '../../../../services/background_monitoring_service.dart';
 import '../../../../services/ios_background_service.dart';
 import '../../../../services/sqlite_preferences_service.dart';
+import '../../../../services/sound_analysis/on_device_sound_analysis_service.dart';
+import '../../../../services/android_foreground_service.dart';
 
 part 'monitoring_event.dart';
 part 'monitoring_state.dart';
@@ -42,14 +45,19 @@ class MonitoringBloc extends Bloc<MonitoringEvent, MonitoringState> {
   final BackgroundMonitoringService _backgroundMonitoringService =
       BackgroundMonitoringService();
   final IOSBackgroundService _iosBackgroundService = IOSBackgroundService();
+  final AndroidForegroundService _androidForegroundService =
+      AndroidForegroundService();
   final SQLitePreferencesService _preferencesService =
       GetIt.instance<SQLitePreferencesService>();
+  final OnDeviceSoundAnalysisService _soundAnalysisService =
+      GetIt.instance<OnDeviceSoundAnalysisService>();
 
   final ApiClientService _apiClient = GetIt.instance<ApiClientService>();
 
   StreamSubscription<double>? _splSubscription;
   StreamSubscription<BackgroundMonitoringState>? _backgroundStateSubscription;
   StreamSubscription<Map<String, dynamic>>? _backgroundStatusSubscription;
+  StreamSubscription<void>? _foregroundStopSubscription;
   Timer? _monitoringWatchdogTimer;
   DateTime? _lastNoiseSampleAt;
   bool _recoveryInProgress = false;
@@ -72,6 +80,17 @@ class MonitoringBloc extends Bloc<MonitoringEvent, MonitoringState> {
         }
       }
 
+      // Subscribe before opening the shared PCM stream. Failure to load the
+      // optional model must not disable numeric SPL monitoring.
+      final soundAnalysisStarted = await _soundAnalysisService.start(
+        _audioCaptureService.pcmFrameStream,
+      );
+      if (!soundAnalysisStarted) {
+        AppLogger.warning(
+          'YAMNet unavailable; continuing with transparent rule fallback.',
+        );
+      }
+
       // Start real audio capture
       final success =
           await _audioCaptureService.startCapture(context: event.context);
@@ -80,10 +99,38 @@ class MonitoringBloc extends Bloc<MonitoringEvent, MonitoringState> {
         if (Platform.isIOS) {
           await _iosBackgroundService.stopBackgroundSession();
         }
+        await _soundAnalysisService.stop();
         await _backendSync.setSensorModeActive(false);
         emit(const MonitoringError(
             'Failed to start audio capture. Please check microphone permissions.'));
         return;
+      }
+
+      if (Platform.isAndroid) {
+        final notificationPermission = await Permission.notification.request();
+        if (!notificationPermission.isGranted) {
+          AppLogger.warning(
+            'Notification permission denied; Android will expose sensor mode '
+            'through the active-apps surface instead of the notification drawer.',
+          );
+        }
+        await _androidForegroundService.initialize();
+        await _foregroundStopSubscription?.cancel();
+        _foregroundStopSubscription =
+            _androidForegroundService.stopRequests.listen((_) {
+          if (!isClosed) add(const StopMonitoring());
+        });
+        final foregroundReady = await _androidForegroundService.startService();
+        if (!foregroundReady) {
+          await _foregroundStopSubscription?.cancel();
+          _foregroundStopSubscription = null;
+          await _audioCaptureService.stopCapture();
+          await _soundAnalysisService.stop();
+          await _backendSync.setSensorModeActive(false);
+          emit(const MonitoringError(
+              'Android could not start the required microphone foreground service.'));
+          return;
+        }
       }
 
       // Initialize continuous recording service
@@ -94,21 +141,22 @@ class MonitoringBloc extends Bloc<MonitoringEvent, MonitoringState> {
       final noiseThreshold = await _preferencesService.getNoiseThreshold();
       _eventDetectionService.setThreshold(noiseThreshold);
 
-      // Configure day/night thresholds from Pro context or local defaults
-      final dayThresholdDb = _apiClient.effectiveDayThresholdDb ?? 65.0;
-      final nightThresholdDb = _apiClient.effectiveNightThresholdDb ?? 55.0;
-      _eventDetectionService.setDayNightThresholds(
-        dayThresholdDb: dayThresholdDb,
-        nightThresholdDb: nightThresholdDb,
-      );
-      AppLogger.event(
-        'Day/night thresholds set: day=$dayThresholdDb dB (${_apiClient.effectiveDayThresholdDb != null ? "Pro" : "local"}), '
-        'night=$nightThresholdDb dB (${_apiClient.effectiveNightThresholdDb != null ? "Pro" : "local"})',
-      );
+      // Only an explicitly assigned policy overrides the user's comparison
+      // line. Previously hardcoded 65/55 silently replaced every local choice.
+      final dayThresholdDb = _apiClient.effectiveDayThresholdDb;
+      final nightThresholdDb = _apiClient.effectiveNightThresholdDb;
+      if (dayThresholdDb != null || nightThresholdDb != null) {
+        _eventDetectionService.setDayNightThresholds(
+          dayThresholdDb: dayThresholdDb ?? noiseThreshold,
+          nightThresholdDb: nightThresholdDb ?? noiseThreshold,
+        );
+      }
 
-      // Ensure continuous recording is enabled and start it
-      await _recordingService.updateSettings(enableContinuousRecording: true);
-      await _recordingService.startRecording();
+      // Raw audio persistence is explicit opt-in. Standard monitoring keeps
+      // only an ephemeral model window and submits derived values/categories.
+      if (_recordingService.getSettings()['enabled'] == true) {
+        await _recordingService.startRecording();
+      }
 
       // Start event detection service for database storage
       await _eventDetectionService
@@ -129,6 +177,10 @@ class MonitoringBloc extends Bloc<MonitoringEvent, MonitoringState> {
             // Feed SPL data to statistics service for real-time averages
             _statisticsService.addSample(spl);
 
+            if (Platform.isAndroid) {
+              unawaited(_androidForegroundService.updateReading(spl));
+            }
+
             add(UpdateNoiseLevel(spl));
           }
         },
@@ -143,6 +195,15 @@ class MonitoringBloc extends Bloc<MonitoringEvent, MonitoringState> {
       await _backendSync.setSensorModeActive(true);
       emit(const MonitoringActive(currentLevel: 0.0));
     } catch (e) {
+      await _audioCaptureService.stopCapture();
+      await _soundAnalysisService.stop();
+      if (Platform.isAndroid) {
+        await _foregroundStopSubscription?.cancel();
+        _foregroundStopSubscription = null;
+        await _androidForegroundService.stopService();
+      } else if (Platform.isIOS) {
+        await _iosBackgroundService.stopBackgroundSession();
+      }
       await _backendSync.setSensorModeActive(false);
       emit(MonitoringError(e.toString()));
     }
@@ -158,9 +219,14 @@ class MonitoringBloc extends Bloc<MonitoringEvent, MonitoringState> {
     _splSubscription = null;
     _lastNoiseSampleAt = null;
     _recoveryInProgress = false;
+    await _foregroundStopSubscription?.cancel();
+    _foregroundStopSubscription = null;
 
     // Stop audio capture
     await _audioCaptureService.stopCapture();
+
+    // Drop any remaining ephemeral PCM window.
+    await _soundAnalysisService.stop();
 
     // Stop continuous recording
     await _recordingService.stopRecording();
@@ -174,6 +240,8 @@ class MonitoringBloc extends Bloc<MonitoringEvent, MonitoringState> {
 
     if (Platform.isIOS) {
       await _iosBackgroundService.stopBackgroundSession();
+    } else if (Platform.isAndroid) {
+      await _androidForegroundService.stopService();
     }
 
     await Future<void>.delayed(const Duration(milliseconds: 500));
@@ -377,12 +445,16 @@ class MonitoringBloc extends Bloc<MonitoringEvent, MonitoringState> {
     await _splSubscription?.cancel();
     await _backgroundStateSubscription?.cancel();
     await _backgroundStatusSubscription?.cancel();
+    await _foregroundStopSubscription?.cancel();
+    _foregroundStopSubscription = null;
     await _audioCaptureService.stopCapture();
+    await _soundAnalysisService.stop();
     await _recordingService.stopRecording();
     if (Platform.isIOS) {
       await _iosBackgroundService.stopBackgroundSession();
     } else {
       await _backgroundMonitoringService.stopBackgroundMonitoring();
+      await _androidForegroundService.stopService();
     }
     await _eventDetectionService.stopMonitoring();
     _statisticsService.stop();

@@ -15,7 +15,9 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.v1.endpoints.pro_domains import _get_org_or_404, _require_org_membership
+from app.api.v1.endpoints.pro_domains import (
+    _get_org_or_404, _get_site_or_404, _get_zone_or_404, _require_org_membership,
+)
 from app.core.deps import require_user
 from app.db.models.device import Device
 from app.db.models.pro_domain import (
@@ -243,7 +245,7 @@ async def list_episodes(
     review_state: Optional[str] = Query(None),
     severity: Optional[str] = Query(None),
     limit: int = Query(default=100, ge=1, le=500),
-    db: AsyncSession = Depends(get_session),
+    db: AsyncSession = Depends(get_session, scope="function"),
     user: User = Depends(require_user),
 ):
     await _get_org_or_404(db, organization_id)
@@ -277,7 +279,7 @@ async def list_episodes(
 @episodes_router.get("/{episode_id}", response_model=EpisodeResponse)
 async def get_episode(
     episode_id: UUID,
-    db: AsyncSession = Depends(get_session),
+    db: AsyncSession = Depends(get_session, scope="function"),
     user: User = Depends(require_user),
 ):
     episode = await _get_episode_or_404(db, episode_id)
@@ -290,7 +292,7 @@ async def get_episode(
 async def review_episode(
     episode_id: UUID,
     payload: EpisodeReviewRequest,
-    db: AsyncSession = Depends(get_session),
+    db: AsyncSession = Depends(get_session, scope="function"),
     user: User = Depends(require_user),
 ):
     episode = await _get_episode_or_404(db, episode_id)
@@ -310,7 +312,9 @@ async def review_episode(
         episode.review_notes = payload.notes
     episode.reviewed_by_id = user.id
     episode.reviewed_at = reviewed_at
+    existing_review_metadata = dict(episode.review_metadata or {})
     episode.review_metadata = {
+        **existing_review_metadata,
         "reviewed_by_id": str(user.id),
         "reviewed_by_email": user.email,
         "reviewed_at": reviewed_at.isoformat(),
@@ -342,11 +346,19 @@ async def review_episode(
 @cases_router.post("/", response_model=CaseResponse, status_code=status.HTTP_201_CREATED)
 async def create_case(
     payload: CaseCreate,
-    db: AsyncSession = Depends(get_session),
+    db: AsyncSession = Depends(get_session, scope="function"),
     user: User = Depends(require_user),
 ):
     await _get_org_or_404(db, payload.organization_id)
     await _require_org_membership(db, payload.organization_id, user)
+
+    site = await _get_site_or_404(db, payload.site_id)
+    if site.organization_id != payload.organization_id:
+        raise HTTPException(status_code=400, detail="Site does not belong to organization")
+    if payload.zone_id:
+        zone = await _get_zone_or_404(db, payload.zone_id)
+        if zone.site_id != site.id:
+            raise HTTPException(status_code=400, detail="Zone does not belong to site")
 
     episodes_result = await db.execute(
         select(Episode).where(Episode.id.in_(payload.episode_ids))
@@ -400,7 +412,7 @@ async def list_cases(
     organization_id: UUID,
     site_id: Optional[UUID] = Query(None),
     status: Optional[str] = Query(None),
-    db: AsyncSession = Depends(get_session),
+    db: AsyncSession = Depends(get_session, scope="function"),
     user: User = Depends(require_user),
 ):
     await _get_org_or_404(db, organization_id)
@@ -420,7 +432,7 @@ async def list_cases(
 @cases_router.get("/{case_id}", response_model=CaseResponse)
 async def get_case(
     case_id: UUID,
-    db: AsyncSession = Depends(get_session),
+    db: AsyncSession = Depends(get_session, scope="function"),
     user: User = Depends(require_user),
 ):
     case = await _get_case_or_404(db, case_id)
@@ -432,7 +444,7 @@ async def get_case(
 async def update_case(
     case_id: UUID,
     payload: CaseUpdateRequest,
-    db: AsyncSession = Depends(get_session),
+    db: AsyncSession = Depends(get_session, scope="function"),
     user: User = Depends(require_user),
 ):
     case = await _get_case_or_404(db, case_id)
@@ -445,6 +457,13 @@ async def update_case(
         and payload.note is None
     ):
         raise HTTPException(status_code=400, detail="No case updates requested")
+
+    if (
+        case.status == CaseStatus.CLOSED.value
+        and payload.status is not None
+        and payload.status != CaseStatus.CLOSED
+    ):
+        raise HTTPException(status_code=422, detail="A closed case cannot be reopened")
 
     now = datetime.now(timezone.utc)
     changed_fields: list[str] = []
@@ -511,7 +530,7 @@ async def update_case(
 @cases_router.get("/{case_id}/episodes", response_model=List[EpisodeResponse])
 async def list_case_episodes(
     case_id: UUID,
-    db: AsyncSession = Depends(get_session),
+    db: AsyncSession = Depends(get_session, scope="function"),
     user: User = Depends(require_user),
 ):
     case = await _get_case_or_404(db, case_id)
@@ -534,7 +553,7 @@ async def list_case_episodes(
 @exports_router.post("/", response_model=ExportResponse, status_code=status.HTTP_201_CREATED)
 async def create_export(
     payload: ExportCreate,
-    db: AsyncSession = Depends(get_session),
+    db: AsyncSession = Depends(get_session, scope="function"),
     user: User = Depends(require_user),
 ):
     case = await _get_case_or_404(db, payload.case_id)
@@ -566,7 +585,7 @@ async def create_export(
         created_by_id=user.id,
         format=payload.format.value,
         status="ready",
-        file_name=f"{case.title.lower().replace(' ', '-')}.{payload.format.value}",
+        file_name=f"case-{case.id}.{payload.format.value}",
         content_type=content_type,
         output_text=export_body,
         output_encoding=encoding,
@@ -600,7 +619,7 @@ async def create_export(
 async def list_exports(
     organization_id: UUID,
     case_id: Optional[UUID] = Query(None),
-    db: AsyncSession = Depends(get_session),
+    db: AsyncSession = Depends(get_session, scope="function"),
     user: User = Depends(require_user),
 ):
     await _get_org_or_404(db, organization_id)
@@ -619,7 +638,7 @@ async def list_exports(
 @exports_router.get("/{export_id}", response_model=ExportResponse)
 async def get_export(
     export_id: UUID,
-    db: AsyncSession = Depends(get_session),
+    db: AsyncSession = Depends(get_session, scope="function"),
     user: User = Depends(require_user),
 ):
     export_job = await _get_export_or_404(db, export_id)
@@ -631,7 +650,7 @@ async def get_export(
 @exports_router.get("/{export_id}/content")
 async def get_export_content(
     export_id: UUID,
-    db: AsyncSession = Depends(get_session),
+    db: AsyncSession = Depends(get_session, scope="function"),
     user: User = Depends(require_user),
 ):
     export_job = await _get_export_or_404(db, export_id)
@@ -646,13 +665,22 @@ async def get_export_content(
     else:
         content = export_job.output_text.encode("utf-8")
 
+    extension = export_job.format if export_job.format in {"json", "csv", "pdf"} else "bin"
+    safe_filename = f"case-{case.id}.{extension}"
     return Response(
         content=content,
         media_type=export_job.content_type,
         headers={
-            "Content-Disposition": f'attachment; filename="{export_job.file_name}"'
+            "Content-Disposition": f'attachment; filename="{safe_filename}"'
         },
     )
+
+
+def _safe_csv_cell(value):
+    """Keep untrusted text from becoming a spreadsheet formula on open."""
+    if isinstance(value, str) and value.lstrip().startswith(("=", "+", "-", "@")):
+        return "'" + value
+    return value
 
 
 def _render_export(
@@ -727,7 +755,7 @@ def _render_export(
         )
         for episode in episodes:
             writer.writerow(
-                [
+                [_safe_csv_cell(value) for value in [
                     str(case.id),
                     case.title,
                     case.status,
@@ -746,7 +774,7 @@ def _render_export(
                     episode.evidence_mode,
                     episode.review_notes,
                     episode.reviewed_at.isoformat() if episode.reviewed_at else None,
-                ]
+                ]]
             )
         return buffer.getvalue(), "text/csv", "utf-8"
 

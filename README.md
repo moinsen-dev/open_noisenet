@@ -4,9 +4,9 @@ OpenNoiseNet is an open-source environmental noise monitoring platform for commu
 
 This repository is currently in a software stabilization gate. The codebase is real and substantial, and it already contains the first Pro-domain slices, but it is not yet a polished public MVP or a release-ready commercial product.
 
-The current goal is to close the stabilization gate while hardening the newly implemented Pro foundations.
+The current goal is a reliable, privacy-conscious open-source system that communities can run and contribute to: an unattended sensor, trustworthy event delivery, and an explicitly public map. Field reliability, data protection, calibration limits, and reproducible self-hosting must be verified before presenting it as a finished release.
 
-The next product direction is documented as **OpenNoiseNet Pro**: a **Hybrid Public + Pro** system that keeps the open/public map layer while adding a commercial tenant-bound layer for housing and property workflows.
+The repository also contains experimental tenant-bound Pro workflows. Their historical roadmap is useful implementation context, but commercialization is not the current priority and these workflows are not a prerequisite for the open-source MVP.
 
 ## Current Status
 
@@ -19,7 +19,7 @@ Use that document for:
 - the current local development baseline
 - the current strategic direction
 
-The commercialization and finish-the-system roadmap lives in [docs/opennoisenet-pro-roadmap.md](docs/opennoisenet-pro-roadmap.md).
+The historical Pro roadmap lives in [docs/opennoisenet-pro-roadmap.md](docs/opennoisenet-pro-roadmap.md).
 
 ## Repository Layout
 
@@ -120,5 +120,5 @@ Use these planning documents in this order:
 - [docs/current-status.md](docs/current-status.md) for current repo truth
 - [ImplementationPlan.md](ImplementationPlan.md) for the active execution focus
 - [docs/execution-backlog.md](docs/execution-backlog.md) for the ordered remaining work
-- [docs/opennoisenet-pro-roadmap.md](docs/opennoisenet-pro-roadmap.md) for the commercialization roadmap
+- [docs/opennoisenet-pro-roadmap.md](docs/opennoisenet-pro-roadmap.md) for historical Pro planning
 - `docs/plans/` for supporting design notes and historical planning context

@@ -1,5 +1,7 @@
 // API client service for communicating with the OpenNoiseNet backend.
 
+import 'dart:async';
+
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -7,6 +9,7 @@ import 'package:talker_flutter/talker_flutter.dart';
 
 import '../core/models/api_models.dart';
 import 'network_utils.dart';
+import 'device_credential_store.dart';
 
 T? _firstWhereOrNull<T>(Iterable<T> items, bool Function(T item) test) {
   for (final item in items) {
@@ -40,6 +43,7 @@ class ApiClientService {
   late final Dio _dio;
   final SharedPreferences _prefs;
   final Talker _logger;
+  final DeviceCredentialStore _deviceCredentials;
 
   String? _accessToken;
   String? _refreshToken;
@@ -50,12 +54,16 @@ class ApiClientService {
   String? _lastProContextError;
   bool _proContextRefreshInProgress = false;
   String _baseUrl = _defaultBaseUrl;
+  int _credentialEpoch = 0;
+  Future<void> _credentialMutations = Future<void>.value();
 
   ApiClientService({
     required SharedPreferences prefs,
     required Talker logger,
+    DeviceCredentialStore? deviceCredentials,
   })  : _prefs = prefs,
-        _logger = logger {
+        _logger = logger,
+        _deviceCredentials = deviceCredentials ?? DeviceCredentialStore() {
     _initializeClient();
     _loadStoredCredentials();
   }
@@ -65,6 +73,8 @@ class ApiClientService {
       connectTimeout: const Duration(seconds: 5),
       receiveTimeout: const Duration(seconds: 5),
       sendTimeout: const Duration(seconds: 5),
+      // Never forward account credentials or request bodies to redirects.
+      followRedirects: false,
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
@@ -74,6 +84,25 @@ class ApiClientService {
     // Add request interceptor for authentication
     _dio.interceptors.add(InterceptorsWrapper(
       onRequest: (options, handler) {
+        final configuredUri = Uri.tryParse(_baseUrl);
+        if (configuredUri == null ||
+            options.uri.origin != configuredUri.origin ||
+            (kReleaseMode && options.uri.scheme != 'https')) {
+          handler.reject(DioException(
+            requestOptions: options,
+            error: 'Request is outside the configured secure backend',
+          ));
+          return;
+        }
+        final previousEpoch = options.extra['noisenet_backend_epoch'];
+        if (previousEpoch != null && previousEpoch != _credentialEpoch) {
+          handler.reject(DioException(
+            requestOptions: options,
+            error: 'Backend changed while the request was in progress',
+          ));
+          return;
+        }
+        options.extra['noisenet_backend_epoch'] = _credentialEpoch;
         if (_accessToken != null) {
           options.headers['Authorization'] = 'Bearer $_accessToken';
         }
@@ -81,6 +110,14 @@ class ApiClientService {
         handler.next(options);
       },
       onResponse: (response, handler) {
+        if (response.requestOptions.extra['noisenet_backend_epoch'] !=
+            _credentialEpoch) {
+          handler.reject(DioException(
+            requestOptions: response.requestOptions,
+            error: 'Backend changed while the request was in progress',
+          ));
+          return;
+        }
         _logger.debug(
             'API Response: ${response.statusCode} ${response.requestOptions.uri}');
         handler.next(response);
@@ -89,7 +126,15 @@ class ApiClientService {
         _logger.error('API Error: ${error.message}', error);
 
         // Handle token refresh on 401 errors
-        if (error.response?.statusCode == 401 && _refreshToken != null) {
+        if (error.response?.statusCode == 401 &&
+            _refreshToken != null &&
+            error.requestOptions.uri.origin == Uri.tryParse(_baseUrl)?.origin &&
+            error.requestOptions.extra['noisenet_backend_epoch'] ==
+                _credentialEpoch &&
+            error.requestOptions.extra['noisenet_refresh_attempted'] != true &&
+            !error.requestOptions.path.endsWith('/auth/refresh')) {
+          error.requestOptions.extra['noisenet_refresh_attempted'] = true;
+          final refreshEpoch = _credentialEpoch;
           try {
             await _refreshAccessToken();
             // Retry the original request
@@ -100,7 +145,9 @@ class ApiClientService {
             return;
           } catch (e) {
             _logger.error('Token refresh failed', e);
-            await _clearStoredCredentials();
+            if (refreshEpoch == _credentialEpoch) {
+              await _clearStoredCredentials();
+            }
           }
         }
 
@@ -125,18 +172,35 @@ class ApiClientService {
     });
   }
 
+  Future<void> _withCredentialLock(Future<void> Function() action) {
+    final result = _credentialMutations.then((_) => action());
+    _credentialMutations = result.then<void>((_) {}, onError: (_) {});
+    return result;
+  }
+
   Future<void> _storeCredentials({
     String? accessToken,
     String? refreshToken,
     String? deviceId,
+    int? expectedEpoch,
+    String? expectedDestination,
   }) async {
-    if (accessToken != null) {
-      await _prefs.setString(_accessTokenKey, accessToken);
-      _accessToken = accessToken;
-    }
-    if (refreshToken != null) {
-      await _prefs.setString(_refreshTokenKey, refreshToken);
-      _refreshToken = refreshToken;
+    if (accessToken != null || refreshToken != null) {
+      await _withCredentialLock(() async {
+        if (expectedEpoch != _credentialEpoch ||
+            expectedDestination != _baseUrl) {
+          throw StateError(
+              'Backend changed while authentication was in progress');
+        }
+        if (accessToken != null) {
+          await _prefs.setString(_accessTokenKey, accessToken);
+          _accessToken = accessToken;
+        }
+        if (refreshToken != null) {
+          await _prefs.setString(_refreshTokenKey, refreshToken);
+          _refreshToken = refreshToken;
+        }
+      });
     }
     if (deviceId != null) {
       await _prefs.setString(_deviceIdKey, deviceId);
@@ -144,22 +208,80 @@ class ApiClientService {
     }
   }
 
-  Future<void> _clearStoredCredentials() async {
-    await _prefs.remove(_accessTokenKey);
-    await _prefs.remove(_refreshTokenKey);
+  Future<void> _clearStoredCredentialsUnlocked() async {
     _accessToken = null;
     _refreshToken = null;
+    await _prefs.remove(_accessTokenKey);
+    await _prefs.remove(_refreshTokenKey);
+  }
+
+  Future<void> _clearStoredCredentials() =>
+      _withCredentialLock(_clearStoredCredentialsUnlocked);
+
+  static Uri _validatedBackendUrl(String value) {
+    final uri = Uri.tryParse(value);
+    if (uri == null ||
+        !uri.hasAuthority ||
+        uri.host.isEmpty ||
+        (uri.scheme != 'http' && uri.scheme != 'https') ||
+        uri.userInfo.isNotEmpty ||
+        uri.hasQuery ||
+        uri.hasFragment) {
+      throw const FormatException(
+          'Enter a valid backend URL without embedded credentials, query or fragment.');
+    }
+    if (kReleaseMode && uri.scheme != 'https') {
+      throw const FormatException('HTTPS is required in release builds.');
+    }
+    return uri;
   }
 
   Future<void> setBaseUrl(String baseUrl) async {
-    _baseUrl = baseUrl;
-    _dio.options.baseUrl = baseUrl;
-    await _prefs.setString(_baseUrlKey, baseUrl);
-    _logger.info('Updated API base URL: $baseUrl');
+    final destination = baseUrl.trim();
+    _validatedBackendUrl(destination);
+    if (destination == _baseUrl) return;
+    final changeEpoch = ++_credentialEpoch;
+    await _withCredentialLock(() async {
+      if (changeEpoch != _credentialEpoch) {
+        throw StateError('A newer backend change superseded this one');
+      }
+      // Credentials and cached tenant state belong to the previous backend.
+      await _clearStoredCredentialsUnlocked();
+      _lastDevicePayload = null;
+      _lastProContext = null;
+      _lastProContextRefreshedAt = null;
+      _lastProContextError = null;
+      _baseUrl = destination;
+      _dio.options.baseUrl = destination;
+      await _prefs.setString(_baseUrlKey, destination);
+    });
+    _logger.info('Updated API base URL: $destination');
   }
 
   String get baseUrl => _baseUrl;
   String? get deviceId => _deviceId;
+
+  Future<Options> _deviceOptions(String? deviceId,
+      {bool create = false}) async {
+    final destination = _baseUrl;
+    final epoch = _credentialEpoch;
+    final uri = Uri.parse(destination);
+    if (kReleaseMode && uri.scheme != 'https') {
+      throw StateError('Device credentials require an HTTPS backend');
+    }
+    final key = deviceId == null
+        ? null
+        : await _deviceCredentials.get(destination, deviceId, create: create);
+    if (_baseUrl != destination || _credentialEpoch != epoch) {
+      throw StateError('Backend changed while preparing device credentials');
+    }
+    return Options(
+      followRedirects: false,
+      extra: {'noisenet_backend_epoch': epoch},
+      headers: key == null ? null : {'X-Device-Key': key},
+    );
+  }
+
   bool get isAuthenticated => _accessToken != null;
   String? get assignedSiteId => _lastDevicePayload?['site_id']?.toString();
   String? get assignedZoneId => _lastDevicePayload?['zone_id']?.toString();
@@ -209,16 +331,24 @@ class ApiClientService {
   // Authentication endpoints
   Future<AuthTokens> login(String email, String password) async {
     try {
+      final credentialDestination = _baseUrl;
+      final credentialEpoch = _credentialEpoch;
       final request = LoginRequest(email: email, password: password);
       final response = await _dio.post<Map<String, dynamic>>(
         '/auth/login',
         data: request.toJson(),
       );
 
+      if (_baseUrl != credentialDestination) {
+        throw StateError(
+            'Backend changed while authentication was in progress');
+      }
       final tokens = AuthTokens.fromJson(response.data as Map<String, dynamic>);
       await _storeCredentials(
         accessToken: tokens.accessToken,
         refreshToken: tokens.refreshToken,
+        expectedEpoch: credentialEpoch,
+        expectedDestination: credentialDestination,
       );
 
       _logger.info('User logged in successfully');
@@ -232,6 +362,8 @@ class ApiClientService {
   Future<AuthTokens> register(
       String email, String password, String fullName) async {
     try {
+      final credentialDestination = _baseUrl;
+      final credentialEpoch = _credentialEpoch;
       final request = RegisterRequest(
         email: email,
         password: password,
@@ -242,10 +374,16 @@ class ApiClientService {
         data: request.toJson(),
       );
 
+      if (_baseUrl != credentialDestination) {
+        throw StateError(
+            'Backend changed while authentication was in progress');
+      }
       final tokens = AuthTokens.fromJson(response.data as Map<String, dynamic>);
       await _storeCredentials(
         accessToken: tokens.accessToken,
         refreshToken: tokens.refreshToken,
+        expectedEpoch: credentialEpoch,
+        expectedDestination: credentialDestination,
       );
 
       _logger.info('User registered successfully');
@@ -257,6 +395,7 @@ class ApiClientService {
   }
 
   Future<void> logout() async {
+    _credentialEpoch++;
     await _clearStoredCredentials();
     _logger.info('User logged out locally');
   }
@@ -295,23 +434,34 @@ class ApiClientService {
       throw Exception('No refresh token available');
     }
 
+    final refreshEpoch = _credentialEpoch;
     try {
+      final credentialDestination = _baseUrl;
+      final credentialEpoch = refreshEpoch;
       final response =
           await _dio.post<Map<String, dynamic>>('/auth/refresh', data: {
         'refresh_token': _refreshToken,
       });
 
+      if (_baseUrl != credentialDestination) {
+        throw StateError(
+            'Backend changed while authentication was in progress');
+      }
       final tokens = AuthTokens.fromJson(response.data as Map<String, dynamic>);
       await _storeCredentials(
         accessToken: tokens.accessToken,
         refreshToken: tokens.refreshToken,
+        expectedEpoch: credentialEpoch,
+        expectedDestination: credentialDestination,
       );
 
       _logger.info('Access token refreshed');
       return tokens;
     } catch (e) {
       _logger.error('Token refresh failed', e);
-      await _clearStoredCredentials();
+      if (refreshEpoch == _credentialEpoch) {
+        await _clearStoredCredentials();
+      }
       rethrow;
     }
   }
@@ -322,6 +472,7 @@ class ApiClientService {
       final response = await _dio.post<Map<String, dynamic>>(
         '/devices/register',
         data: device.toJson(),
+        options: await _deviceOptions(device.deviceId, create: true),
       );
       final payload = response.data as Map<String, dynamic>;
       _lastDevicePayload = payload;
@@ -341,8 +492,10 @@ class ApiClientService {
 
   Future<DeviceModel> getDevice(String deviceId) async {
     try {
-      final response =
-          await _dio.get<Map<String, dynamic>>('/devices/$deviceId');
+      final response = await _dio.get<Map<String, dynamic>>(
+        '/devices/$deviceId',
+        options: await _deviceOptions(deviceId == _deviceId ? deviceId : null),
+      );
       final payload = response.data as Map<String, dynamic>;
       _lastDevicePayload = payload;
       return DeviceModel.fromJson(payload);
@@ -357,6 +510,7 @@ class ApiClientService {
       final response = await _dio.put<Map<String, dynamic>>(
         '/devices/$deviceId',
         data: device.toJson(),
+        options: await _deviceOptions(deviceId == _deviceId ? deviceId : null),
       );
       final payload = response.data as Map<String, dynamic>;
       _lastDevicePayload = payload;
@@ -382,6 +536,7 @@ class ApiClientService {
       await _dio.post<Map<String, dynamic>>(
         '/devices/${heartbeat.deviceId}/heartbeat',
         data: payload,
+        options: await _deviceOptions(heartbeat.deviceId),
       );
       _logger.debug('Heartbeat sent for device: ${heartbeat.deviceId}');
       await refreshKnownDeviceContext();
@@ -393,7 +548,8 @@ class ApiClientService {
 
   Future<List<DeviceModel>> listDevices() async {
     try {
-      final response = await _dio.get<List<dynamic>>('/devices/');
+      final response = await _dio.get<List<dynamic>>('/devices/',
+          options: await _deviceOptions(_deviceId));
       final List<dynamic> deviceList = response.data as List<dynamic>;
       return deviceList
           .map((json) => DeviceModel.fromJson(json as Map<String, dynamic>))
@@ -411,8 +567,10 @@ class ApiClientService {
     }
 
     try {
-      final response =
-          await _dio.get<Map<String, dynamic>>('/devices/$resolvedDeviceId');
+      final response = await _dio.get<Map<String, dynamic>>(
+        '/devices/$resolvedDeviceId',
+        options: await _deviceOptions(resolvedDeviceId),
+      );
       _lastDevicePayload = response.data as Map<String, dynamic>;
     } catch (e) {
       _logger.warning('Failed to refresh known device context', e);
@@ -509,6 +667,7 @@ class ApiClientService {
   }) async {
     final response = await _dio.put<Map<String, dynamic>>(
       '/sites/devices/$deviceId/assignment',
+      options: await _deviceOptions(deviceId == _deviceId ? deviceId : null),
       data: {
         'site_id': siteId,
         if (zoneId != null) 'zone_id': zoneId,
@@ -733,6 +892,7 @@ class ApiClientService {
       final response = await _dio.post<Map<String, dynamic>>(
         '/events/',
         data: event.toJson(),
+        options: await _deviceOptions(event.deviceId),
       );
       final receipt =
           EventReceipt.fromJson(response.data as Map<String, dynamic>);
@@ -764,6 +924,7 @@ class ApiClientService {
       final response = await _dio.get<Map<String, dynamic>>(
         '/events/',
         queryParameters: queryParams,
+        options: await _deviceOptions(_deviceId),
       );
       final data = response.data as Map<String, dynamic>;
       final List<dynamic> eventList = data['events'] as List<dynamic>;
@@ -778,7 +939,8 @@ class ApiClientService {
 
   Future<NoiseEventModel> getEvent(String eventId) async {
     try {
-      final response = await _dio.get<Map<String, dynamic>>('/events/$eventId');
+      final response = await _dio.get<Map<String, dynamic>>('/events/$eventId',
+          options: await _deviceOptions(_deviceId));
       return NoiseEventModel.fromJson(response.data as Map<String, dynamic>);
     } catch (e) {
       _logger.error('Failed to get event: $eventId', e);
@@ -788,8 +950,9 @@ class ApiClientService {
 
   Future<EventStatusModel> getEventStatus(String eventUuid) async {
     try {
-      final response =
-          await _dio.get<Map<String, dynamic>>('/events/status/$eventUuid');
+      final response = await _dio.get<Map<String, dynamic>>(
+          '/events/status/$eventUuid',
+          options: await _deviceOptions(_deviceId));
       return EventStatusModel.fromJson(response.data as Map<String, dynamic>);
     } catch (e) {
       _logger.error('Failed to get event status: $eventUuid', e);
@@ -871,10 +1034,29 @@ class ApiClientService {
   }
 
   // Enhanced connection test with detailed error info
-  Future<ConnectionTestResult> testConnectionDetailed() async {
+  Future<ConnectionTestResult> testConnectionDetailed(
+      {String? candidateUrl}) async {
+    final destination = (candidateUrl ?? _baseUrl).trim();
     try {
+      _validatedBackendUrl(destination);
       final startTime = DateTime.now();
-      await healthCheck();
+      if (candidateUrl == null) {
+        await healthCheck();
+      } else {
+        // A connectivity probe must neither send account credentials nor
+        // change the configured backend before the user saves the setting.
+        final root = destination.replaceAll('/api/v1', '');
+        final probe = Dio(BaseOptions(
+          connectTimeout: const Duration(seconds: 5),
+          receiveTimeout: const Duration(seconds: 5),
+          followRedirects: false,
+        ));
+        try {
+          await probe.get<void>('$root/health');
+        } finally {
+          probe.close();
+        }
+      }
       final endTime = DateTime.now();
       final latency = endTime.difference(startTime);
 
@@ -882,7 +1064,7 @@ class ApiClientService {
         success: true,
         latencyMs: latency.inMilliseconds,
         error: null,
-        baseUrl: _baseUrl,
+        baseUrl: destination,
       );
     } catch (e) {
       String errorMessage;
@@ -903,6 +1085,8 @@ class ApiClientService {
           default:
             errorMessage = 'Network error: ${e.message}';
         }
+      } else if (e is FormatException) {
+        errorMessage = e.message;
       } else {
         errorMessage = 'Unexpected error: ${e.toString()}';
       }
@@ -911,7 +1095,7 @@ class ApiClientService {
         success: false,
         latencyMs: null,
         error: errorMessage,
-        baseUrl: _baseUrl,
+        baseUrl: destination,
       );
     }
   }
@@ -942,9 +1126,8 @@ class ApiClientService {
   // Anonymous event submission (no authentication required)
   Future<EventReceipt?> submitAnonymousEvent(NoiseEventModel event) async {
     try {
-      // Use the regular /events/ endpoint which handles anonymous submissions by auto-creating devices
       final response = await _dio.post<Map<String, dynamic>>('/events/',
-          data: event.toJson());
+          data: event.toJson(), options: await _deviceOptions(event.deviceId));
 
       _logger.info('Anonymous event submitted successfully');
       return EventReceipt.fromJson(response.data as Map<String, dynamic>);

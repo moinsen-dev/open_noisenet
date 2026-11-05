@@ -1,26 +1,23 @@
 import 'dart:async';
-import 'dart:convert';
-import 'dart:io';
 
 import 'audio_extraction_service.dart';
-import 'event_detection_service.dart';
 import 'noise_pattern_analyzer.dart';
 import 'audio_processing_service.dart';
 import '../features/noise_monitoring/data/models/noise_event_model.dart';
-import '../features/noise_monitoring/data/repositories/event_repository.dart';
-import '../core/database/dao/audio_recording_dao.dart';
 import '../core/logging/app_logger.dart';
+import 'sound_analysis/on_device_sound_analysis_service.dart';
 
 /// Service that integrates continuous recording system with AI analysis capabilities
 class AIAnalysisService {
   final NoisePatternAnalyzer _patternAnalyzer;
+  final OnDeviceSoundAnalysisService _soundAnalysisService;
   final AudioExtractionService _extractionService = AudioExtractionService();
-  final EventDetectionService _eventDetectionService = EventDetectionService();
-  final AudioRecordingDao _audioRecordingDao = AudioRecordingDao();
 
   AIAnalysisService({
     required NoisePatternAnalyzer patternAnalyzer,
-  }) : _patternAnalyzer = patternAnalyzer;
+    required OnDeviceSoundAnalysisService soundAnalysisService,
+  })  : _patternAnalyzer = patternAnalyzer,
+        _soundAnalysisService = soundAnalysisService;
 
   // Analysis status tracking
   final Map<String, AnalysisStatus> _analysisQueue = {};
@@ -29,14 +26,13 @@ class AIAnalysisService {
 
   Stream<AIAnalysisResult> get analysisResults => _resultController.stream;
 
-  /// On-device LLM analysis (cactus) was removed; local rule-based analysis only.
-  bool get hasAnalysisCapability => false;
+  /// True when the specialized on-device sound model is ready.
+  bool get hasAnalysisCapability => _soundAnalysisService.isReady;
 
-  /// Initialize the AI analysis service.
-  /// The on-device LLM (cactus) was removed; analysis uses local pattern rules.
+  /// Initialize specialized audio inference. No LLM or speech recognition is
+  /// used on the device.
   Future<bool> initialize() async {
-    AppLogger.event('AI Analysis Service: on-device LLM unavailable, using local rule analysis');
-    return false;
+    return _soundAnalysisService.initialize();
   }
 
   /// Queue an event for AI analysis
@@ -46,7 +42,7 @@ class AIAnalysisService {
     int bufferMs = 5000,
   }) async {
     try {
-      final eventId = event.id ?? 'unknown_event';
+      final eventId = event.eventUuid ?? event.id ?? 'unknown_event';
 
       // Check if already in queue or analyzed
       if (_analysisQueue.containsKey(eventId)) {
@@ -54,16 +50,27 @@ class AIAnalysisService {
         return false;
       }
 
-      // Prepare event for analysis
-      final analysisData = await _extractionService.prepareEventForAIAnalysis(
-        event: event,
-        bufferMs: bufferMs,
-      );
-
-      if (analysisData == null) {
-        AppLogger.event('Failed to prepare event $eventId for AI analysis');
-        return false;
-      }
+      // Live YAMNet frames already cover the event. Do not require or create a
+      // raw audio file merely to classify it.
+      final analysisData = <String, dynamic>{
+        'eventId': eventId,
+        'extractedAudioPath': null,
+        'eventClassification': {
+          'type': event.eventType,
+          'confidence': event.eventConfidence,
+          'durationClass': event.durationClass,
+          'intensityClass': event.intensityClass,
+        },
+        'eventMetrics': {
+          'leqDb': event.leqDb,
+          'lmaxDb': event.lmaxDb,
+          'lminDb': event.lminDb,
+          'durationSeconds': event.duration.inSeconds,
+          'samplesCount': event.samplesCount,
+        },
+        'timestampStart': event.timestampStart.toIso8601String(),
+        'timestampEnd': event.timestampEnd.toIso8601String(),
+      };
 
       // Add to analysis queue
       _analysisQueue[eventId] = AnalysisStatus(
@@ -138,12 +145,12 @@ class AIAnalysisService {
       // Emit result
       _resultController.add(result);
 
-      AppLogger.event('AI analysis completed for event $eventId: ${result.classification}');
+      AppLogger.event(
+          'AI analysis completed for event $eventId: ${result.classification}');
 
       // Process next event in queue
       await Future.delayed(const Duration(milliseconds: 100));
       _processAnalysisQueue();
-
     } catch (e) {
       AppLogger.event('Error processing AI analysis: $e');
 
@@ -155,26 +162,67 @@ class AIAnalysisService {
     }
   }
 
-  /// Perform the actual analysis. The on-device LLM (cactus) was removed;
-  /// analysis now combines local pattern analysis with rule-based fallback.
-  Future<AIAnalysisResult> _performAIAnalysis(Map<String, dynamic> analysisData) async {
+  /// Combine live YAMNet scene evidence with numeric pattern analysis.
+  Future<AIAnalysisResult> _performAIAnalysis(
+      Map<String, dynamic> analysisData) async {
     final eventId = analysisData['eventId'] as String;
     final extractedAudioPath = analysisData['extractedAudioPath'] as String?;
 
     try {
       // Extract measurement data and analyze patterns locally
-      final eventMetrics = analysisData['eventMetrics'] as Map<String, dynamic>? ?? {};
-      final classification = analysisData['eventClassification'] as Map<String, dynamic>? ?? {};
-      final measurements = analysisData['measurements'] as List<TimestampedSPL>? ?? [];
+      final eventMetrics =
+          analysisData['eventMetrics'] as Map<String, dynamic>? ?? {};
+      final classification =
+          analysisData['eventClassification'] as Map<String, dynamic>? ?? {};
+      final measurements =
+          analysisData['measurements'] as List<TimestampedSPL>? ?? [];
+      final eventStart = DateTime.tryParse(
+            analysisData['timestampStart']?.toString() ?? '',
+          ) ??
+          DateTime.now().subtract(Duration(
+            seconds: (eventMetrics['durationSeconds'] as num?)?.round() ?? 0,
+          ));
+      final eventEnd = DateTime.tryParse(
+            analysisData['timestampEnd']?.toString() ?? '',
+          ) ??
+          DateTime.now();
 
       final patternData = _patternAnalyzer.analyzePattern(
         measurements: measurements,
-        eventStart: DateTime.now().subtract(Duration(seconds: (eventMetrics['durationSeconds'] as int?) ?? 0)),
-        eventEnd: DateTime.now(),
+        eventStart: eventStart,
+        eventEnd: eventEnd,
       );
 
       final leqDb = eventMetrics['leqDb'] as double? ?? 50.0;
-      final intensityClass = classification['intensityClass'] as String? ?? 'moderate';
+      final intensityClass =
+          classification['intensityClass'] as String? ?? 'moderate';
+      final soundScene = _soundAnalysisService.summarize(
+        start: eventStart,
+        end: eventEnd,
+      );
+
+      if (soundScene?.isConfident == true) {
+        return AIAnalysisResult(
+          eventId: eventId,
+          classification: soundScene!.category,
+          confidence: soundScene.confidence,
+          insights: {
+            'analysis_method': 'yamnet_open_noise_taxonomy',
+            'frame_count': soundScene.frameCount,
+            'category_scores': soundScene.categoryScores,
+            'top_yamnet_scores': soundScene.strongestYamnetScores
+                .map((score) => score.toJson())
+                .toList(),
+            'leq_db': leqDb,
+            'pattern_analysis': patternData['pattern_summary'],
+            'audio_retention': 'ephemeral_window_only',
+            'speech_recognition': false,
+          },
+          processedAt: DateTime.now(),
+          analysisVersion: '3.1-yamnet-taxonomy-v2',
+          extractedAudioPath: null,
+        );
+      }
 
       return AIAnalysisResult(
         eventId: eventId,
@@ -188,28 +236,28 @@ class AIAnalysisService {
           'regulatory_context': 'Standard noise ordinance applies',
           'leq_db': leqDb,
           'pattern_analysis': patternData['pattern_summary'],
-          'analysis_method': 'local_pattern_rules',
+          'analysis_method': 'local_pattern_rules_fallback',
         },
         processedAt: DateTime.now(),
-        analysisVersion: '2.0-local-rules',
+        analysisVersion: '3.0-local-rules-fallback',
         extractedAudioPath: extractedAudioPath,
       );
     } catch (e) {
-      AppLogger.event('AI analysis failed for event $eventId, using fallback: $e');
+      AppLogger.event(
+          'AI analysis failed for event $eventId, using fallback: $e');
       return _createFallbackAnalysis(eventId, analysisData, extractedAudioPath);
     }
   }
 
   /// Create fallback analysis when AI processing fails
-  AIAnalysisResult _createFallbackAnalysis(
-    String eventId,
-    Map<String, dynamic> analysisData,
-    String? extractedAudioPath
-  ) {
+  AIAnalysisResult _createFallbackAnalysis(String eventId,
+      Map<String, dynamic> analysisData, String? extractedAudioPath) {
     final metrics = analysisData['eventMetrics'] as Map<String, dynamic>? ?? {};
     final leqDb = metrics['leqDb'] as double? ?? 50.0;
-    final classification = analysisData['eventClassification'] as Map<String, dynamic>? ?? {};
-    final intensityClass = classification['intensityClass'] as String? ?? 'moderate';
+    final classification =
+        analysisData['eventClassification'] as Map<String, dynamic>? ?? {};
+    final intensityClass =
+        classification['intensityClass'] as String? ?? 'moderate';
 
     return AIAnalysisResult(
       eventId: eventId,
@@ -269,7 +317,7 @@ class AIAnalysisService {
     final keysToRemove = _analysisQueue.keys.where((key) {
       final analysis = _analysisQueue[key]!;
       return analysis.completedAt?.isBefore(cutoffTime) == true ||
-             (analysis.status == AnalysisState.failed &&
+          (analysis.status == AnalysisState.failed &&
               analysis.queuedAt.isBefore(cutoffTime));
     }).toList();
 
@@ -290,19 +338,25 @@ class AIAnalysisService {
     return {
       'total_analyses': statuses.length,
       'queued': statuses.where((s) => s.status == AnalysisState.queued).length,
-      'processing': statuses.where((s) => s.status == AnalysisState.processing).length,
-      'completed': statuses.where((s) => s.status == AnalysisState.completed).length,
+      'processing':
+          statuses.where((s) => s.status == AnalysisState.processing).length,
+      'completed':
+          statuses.where((s) => s.status == AnalysisState.completed).length,
       'failed': statuses.where((s) => s.status == AnalysisState.failed).length,
-      'success_rate': statuses.isEmpty ? 0.0 :
-        statuses.where((s) => s.status == AnalysisState.completed).length / statuses.length,
+      'success_rate': statuses.isEmpty
+          ? 0.0
+          : statuses.where((s) => s.status == AnalysisState.completed).length /
+              statuses.length,
       'average_processing_time': _calculateAverageProcessingTime(statuses),
     };
   }
 
   double _calculateAverageProcessingTime(List<AnalysisStatus> statuses) {
     final completedAnalyses = statuses
-        .where((s) => s.status == AnalysisState.completed &&
-                      s.processedAt != null && s.completedAt != null)
+        .where((s) =>
+            s.status == AnalysisState.completed &&
+            s.processedAt != null &&
+            s.completedAt != null)
         .toList();
 
     if (completedAnalyses.isEmpty) return 0.0;

@@ -14,6 +14,8 @@ import '../../services/backend_sync_service.dart';
 import '../../services/noise_pattern_analyzer.dart';
 import '../../services/ai_analysis_service.dart';
 import '../../services/intelligent_recommendation_engine.dart';
+import '../../services/sound_analysis/on_device_sound_analysis_service.dart';
+import '../../features/noise_history/data/noise_history.dart';
 import '../logging/app_logger.dart';
 
 final GetIt getIt = GetIt.instance;
@@ -62,6 +64,17 @@ Future<void> configureDependencies() async {
   await audioCaptureService.loadCalibrationSettings();
   getIt.registerSingleton<AudioCaptureService>(audioCaptureService);
 
+  // The model is loaded lazily when monitoring starts so app startup remains
+  // fast. All inference stays on-device and consumes the shared PCM stream.
+  getIt.registerSingleton<OnDeviceSoundAnalysisService>(
+    OnDeviceSoundAnalysisService(),
+  );
+  getIt.registerSingleton<SoundHistoryCollector>(SoundHistoryCollector(
+    store: EncryptedSourceHistoryStore(),
+    preferences: sharedPreferences,
+    activity: getIt<OnDeviceSoundAnalysisService>().sourceActivity,
+  ));
+
   // Initialize API client service
   final logger = AppLogger.instance;
   final apiClientService = ApiClientService(
@@ -87,12 +100,15 @@ Future<void> configureDependencies() async {
   await backendSyncService.initialize();
   getIt.registerSingleton<BackendSyncService>(backendSyncService);
 
-  // Register AI services (on-device LLM removed; local pattern/rule analysis only)
-  getIt.registerLazySingleton<NoisePatternAnalyzer>(() => NoisePatternAnalyzer());
+  // Register analysis services (no on-device LLM).
+  getIt.registerLazySingleton<NoisePatternAnalyzer>(
+      () => NoisePatternAnalyzer());
   getIt.registerLazySingleton<AIAnalysisService>(() => AIAnalysisService(
-    patternAnalyzer: getIt<NoisePatternAnalyzer>(),
-  ));
-  getIt.registerLazySingleton<IntelligentRecommendationEngine>(() => IntelligentRecommendationEngine(
-    aiAnalysisService: getIt<AIAnalysisService>(),
-  ));
+        patternAnalyzer: getIt<NoisePatternAnalyzer>(),
+        soundAnalysisService: getIt<OnDeviceSoundAnalysisService>(),
+      ));
+  getIt.registerLazySingleton<IntelligentRecommendationEngine>(
+      () => IntelligentRecommendationEngine(
+            aiAnalysisService: getIt<AIAnalysisService>(),
+          ));
 }

@@ -15,6 +15,12 @@ import '../core/database/models/noise_measurement.dart';
 import '../core/database/dao/noise_measurement_dao.dart';
 import '../core/logging/app_logger.dart';
 import 'package:uuid/uuid.dart';
+import 'audio_capture_service.dart';
+import 'event_level_accumulator.dart';
+import 'sound_analysis/on_device_sound_analysis_service.dart';
+import 'sound_analysis/open_noise_taxonomy_head.dart';
+import 'sound_analysis/sound_source_activity_tracker.dart';
+import 'sound_analysis/temporal_event_pattern.dart';
 
 class NoiseEvent {
   final DateTime startTime;
@@ -23,6 +29,7 @@ class NoiseEvent {
   final double maxLevelDb;
   final double minLevelDb;
   final List<double> samples;
+  final int? totalSampleCount;
   final String? ruleTriggered;
 
   const NoiseEvent({
@@ -32,6 +39,7 @@ class NoiseEvent {
     required this.maxLevelDb,
     required this.minLevelDb,
     required this.samples,
+    this.totalSampleCount,
     this.ruleTriggered,
   });
 
@@ -60,10 +68,19 @@ class EventDetectionService {
   final LocationService _locationService = LocationService();
   BackendSyncService get _backendSync => GetIt.instance<BackendSyncService>();
   ApiClientService get _apiClient => GetIt.instance<ApiClientService>();
+  OnDeviceSoundAnalysisService? get _soundAnalysis =>
+      GetIt.instance.isRegistered<OnDeviceSoundAnalysisService>()
+          ? GetIt.instance<OnDeviceSoundAnalysisService>()
+          : null;
+  AudioCaptureService? get _audioCapture =>
+      GetIt.instance.isRegistered<AudioCaptureService>()
+          ? GetIt.instance<AudioCaptureService>()
+          : null;
   final RecordingService _recordingService = RecordingService();
   final AudioRecordingDao _audioRecordingDao = AudioRecordingDao();
   final Uuid _uuid = const Uuid();
   final NoiseMeasurementDao _measurementDao = NoiseMeasurementDao();
+  final TemporalEventPattern _temporalPattern = const TemporalEventPattern();
 
   // Configuration
   double _thresholdDb = 60.0;
@@ -96,6 +113,7 @@ class EventDetectionService {
 
   // Event tracking
   NoiseEvent? _currentEvent;
+  EventLevelAccumulator? _eventLevels;
   bool _isMonitoring = false;
   Timer? _cleanupTimer;
   StreamSubscription<double>? _splSubscription;
@@ -116,6 +134,7 @@ class EventDetectionService {
   double get dayThresholdDb => _dayThresholdDb;
   double get nightThresholdDb => _nightThresholdDb;
   bool get useTimeBasedThresholds => _useTimeBasedThresholds;
+
   /// Start monitoring for events
   Future<void> startMonitoring(Stream<double> splStream) async {
     if (_isMonitoring) return;
@@ -124,6 +143,7 @@ class EventDetectionService {
     _rollingWindow.clear();
     _minuteBuffer.clear();
     _currentEvent = null;
+    _eventLevels = null;
     _lastMinuteProcessed = null;
 
     // Subscribe to SPL stream
@@ -201,6 +221,7 @@ class EventDetectionService {
 
   /// Update detection threshold
   void setThreshold(double thresholdDb) {
+    _useTimeBasedThresholds = false;
     if (thresholdDb != _thresholdDb) {
       _thresholdDb = thresholdDb;
       AppLogger.event(
@@ -209,7 +230,7 @@ class EventDetectionService {
   }
 
   /// Configure day/night thresholds (from backend Policy or local settings)
-  /// Follows German regulations: day 06:00-22:00, night 22:00-06:00
+  /// Product scheduling only; these are not legal exposure limits.
   void setDayNightThresholds({
     required double dayThresholdDb,
     required double nightThresholdDb,
@@ -280,39 +301,27 @@ class EventDetectionService {
       _graceTimer = null;
 
       if (_currentEvent == null) {
-        // Start new event
-        _currentEvent = NoiseEvent(
-          startTime: _rollingWindow.first.timestamp,
-          endTime: timestamp,
-          averageLeqDb: stats.averageLeq,
-          maxLevelDb: stats.maxLevel,
-          minLevelDb: stats.minLevel,
-          samples: stats.samples,
-          ruleTriggered:
-              'threshold_${_thresholdDb}dB_${_windowDuration.inMinutes}min',
-        );
-
-        // Fire-and-forget: immediately submit a preliminary event to backend
-        // so the event appears even if the app is killed before grace period ends.
-        unawaited(_submitPreliminaryEvent(_currentEvent!, stats));
-
+        // Rolling-window samples before the crossing select the trigger, but
+        // are not part of the newly started event.
+        _eventLevels = EventLevelAccumulator();
+      }
+      final levels = _eventLevels!;
+      levels.add(_rollingWindow.last.splDb);
+      final startTime = _currentEvent?.startTime ?? timestamp;
+      _currentEvent = NoiseEvent(
+        startTime: startTime,
+        endTime: timestamp,
+        averageLeqDb: levels.averageDb,
+        maxLevelDb: levels.maxDb,
+        minLevelDb: levels.minDb,
+        samples: levels.recent,
+        totalSampleCount: levels.count,
+        ruleTriggered: _currentEvent?.ruleTriggered ??
+            'threshold_${_thresholdDb}dB_${_windowDuration.inMinutes}min',
+      );
+      if (levels.count == 1) {
         AppLogger.event(
             'Event started: ${stats.averageLeq.toStringAsFixed(1)} dB >= $_thresholdDb dB');
-      } else {
-        // Update ongoing event - extend and update statistics
-        _currentEvent = NoiseEvent(
-          startTime: _currentEvent!.startTime,
-          endTime: timestamp,
-          averageLeqDb: _calculateWeightedAverage(
-              _currentEvent!.averageLeqDb,
-              stats.averageLeq,
-              _currentEvent!.duration.inSeconds,
-              stats.sampleCount),
-          maxLevelDb: max(_currentEvent!.maxLevelDb, stats.maxLevel),
-          minLevelDb: min(_currentEvent!.minLevelDb, stats.minLevel),
-          samples: _mergeRecentSamples(_currentEvent!.samples, stats.samples),
-          ruleTriggered: _currentEvent!.ruleTriggered,
-        );
       }
     } else if (!exceedsThreshold && _currentEvent != null) {
       // Start grace period timer if not already active
@@ -337,6 +346,7 @@ class EventDetectionService {
 
     final eventToFinalize = _currentEvent!;
     _currentEvent = null;
+    _eventLevels = null;
     _isFinalizingEvent = true;
 
     // Classify event based on duration and characteristics
@@ -374,6 +384,46 @@ class EventDetectionService {
 
     // Find the continuous recording file that contains this event
     final recordingRef = await _findContinuousRecordingForEvent(event);
+    final soundAnalysis = _soundAnalysis;
+    final soundScene = soundAnalysis?.summarize(
+      start: event.startTime,
+      end: event.endTime,
+    );
+    final hasSoundScene = soundScene?.isConfident == true;
+    final classificationLabel =
+        hasSoundScene ? soundScene!.category : classification.type;
+    final classificationConfidence =
+        hasSoundScene ? soundScene!.confidence : classification.confidence;
+    final classificationSource = hasSoundScene
+        ? 'device_yamnet_taxonomy_v2'
+        : 'device_rule_engine_fallback';
+    final sourceSegments = soundAnalysis?.sourceSegments(
+          start: event.startTime,
+          end: event.endTime,
+        ) ??
+        const [];
+    final matchingSegments = sourceSegments
+        .where((segment) => segment.category == classificationLabel)
+        .toList(growable: false);
+    final durationCandidates =
+        matchingSegments.isNotEmpty ? matchingSegments : sourceSegments;
+    final dominantSourceSegment = durationCandidates.isEmpty
+        ? null
+        : durationCandidates.reduce(
+            (longest, candidate) =>
+                candidate.duration > longest.duration ? candidate : longest,
+          );
+    final totalSourceDurationMs = sourceSegments.fold<int>(
+      0,
+      (total, segment) => total + segment.duration.inMilliseconds,
+    );
+    final calibrationProfileId = _apiClient.assignedCalibrationProfileId;
+    final calibrationOffset = _audioCapture?.calibrationOffset ?? 0.0;
+    // An assigned profile is context, not proof that its correction was
+    // applied or that this device has been verified against a reference.
+    final levelQuality = calibrationOffset.abs() > 0.0001
+        ? 'offset_adjusted_unverified'
+        : 'uncalibrated_estimate';
 
     return NoiseEventModel.fromDetectedEvent(
       event,
@@ -394,6 +444,43 @@ class EventDetectionService {
         'peak_to_average_delta_db': classification.peakToAverageDeltaDb,
         'variability_db': classification.variabilityDb,
         'threshold_exceedance_ratio': classification.thresholdExceedanceRatio,
+        'sound_scene': soundScene?.toMetadata(),
+        'source_activity': {
+          'timing_basis': SoundSourceActivityTracker.version,
+          'semantics': 'acoustic_source_evidence',
+          'frame_hop_ms': 480,
+          'model_window_ms': 975,
+          'boundary_uncertainty_ms': 975,
+          'segment_count': sourceSegments.length,
+          'total_detected_duration_ms': totalSourceDurationMs,
+          'dominant_category': dominantSourceSegment?.category,
+          'dominant_duration_ms':
+              dominantSourceSegment?.duration.inMilliseconds,
+          'segments':
+              sourceSegments.map((segment) => segment.toJson()).toList(),
+        },
+        'event_timing': {
+          'semantics': 'rolling_leq_threshold_episode',
+          'start_basis': 'threshold_crossing',
+          'end_grace_seconds': _gracePeriod.inSeconds,
+          'rolling_window_seconds': _windowDuration.inSeconds,
+        },
+        'classification_source': classificationSource,
+        'model_bundle_id': hasSoundScene
+            ? 'yamnet_float32_mediapipe_latest+${OpenNoiseTaxonomyHead.version}'
+            : 'device_rule_engine_fallback_v2',
+        'level_quality': levelQuality,
+        'calibration_profile_id': calibrationProfileId,
+        'calibration_profile_applied': false,
+        'calibration_offset_db': calibrationOffset,
+        'audio_evidence': {
+          'default_processing': 'ephemeral_pcm_only',
+          'max_pcm_retention_ms':
+              OnDeviceSoundAnalysisService.maxPcmRetentionMilliseconds,
+          'raw_audio_persisted': recordingRef != null,
+          'speech_recognition': false,
+          'transcription': false,
+        },
         'continuous_recording_ref':
             recordingRef != null ? 'linked' : 'not_found',
         'grace_period_used': _gracePeriod.inSeconds,
@@ -409,9 +496,9 @@ class EventDetectionService {
       durationClass: classification.durationClass,
       intensityClass: classification.intensityClass,
       analysisState: EventAnalysisState.classifiedOnDevice,
-      classificationLabel: classification.type,
-      classificationConfidence: classification.confidence,
-      classificationSource: 'device_rule_engine',
+      classificationLabel: classificationLabel,
+      classificationConfidence: classificationConfidence,
+      classificationSource: classificationSource,
       segmentType: classification.segmentType,
       reportabilityScore: classification.reportabilityScore,
       reportabilityReason: classification.reportabilityReason,
@@ -434,41 +521,6 @@ class EventDetectionService {
       await _submitEventToBackend(event);
     } catch (e) {
       AppLogger.event('Failed to store event: $e');
-    }
-  }
-
-
-  /// Immediately submit a preliminary event to the backend as soon as threshold
-  /// is exceeded, without waiting for event finalization.
-  Future<void> _submitPreliminaryEvent(
-      NoiseEvent event, _WindowStats stats) async {
-    try {
-      final deviceId = await _apiClient.ensureDeviceId();
-      final eventUuid = const Uuid().v4();
-      final now = DateTime.now();
-
-      final eventModel = NoiseEventModel(
-        eventUuid: eventUuid,
-        deviceId: deviceId,
-        timestampStart: event.startTime,
-        timestampEnd: now,
-        leqDb: stats.averageLeq,
-        lmaxDb: stats.maxLevel,
-        lminDb: stats.minLevel,
-        ruleTriggered: 'threshold_${_thresholdDb}dB_${_windowDuration.inMinutes}min',
-        analysisState: EventAnalysisState.classifiedOnDevice,
-        status: 'active',
-        classificationLabel: _quickClassify(stats),
-        classificationSource: 'device_classifier',
-        classificationConfidence: 0.7,
-        segmentType: _quickSegmentType(stats),
-      );
-
-      AppLogger.event(
-          'Submitting preliminary event: ${stats.averageLeq.toStringAsFixed(1)} dB');
-      await _submitEventToBackend(eventModel);
-    } catch (e) {
-      AppLogger.event('Preliminary event submission failed: $e');
     }
   }
 
@@ -637,34 +689,13 @@ class EventDetectionService {
       'currentAverageLeq': stats?.averageLeq.toStringAsFixed(1),
       'hasActiveEvent': _currentEvent != null,
       'activeEventDuration': _currentEvent?.duration.inSeconds,
+      'activeEventSampleCount': _currentEvent?.totalSampleCount,
+      'activeEventAverageDb': _currentEvent?.averageLeqDb,
       'gracePeriodActive': _graceTimer != null,
       'gracePeriodSeconds': _gracePeriod.inSeconds,
       'mergeWindowSeconds': _mergeWindow.inSeconds,
       'lastThresholdExceedance': _lastThresholdExceedance?.toIso8601String(),
     };
-  }
-
-  /// Calculate weighted average for merging events
-  double _calculateWeightedAverage(
-      double avg1, double avg2, int duration1, int samples2) {
-    // Convert dB to energy for proper averaging
-    final energy1 = pow(10, avg1 / 10) * duration1;
-    final energy2 = pow(10, avg2 / 10) * samples2;
-    final totalEnergy = energy1 + energy2;
-    final totalTime = duration1 + samples2;
-    return 10 * log(totalEnergy / totalTime) / ln10;
-  }
-
-  /// Merge recent samples for ongoing events (keep last N samples)
-  List<double> _mergeRecentSamples(
-      List<double> existing, List<double> newSamples) {
-    final merged = List<double>.from(existing);
-    merged.addAll(newSamples);
-    // Keep only last 1000 samples to prevent memory issues
-    if (merged.length > 1000) {
-      return merged.sublist(merged.length - 1000);
-    }
-    return merged;
   }
 
   /// Classify event based on duration and characteristics
@@ -704,28 +735,30 @@ class EventDetectionService {
       intensityClass = 'very_loud';
     }
 
-    if (duration.inSeconds <= 20 &&
-        peakToAverageDelta >= 10 &&
-        thresholdExceedanceRatio < 0.65) {
-      type = 'impulsive_noise';
-      segmentType = 'impulsive';
-      reportabilityReason =
-          'Short event with a strong peak compared with its average level.';
-    } else if (duration.inSeconds >= 60 && thresholdExceedanceRatio >= 0.65) {
-      type = 'sustained_noise';
-      segmentType = 'sustained';
-      reportabilityReason =
-          'Most of the event remained above threshold for a sustained period.';
-    } else if (variability >= 15 || thresholdExceedanceRatio >= 0.45) {
-      type = 'mixed_noise_event';
-      segmentType = 'fluctuating';
-      reportabilityReason =
-          'Event showed repeated threshold crossings or high level variability.';
-    } else {
-      type = 'boundary_noise_event';
-      segmentType = 'boundary';
-      reportabilityReason =
-          'Event crossed detection thresholds but remained close to the boundary.';
+    final temporal = _temporalPattern.analyze(
+      samples: event.samples,
+      thresholdDb: _thresholdDb,
+      duration: duration,
+      peakToAverageDeltaDb: peakToAverageDelta,
+      variabilityDb: variability,
+    );
+    segmentType = temporal.segmentType;
+    reportabilityReason = temporal.reason;
+    switch (segmentType) {
+      case 'impulse':
+        type = 'impulsive_noise';
+        break;
+      case 'repeated_impulses':
+        type = 'repeated_impulsive_noise';
+        break;
+      case 'continuous':
+        type = 'sustained_noise';
+        break;
+      case 'background_elevation':
+        type = 'background_elevation';
+        break;
+      default:
+        type = 'intermittent_noise';
     }
 
     final intensityScore = ((averageDb - _thresholdDb) / 20).clamp(0.0, 1.0);
@@ -764,10 +797,10 @@ class EventDetectionService {
 
   /// Determine if event should be emitted based on classification
   bool _shouldEmitEvent(NoiseEvent event, EventClassification classification) {
-    final minDuration = classification.segmentType == 'impulsive'
+    final minDuration = classification.segmentType == 'impulse'
         ? const Duration(seconds: 8)
         : const Duration(seconds: 20);
-    final strongImpulse = classification.segmentType == 'impulsive' &&
+    final strongImpulse = classification.segmentType == 'impulse' &&
         classification.peakToAverageDeltaDb >= 12 &&
         event.duration >= const Duration(seconds: 5);
     final sufficientlyReportable = classification.reportabilityScore >= 0.45;
@@ -925,54 +958,4 @@ class EventClassification {
         'duration: $durationClass, intensity: $intensityClass, '
         'segment: $segmentType, reportability: ${reportabilityScore.toStringAsFixed(2)})';
   }
-}
-
-/// Quick classification for preliminary events — uses rich rules matching
-/// the backend episode classifier (construction, traffic, conversation, etc.)
-String _quickClassify(_WindowStats stats) {
-  final avgDb = stats.averageLeq;
-  final variability = (stats.maxLevel - stats.minLevel).clamp(0, 200);
-  final peakToAvg = (stats.maxLevel - avgDb).clamp(0, 200);
-  final isNight = DateTime.now().hour >= 22 || DateTime.now().hour < 6;
-
-  // High + steady + daytime → construction
-  if (avgDb >= 65 && variability < 8 && !isNight) {
-    return 'construction_noise';
-  }
-  // High variability + evening/night → conversation/dispute
-  if (avgDb >= 55 && variability >= 10 && (isNight || DateTime.now().hour >= 20)) {
-    return 'conversation_dispute';
-  }
-  // Very loud + night → music/party
-  if (avgDb >= 70 && isNight) {
-    return 'music_party';
-  }
-  // Very steady, any time → mechanical/HVAC
-  if (variability < 5 && avgDb >= 55) {
-    return 'mechanical_hvac';
-  }
-  // Intermittent spikes → traffic
-  if (peakToAvg >= 12 && avgDb >= 55) {
-    return 'traffic_noise';
-  }
-  // Very short, very loud → alarm/siren
-  if (avgDb >= 75 && stats.sampleCount < 10) {
-    return 'alarm_siren';
-  }
-  // Repeated impulsive → animal barking
-  if (peakToAvg >= 15 && variability >= 8) {
-    return 'animal_barking';
-  }
-  // Default sustained
-  if (avgDb >= 55) {
-    return 'sustained_noise';
-  }
-  return 'impulsive_noise';
-}
-
-String _quickSegmentType(_WindowStats stats) {
-  final variability = (stats.maxLevel - stats.minLevel).clamp(0, 200);
-  if (variability < 5) return 'sustained';
-  if (variability < 12) return 'fluctuating';
-  return 'impulsive';
 }

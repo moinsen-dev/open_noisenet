@@ -1,0 +1,6 @@
+name: noisenet_sodium_poc
+publish_to: none
+environment:
+  sdk: '>=3.10.0 <4.0.0'
+dependencies:
+  sodium: ^4.1.2+1

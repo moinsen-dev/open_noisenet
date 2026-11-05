@@ -4,9 +4,7 @@ OpenNoiseNet is not in a blank planning phase. The repository already contains s
 
 Read [docs/current-status.md](docs/current-status.md) before starting work. It defines the supported MVP surface and the intentionally unreleased areas for this milestone.
 
-The commercialization direction is documented in [docs/opennoisenet-pro-roadmap.md](docs/opennoisenet-pro-roadmap.md). That roadmap does **not** change current repo truth, but it does define what the stabilization phase is preparing for: a Hybrid Public + Pro platform with a tenant-bound Pro layer for housing and property workflows.
-
-The repo now also contains initial pre-release Pro slices. They still need hardening and do **not** mean the stabilization gate is closed.
+The project currently prioritizes a community-run, privacy-conscious open-source noise-monitoring system. The repository also contains experimental Pro-domain code; [its historical roadmap](docs/opennoisenet-pro-roadmap.md) is background, not a requirement to commercialize the project. Treat these unfinished features as pre-release.
 
 ## What We Need Right Now
 
@@ -30,10 +28,10 @@ Not part of the current milestone:
 
 - `docs/current-status.md` tells you what exists and is supported today.
 - `ImplementationPlan.md` tells you what the repository is actively executing now.
-- `docs/execution-backlog.md` tells you the ordered remaining work from gate closure to commercial readiness.
-- `docs/opennoisenet-pro-roadmap.md` tells you the ordered next phases after stabilization.
+- `docs/execution-backlog.md` preserves an older backlog; check its items against current status before working on them.
+- `docs/opennoisenet-pro-roadmap.md` preserves historical Pro planning.
 
-Contributors should treat **Phase 0: Stabilization Exit and Commercial Baseline** as the active gate. Work on existing Pro slices is allowed and expected, but those slices must be treated as **pre-release** until the gate is explicitly closed.
+Prioritize the open-source sensor-to-map journey and reproducible verification. Treat unfinished Pro slices as **pre-release**; see the current status for the actual phase and open gates.
 
 ## Working Rules
 
@@ -95,58 +93,6 @@ docker compose up --build
 3. Make the smallest coherent change that improves stability or consistency.
 4. Run the relevant checks for the surface you changed.
 5. Update docs when the visible behavior or local workflow changes.
-
-Create branches from `develop` and use descriptive names such as
-`docs/contribution-guidelines`, `backend/device-heartbeat-tests`, or
-`mobile/backend-sync-cleanup`. Keep one concern per pull request so review can
-focus on the affected surface.
-
-## Code Style By Surface
-
-### Backend Python
-
-- Use `uv` for dependency and command execution.
-- Prefer Black-compatible formatting and keep Ruff issues addressed for changed files.
-- Add or update pytest coverage for backend behavior changes.
-- Keep migrations and model changes tied to the current MVP surface.
-
-### Frontend And Landing TypeScript
-
-- Keep TypeScript strict enough for `npm run type-check`.
-- Prefer small typed components over broad placeholder screens.
-- Keep dashboard routes aligned to `/auth`, `/devices`, `/events`, and `/map`.
-- For landing changes, preserve the current public narrative and avoid promising unreleased features.
-
-### Mobile Dart
-
-- Follow the Flutter lint rules in `mobile/analysis_options.yaml`.
-- Keep backend-facing flows real; avoid adding placeholder-only paths to active app screens.
-- Run `flutter analyze` and `flutter test` for mobile changes.
-
-## Pull Request Checklist
-
-Before opening a pull request:
-
-- Link the issue or planning document that defines the scope.
-- State whether the change touches backend, dashboard, landing, mobile, docs, or infrastructure.
-- List the checks you ran and any checks you could not run.
-- Update relevant documentation when user-visible behavior, setup, or workflow changes.
-- Note any follow-up work that remains outside the current PR.
-
-Reviewers should check that the PR stays within the stabilization gate, uses the
-right validation commands, and does not describe unreleased work as shipped.
-
-## Issue Reporting Guidelines
-
-When opening an issue, include:
-
-- Which surface is affected: backend, dashboard, landing, mobile, docs, infrastructure, or full stack.
-- The expected behavior and the actual behavior.
-- Steps to reproduce, including commands, URLs, or screen flow where relevant.
-- Environment details such as OS, Python/Node/Flutter versions, and Docker usage.
-- Logs, screenshots, or API responses when they are safe to share.
-
-Do not include secrets, private addresses, production credentials, or personal data in public issues.
 
 ## Verification Expectations
 

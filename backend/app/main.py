@@ -90,14 +90,15 @@ def create_application() -> FastAPI:
     @app.get("/health")
     async def health_check():
         """Health check with database connectivity verification."""
-        db_status = "disconnected"
         try:
             async with engine.begin() as conn:
                 await conn.execute(text("SELECT 1"))
-            db_status = "connected"
         except Exception:
-            pass
-        return {"status": "healthy", "version": "0.1.0", "database": db_status}
+            return JSONResponse(
+                status_code=503,
+                content={"status": "unhealthy", "version": app.version, "database": "disconnected"},
+            )
+        return {"status": "healthy", "version": app.version, "database": "connected"}
 
     # Security headers middleware
     @app.middleware("http")

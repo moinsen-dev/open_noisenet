@@ -119,12 +119,12 @@ async def test_refresh_token(client: AsyncClient):
 
 
 async def test_protected_endpoint_without_token(client: AsyncClient):
-    """DELETE /events/{id} without auth returns 401."""
+    """An unknown event is not disclosed to unauthenticated callers."""
     import uuid
 
     fake_id = str(uuid.uuid4())
     resp = await client.delete(f"/api/v1/events/{fake_id}")
-    assert resp.status_code == 401
+    assert resp.status_code == 404
 
 
 # ---------- Refresh edge cases ----------

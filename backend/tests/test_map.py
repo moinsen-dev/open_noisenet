@@ -19,6 +19,7 @@ async def _seed_map_data(db: AsyncSession):
         device_id=f"test-device-{uuid.uuid4().hex[:8]}",
         name="Map Test Device",
         device_type=DeviceType.SMARTPHONE,
+        is_public=True,
         location_lat=52.520008,
         location_lng=13.404954,
     )
@@ -151,6 +152,7 @@ async def test_map_geojson_with_location_filter(
         device_id=f"test-device-{uuid.uuid4().hex[:8]}",
         name="LocFilter Device",
         device_type=DeviceType.SMARTPHONE,
+        is_public=True,
     )
     db_session.add(device)
     await db_session.flush()
@@ -194,6 +196,7 @@ async def test_map_geojson_bbox_filter(
         device_id=f"test-device-{uuid.uuid4().hex[:8]}",
         name="Bbox Device",
         device_type=DeviceType.SMARTPHONE,
+        is_public=True,
     )
     db_session.add(device)
     await db_session.flush()
@@ -250,6 +253,7 @@ async def test_map_stats_accuracy(
         device_id=f"test-device-{uuid.uuid4().hex[:8]}",
         name="StatsDevice",
         device_type=DeviceType.SMARTPHONE,
+        is_public=True,
     )
     db_session.add(device)
     await db_session.flush()
@@ -283,6 +287,7 @@ async def test_map_stats_24h_window(
         device_id=f"test-device-{uuid.uuid4().hex[:8]}",
         name="Window Device",
         device_type=DeviceType.SMARTPHONE,
+        is_public=True,
     )
     db_session.add(device)
     await db_session.flush()

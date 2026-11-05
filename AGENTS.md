@@ -2,6 +2,10 @@
 
 This file provides guidance to Codex (Codex.ai/code) when working with code in this repository.
 
+## Pumuckl als Projektbestandteil
+
+`.pumuckl` gehört zum Kern der täglichen Projektarbeit. Pumuckl ist unser eigenes KI-Werkzeug zur qualifizierten Beurteilung unserer Projekte; die Datei enthält den zugehörigen Projekt- und Bewertungsstand. Sie ist Teil des Repositories und wird mit committet. Änderungen daran bei der Übergabe und vor jedem Commit berücksichtigen, nicht als störende Fremd- oder generierte Datei verwerfen oder pauschal ignorieren. Einen vorhandenen Stand nicht überschreiben; bei paralleler Arbeit die jeweils aktuelle Datei sorgfältig übernehmen und erhalten. Zeitstempel und Git-Angaben darin sind ein Scan-Schnappschuss, kein Beleg für den aktuellen Zustand.
+
 ## Project Overview
 
 Open NoiseNet is an open-source environmental noise monitoring platform that democratizes noise monitoring through affordable DIY devices. The project combines hardware (ESP32/Raspberry Pi + MEMS microphones), firmware, backend services, and frontend visualization to create a global network of citizen-operated noise sensors.

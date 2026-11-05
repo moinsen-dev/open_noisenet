@@ -93,12 +93,15 @@ async def sync_event_to_episode(
     )
 
     if merge_candidate:
+        previous_started_at = _as_utc(merge_candidate.started_at)
+        previous_ended_at = _as_utc(merge_candidate.ended_at)
+        previous_event_count = merge_candidate.event_count
         merge_candidate.ended_at = max(
-            _as_utc(merge_candidate.ended_at),
+            previous_ended_at,
             _as_utc(event.timestamp_end or event.created_at),
         )
         merge_candidate.started_at = min(
-            _as_utc(merge_candidate.started_at),
+            previous_started_at,
             _as_utc(event.timestamp_start or event.created_at),
         )
         merge_candidate.event_count += 1
@@ -112,6 +115,13 @@ async def sync_event_to_episode(
         )
         merge_candidate.quiet_hours_triggered = (
             merge_candidate.quiet_hours_triggered or quiet_hours
+        )
+        merge_candidate.review_metadata = _extended_continuity_metadata(
+            merge_candidate,
+            event,
+            previous_started_at=previous_started_at,
+            previous_ended_at=previous_ended_at,
+            previous_event_count=previous_event_count,
         )
         merge_candidate.lifecycle_state = EpisodeLifecycleState.EXTENDED.value
         event.episode_id = merge_candidate.id
@@ -135,6 +145,7 @@ async def sync_event_to_episode(
         started_at=_as_utc(event.timestamp_start or event.created_at),
         ended_at=_as_utc(event.timestamp_end or event.created_at),
         event_count=1,
+        review_metadata=_initial_continuity_metadata(event),
         model_bundle_id=_model_bundle_id_from_event(event),
     )
     db.add(episode)
@@ -272,24 +283,149 @@ def _as_utc(value: datetime) -> datetime:
     return value.astimezone(timezone.utc)
 
 
+def _event_duration_seconds(event: Event) -> float:
+    start = _as_utc(event.timestamp_start or event.created_at)
+    end = _as_utc(event.timestamp_end or event.created_at)
+    return max((end - start).total_seconds(), 0.0)
+
+
+def _initial_continuity_metadata(event: Event) -> dict:
+    duration = _event_duration_seconds(event)
+    return {
+        "detection_method": "incremental_source_family_v2",
+        "avg_leq_db": round(event.leq_db or 0.0, 1),
+        "max_level_db": round(event.lmax_db or event.leq_db or 0.0, 1),
+        "continuity": {
+            "merge_basis": "single_event",
+            "continuous_noise_claimed": False,
+            "episode_span_seconds": round(duration, 1),
+            "observed_event_duration_seconds": round(duration, 1),
+            "inter_event_gaps": [],
+            "timing_bases": ["event_threshold_interval"],
+        },
+    }
+
+
+def _extended_continuity_metadata(
+    episode: Episode,
+    event: Event,
+    *,
+    previous_started_at: datetime,
+    previous_ended_at: datetime,
+    previous_event_count: int,
+) -> dict:
+    metadata = dict(episode.review_metadata or {})
+    continuity = dict(metadata.get("continuity") or {})
+    gaps = list(continuity.get("inter_event_gaps") or [])
+    event_start = _as_utc(event.timestamp_start or event.created_at)
+    event_end = _as_utc(event.timestamp_end or event.created_at)
+    gap_seconds = max((event_start - previous_ended_at).total_seconds(), 0.0)
+    if gap_seconds > 0:
+        gaps.append(
+            {
+                "start": previous_ended_at.isoformat(),
+                "end": event_start.isoformat(),
+                "duration_seconds": round(gap_seconds, 1),
+                "evidence_state": "no_threshold_event",
+            }
+        )
+
+    previous_observed = float(
+        continuity.get("observed_event_duration_seconds") or 0.0
+    )
+    previous_avg = float(metadata.get("avg_leq_db") or 0.0)
+    event_count = previous_event_count + 1
+    metadata.update(
+        {
+            "detection_method": "incremental_source_family_v2",
+            "avg_leq_db": round(
+                ((previous_avg * previous_event_count) + (event.leq_db or 0.0))
+                / event_count,
+                1,
+            ),
+            "max_level_db": round(
+                max(
+                    float(metadata.get("max_level_db") or 0.0),
+                    event.lmax_db or event.leq_db or 0.0,
+                ),
+                1,
+            ),
+            "continuity": {
+                **continuity,
+                "merge_basis": "same_source_family_within_gap",
+                "continuous_noise_claimed": False,
+                "episode_span_seconds": round(
+                    (max(previous_ended_at, event_end) - min(previous_started_at, event_start)).total_seconds(),
+                    1,
+                ),
+                "observed_event_duration_seconds": round(
+                    previous_observed + _event_duration_seconds(event),
+                    1,
+                ),
+                "inter_event_gaps": gaps,
+                "timing_bases": ["event_threshold_interval"],
+            },
+        }
+    )
+    return metadata
+
+
 def _class_family(primary_class: str, segment_type: Optional[str]) -> str:
-    if primary_class in {"conversation", "short_shout_or_call", "crowd"}:
+    if primary_class in {
+        "conversation",
+        "short_shout_or_call",
+        "crowd",
+        "loud_conversation",
+        "shouting_or_dispute",
+    }:
         return "speech"
-    if primary_class in {"traffic", "construction", "music", "siren", "animal"}:
+    if primary_class in {
+        "traffic",
+        "construction",
+        "music",
+        "siren",
+        "animal",
+        "party_or_music_with_people",
+        "television_or_music",
+        "drilling",
+        "hammering",
+        "sawing",
+        "construction_other",
+        "household_appliance",
+        "road_traffic",
+        "animals",
+    }:
         return "environmental"
-    if primary_class in {"impulsive_noise", "glass_break", "forced_entry_impact"}:
+    if primary_class in {
+        "impulsive_noise",
+        "glass_break",
+        "forced_entry_impact",
+        "furniture_movement",
+        "footsteps_or_impact_noise",
+        "door_or_impact",
+    }:
         return "impulsive"
-    if segment_type in {"sustained", "fluctuating"}:
+    if segment_type in {
+        "sustained",
+        "fluctuating",
+        "continuous",
+        "background_elevation",
+    }:
         return "continuous"
     return "unknown"
 
 
 def _merge_gap(segment_type: Optional[str], class_family: str) -> timedelta:
     if class_family == "speech":
-        return timedelta(minutes=5)
+        return timedelta(minutes=15)
     if class_family == "impulsive":
         return timedelta(seconds=45)
-    if segment_type in {"sustained", "fluctuating"} or class_family == "continuous":
+    if segment_type in {
+        "sustained",
+        "fluctuating",
+        "continuous",
+        "background_elevation",
+    } or class_family == "continuous":
         return timedelta(minutes=10)
     return timedelta(minutes=3)
 
@@ -354,6 +490,21 @@ def _class_impact(primary_class: str) -> float:
         "mixed_noise_event": 0.67,
         "unclassified_noise_event": 0.30,
         "unknown_noise": 0.22,
+        "loud_conversation": 0.45,
+        "shouting_or_dispute": 0.75,
+        "party_or_music_with_people": 0.72,
+        "television_or_music": 0.58,
+        "drilling": 0.82,
+        "hammering": 0.84,
+        "sawing": 0.80,
+        "construction_other": 0.78,
+        "furniture_movement": 0.66,
+        "footsteps_or_impact_noise": 0.62,
+        "door_or_impact": 0.72,
+        "household_appliance": 0.52,
+        "road_traffic": 0.62,
+        "animals": 0.46,
+        "unknown_sound_source": 0.22,
     }
     return impact_map.get(primary_class, 0.30)
 

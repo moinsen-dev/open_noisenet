@@ -30,6 +30,9 @@ flutter_ios_podfile_setup
 target 'Runner' do
   use_frameworks!
 
+  # The upstream 2.12.0 spec clones the entire TensorFlow Git repository.
+  # The pinned archive below contains the same upstream commit and is hash checked.
+  pod 'TensorFlowLiteSwift', :podspec => 'Podspecs/TensorFlowLiteSwift.podspec.json'
   flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
   target 'RunnerTests' do
     inherit! :search_paths
@@ -41,7 +44,7 @@ post_install do |installer|
     flutter_additional_ios_build_settings(target)
     target.build_configurations.each do |config|
       # Set minimum iOS deployment target to fix warnings
-      config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '13.0'
+      config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.0'
 
       config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] ||= [
         '$(inherited)',

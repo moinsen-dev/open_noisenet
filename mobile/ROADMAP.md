@@ -1,5 +1,7 @@
 # OpenNoiseNet Mobile Node Roadmap
 
+> Historical execution context: the current priority is the open-source sensor-to-map system, not commercialization. The authoritative phase and evidence are in [../docs/current-status.md](../docs/current-status.md).
+
 This roadmap aligns the mobile app with the wider **OpenNoiseNet Pro** direction.
 
 The mobile product is not being treated as a consumer novelty app. It is being treated as a **field node** for a Hybrid Public + Pro system:
@@ -10,7 +12,7 @@ The mobile product is not being treated as a consumer novelty app. It is being t
 - smartphone-neutral at product level
 - operator value comes from backend episodes, cases, and exports
 
-The canonical product roadmap lives in [../docs/opennoisenet-pro-roadmap.md](/Users/udi/work/moinsen/ideas/open_noisenet/docs/opennoisenet-pro-roadmap.md).
+The canonical product roadmap lives in [../docs/opennoisenet-pro-roadmap.md](../docs/opennoisenet-pro-roadmap.md).
 
 ## Current Repo Reality
 

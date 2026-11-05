@@ -3,7 +3,8 @@
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
-from jose import JWTError, jwt
+import jwt
+from jwt import PyJWTError
 from passlib.context import CryptContext
 
 from app.core.config import settings
@@ -55,5 +56,5 @@ def decode_token(token: str) -> Optional[dict]:
             settings.JWT_SECRET_KEY or settings.SECRET_KEY,
             algorithms=[settings.JWT_ALGORITHM],
         )
-    except JWTError:
+    except PyJWTError:
         return None

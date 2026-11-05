@@ -4,6 +4,11 @@ from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
 
+@pytest.fixture(autouse=True)
+def device_key(client: AsyncClient):
+    client.headers["X-Device-Key"] = "A" * 43
+
+
 @pytest.mark.asyncio
 async def test_register_device(client: AsyncClient):
     response = await client.post("/api/v1/devices/register", json={

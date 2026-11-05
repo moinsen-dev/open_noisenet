@@ -39,6 +39,12 @@ class DeviceSetupPage extends StatelessWidget {
               },
               child: const Text('Start Setup'),
             ),
+            const SizedBox(height: 16),
+            TextButton.icon(
+              onPressed: () => context.push('/diary'),
+              icon: const Icon(Icons.book_outlined),
+              label: const Text('Persönliches Lärmtagebuch öffnen'),
+            ),
           ],
         ),
       ),

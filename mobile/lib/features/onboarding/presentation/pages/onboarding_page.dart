@@ -85,19 +85,9 @@ class _OnboardingPageState extends State<OnboardingPage> {
       if (status.isGranted) {
         AppLogger.success('Location permission granted');
         await _completeOnboarding();
-      } else if (status.isDenied) {
-        AppLogger.warning('Location permission denied');
-        _showPermissionDeniedDialog(
-          'Location Permission Required',
-          'OpenNoiseNet needs location access to create accurate noise maps. Without this permission, we cannot determine where noise events occur.',
-          Permission.locationWhenInUse,
-        );
-      } else if (status.isPermanentlyDenied) {
-        AppLogger.warning('Location permission permanently denied');
-        _showSettingsDialog(
-          'Location Permission Required',
-          'Please enable location permission in Settings to use OpenNoiseNet.',
-        );
+      } else {
+        AppLogger.info('Location not granted; continuing without it');
+        await _completeOnboarding();
       }
     } catch (e) {
       AppLogger.failure('Error requesting location permission', e);
@@ -232,6 +222,12 @@ class _OnboardingPageState extends State<OnboardingPage> {
               ),
             ),
 
+            if (_currentPage == 3)
+              TextButton(
+                onPressed: _isRequestingPermissions ? null : _completeOnboarding,
+                child: const Text('Continue without location'),
+              ),
+
             // Navigation buttons
             Padding(
               padding: const EdgeInsets.all(16.0),
@@ -345,7 +341,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Join thousands of citizens worldwide creating open noise pollution maps',
+                  'Help build open community noise maps with citizen science',
                   style: theme.textTheme.bodyMedium?.copyWith(
                     color: colorScheme.onPrimaryContainer,
                     fontWeight: FontWeight.w500,
@@ -389,7 +385,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
           _buildFeatureItem(
             Icons.mic,
             'Monitor Noise Levels',
-            'Your phone\'s microphone captures ambient sound and calculates real-time noise levels in decibels.',
+            'Your phone\'s microphone captures ambient sound and estimates noise levels in real time.',
             colorScheme,
             theme,
           ),
@@ -397,7 +393,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
           _buildFeatureItem(
             Icons.location_on,
             'Create Noise Maps',
-            'Location data helps create accurate community noise maps to identify pollution hotspots.',
+            'With your permission, location data can place measurements on a community map.',
             colorScheme,
             theme,
           ),
@@ -525,7 +521,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        'We only measure sound levels, never record audio. Your privacy is protected.',
+                        'Standard monitoring keeps audio only in a short-lived memory buffer for local classification. It uploads levels, categories, and times — never speech or raw audio. Saving audio is a separate opt-in setting.',
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: colorScheme.onSurface.withValues(alpha: 0.7),
                         ),
@@ -575,7 +571,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
           ),
           const SizedBox(height: 32),
           Text(
-            'Location Permission Required',
+            'Location is optional',
             style: theme.textTheme.headlineMedium?.copyWith(
               color: colorScheme.onSurface,
               fontWeight: FontWeight.bold,
@@ -584,7 +580,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
           ),
           const SizedBox(height: 16),
           Text(
-            'Location data is essential for creating accurate noise pollution maps and identifying problem areas in communities.',
+            'Location can help show noise measurements on a map. You can continue without sharing it.',
             style: theme.textTheme.bodyLarge?.copyWith(
               color: colorScheme.onSurface.withValues(alpha: 0.8),
             ),
@@ -620,7 +616,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
                 ),
                 const SizedBox(height: 12),
                 Text(
-                  'Without location data, we cannot determine where noise events occur, making it impossible to create meaningful noise maps for environmental advocacy.',
+                  'Without location, your measurements can still be recorded and uploaded privately. They cannot be placed on the map.',
                   style: theme.textTheme.bodyMedium?.copyWith(
                     color: colorScheme.onSurface.withValues(alpha: 0.7),
                   ),
@@ -630,7 +626,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
           ),
           const SizedBox(height: 24),
           Text(
-            'This permission is mandatory for the app to function.',
+            'You can change this choice later in your device settings.',
             style: theme.textTheme.bodyMedium?.copyWith(
               color: colorScheme.onSurface.withValues(alpha: 0.6),
               fontWeight: FontWeight.w500,

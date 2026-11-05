@@ -1,10 +1,13 @@
 package plugins.cachet.audio_streamer
 
 import android.app.Activity
+import android.content.Context
 import android.content.pm.PackageManager
 import android.media.AudioFormat
+import android.media.AudioManager
 import android.media.AudioRecord
 import android.media.MediaRecorder
+import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.os.Process
@@ -36,6 +39,7 @@ class AudioStreamerPlugin : FlutterPlugin, RequestPermissionsResultListener, Eve
     private var eventSink: EventSink? = null
     @Volatile private var recording = false
     private var recordingThread: Thread? = null
+    private lateinit var applicationContext: Context
 
 
     private var currentActivity: Activity? = null
@@ -43,6 +47,7 @@ class AudioStreamerPlugin : FlutterPlugin, RequestPermissionsResultListener, Eve
     private lateinit var audioRecord: AudioRecord;
 
     override fun onAttachedToEngine(@NonNull flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
+        applicationContext = flutterPluginBinding.applicationContext
         val messenger = flutterPluginBinding.binaryMessenger
         val eventChannel = EventChannel(messenger, eventChannelName)
         eventChannel.setStreamHandler(this)
@@ -150,14 +155,20 @@ class AudioStreamerPlugin : FlutterPlugin, RequestPermissionsResultListener, Eve
     private fun streamMicData() {
         Process.setThreadPriority(Process.THREAD_PRIORITY_AUDIO)
 
-        val audioBuffer = ShortArray(bufferSize / 2)
         try {
-            audioRecord = AudioRecord(
-                MediaRecorder.AudioSource.DEFAULT,
+            val minBufferSize = AudioRecord.getMinBufferSize(
                 sampleRate,
                 AudioFormat.CHANNEL_IN_MONO,
                 AudioFormat.ENCODING_PCM_16BIT,
-                bufferSize,
+            )
+            val effectiveBufferSize = maxOf(bufferSize, minBufferSize)
+            val audioBuffer = ShortArray(effectiveBufferSize / 2)
+            audioRecord = AudioRecord(
+                preferredAudioSource(),
+                sampleRate,
+                AudioFormat.CHANNEL_IN_MONO,
+                AudioFormat.ENCODING_PCM_16BIT,
+                effectiveBufferSize,
             )
 
             if (audioRecord.state != AudioRecord.STATE_INITIALIZED) {
@@ -194,5 +205,27 @@ class AudioStreamerPlugin : FlutterPlugin, RequestPermissionsResultListener, Eve
             }
             recording = false
         }
+    }
+
+    /**
+     * Prefer the least processed microphone path available. Android's own
+     * guidance recommends VOICE_RECOGNITION when UNPROCESSED is unavailable,
+     * because it avoids AGC and noise suppression on typical devices.
+     */
+    private fun preferredAudioSource(): Int {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            val audioManager =
+                applicationContext.getSystemService(Context.AUDIO_SERVICE) as AudioManager
+            val supportsUnprocessed = audioManager
+                .getProperty(AudioManager.PROPERTY_SUPPORT_AUDIO_SOURCE_UNPROCESSED)
+                ?.toBooleanStrictOrNull() == true
+            if (supportsUnprocessed) {
+                Log.i(logTag, "Using UNPROCESSED microphone source")
+                return MediaRecorder.AudioSource.UNPROCESSED
+            }
+        }
+
+        Log.i(logTag, "Using VOICE_RECOGNITION microphone source fallback")
+        return MediaRecorder.AudioSource.VOICE_RECOGNITION
     }
 }

@@ -1,6 +1,6 @@
 """Database models."""
 from app.db.models.event import Event
-from app.db.models.device import Device
+from app.db.models.device import Device, DeviceApiKey
 from app.db.models.pro_domain import (
     CalibrationProfile,
     Case,
@@ -20,6 +20,7 @@ __all__ = [
     "Case",
     "CaseEpisodeLink",
     "Device",
+    "DeviceApiKey",
     "Episode",
     "Event",
     "ExportJob",

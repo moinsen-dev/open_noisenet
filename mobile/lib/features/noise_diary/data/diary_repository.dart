@@ -125,7 +125,7 @@ class DiaryCipher {
   }
 }
 
-/// Separate app-private database; entries never enter event or upload tables.
+/// Encrypted private storage. Diary entries never enter the separate phase outbox.
 class LocalDiaryRepository implements DiaryRepository {
   static const _keyName = 'personal_noise_diary_key_v1';
   static const _secureStorage = FlutterSecureStorage(
@@ -197,16 +197,24 @@ class LocalDiaryRepository implements DiaryRepository {
     )
   ''');
 
+  static Future<void> _createPhaseTable(DatabaseExecutor db) => db.execute('''
+    CREATE TABLE phase_uploads (
+      id TEXT PRIMARY KEY, nonce BLOB NOT NULL,
+      payload BLOB NOT NULL, tag BLOB NOT NULL
+    )
+  ''');
+
   static Future<bool> _hasEncryptedEntries(DatabaseExecutor db) async =>
       (Sqflite.firstIntValue(await db.rawQuery('''
         SELECT (SELECT COUNT(*) FROM diary_secure_entries) +
-               (SELECT COUNT(*) FROM source_history)
+               (SELECT COUNT(*) FROM source_history) +
+               (SELECT COUNT(*) FROM phase_uploads)
       ''')) ?? 0) > 0;
 
   Future<Database> _open() async {
     final directory = await getDatabasesPath();
     return openDatabase(path.join(directory, 'personal_noise_diary.db'),
-        version: 3, onConfigure: (db) async {
+        version: 4, onConfigure: (db) async {
       // This pragma returns a row. Darwin's SQLite rejects execute() for
       // row-producing statements even though Android accepts it.
       final result = await db.rawQuery('PRAGMA secure_delete = ON');
@@ -216,6 +224,7 @@ class LocalDiaryRepository implements DiaryRepository {
     }, onCreate: (db, version) async {
       await _createTable(db);
       await _createHistoryTable(db);
+      await _createPhaseTable(db);
     }, onUpgrade: (db, oldVersion, newVersion) async {
       if (oldVersion < 2) {
         await _createTable(db);
@@ -232,6 +241,7 @@ class LocalDiaryRepository implements DiaryRepository {
         await db.execute('DROP TABLE diary_entries');
       }
       if (oldVersion < 3) await _createHistoryTable(db);
+      if (oldVersion < 4) await _createPhaseTable(db);
     });
   }
 
@@ -282,6 +292,23 @@ class LocalDiaryRepository implements DiaryRepository {
   Future<void> clearSourceHistory() async {
     await (await _db).delete('source_history');
   }
+
+  Future<void> savePhaseUpload(String id, Map<String, Object?> payload) async {
+    final db = await _db;
+    final key = await _getKey(create: !await _hasEncryptedEntries(db));
+    await db.insert('phase_uploads', await _cipher.encryptPayload(id, payload, key),
+        conflictAlgorithm: ConflictAlgorithm.replace);
+  }
+
+  Future<List<Map<String, dynamic>>> listPhaseUploads() async {
+    final rows = await (await _db).query('phase_uploads');
+    if (rows.isEmpty) return [];
+    final key = await _getKey(create: false);
+    return Future.wait(rows.map((row) => _cipher.decryptPayload(row, key)));
+  }
+
+  Future<void> removePhaseUpload(String id) async =>
+      (await _db).delete('phase_uploads', where: 'id = ?', whereArgs: [id]);
 }
 
 String newDiaryEntryId() => const Uuid().v4();

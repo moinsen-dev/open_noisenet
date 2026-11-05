@@ -17,6 +17,7 @@ Future<void> main() async {
     final coverage = <AcousticInterval>[];
     final completed = <String>{};
     final tracker = MultiSourceTracker();
+    final mappedFrames = <Map<String, Object?>>[];
     void record(Iterable<SoundSourceActivitySnapshot> snapshots) {
       for (final snapshot in snapshots) {
         final segment = snapshot.lastCompletedSegment;
@@ -52,6 +53,9 @@ Future<void> main() async {
         );
       }
       coverage.add(AcousticInterval(start, end));
+      if (input['include_frames'] == true) {
+        mappedFrames.add({'start_ms':start, 'end_ms':end, 'scores':scores});
+      }
       record(
         tracker.add(
           SoundClassificationFrame(
@@ -75,6 +79,7 @@ Future<void> main() async {
       'id': scene['id'],
       'phases': phases.map((p) => p.toJson()).toList(),
       'source_segment_count': evidence.length,
+      if (input['include_frames'] == true) 'frames':mappedFrames,
     });
   }
   final classifications = <Map<String, Object?>>[];

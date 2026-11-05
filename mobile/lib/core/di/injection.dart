@@ -73,6 +73,7 @@ Future<void> configureDependencies() async {
     store: EncryptedSourceHistoryStore(),
     preferences: sharedPreferences,
     activity: getIt<OnDeviceSoundAnalysisService>().sourceActivity,
+    frames: getIt<OnDeviceSoundAnalysisService>().results,
   ));
 
   // Initialize API client service
@@ -93,7 +94,8 @@ Future<void> configureDependencies() async {
 
   // Register BLoCs
   getIt.registerFactory(() => AppBloc());
-  getIt.registerFactory(() => MonitoringBloc());
+  // The screen and a restarted Android service share one sensor session.
+  getIt.registerLazySingleton(() => MonitoringBloc());
 
   // Initialize backend sync service after all dependencies are registered
   final backendSyncService = BackendSyncService();

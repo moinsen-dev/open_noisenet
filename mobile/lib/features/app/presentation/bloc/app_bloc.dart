@@ -30,8 +30,8 @@ class AppBloc extends Bloc<AppEvent, AppState> {
       final isOnboardingComplete =
           await _preferencesService.getOnboardingComplete();
 
-      // Initialize backend sync service and check connectivity
-      await _syncService.initialize();
+      // DI already initializes sync. Opening a screen after a headless sensor
+      // restart must not reload its queue while delivery is in progress.
 
       // Check backend status and emit connection notification
       final backendStatus = await _syncService.getBackendStatus();

@@ -6,12 +6,17 @@ import 'package:get_it/get_it.dart';
 import '../../../core/database/dao/noise_measurement_dao.dart';
 import '../../../core/database/models/noise_measurement.dart';
 import '../../noise_diary/data/diary_sound_label.dart';
+import '../../noise_diary/data/diary_export.dart';
+import '../data/history_export.dart';
 import '../data/noise_history.dart';
+import '../../../services/sound_analysis/acoustic_phase.dart';
 
 class NoiseHistoryPage extends StatefulWidget {
-  const NoiseHistoryPage({super.key, this.collector, this.loadMeasurements});
+  const NoiseHistoryPage(
+      {super.key, this.collector, this.loadMeasurements, this.saveExport});
   final SoundHistoryCollector? collector;
   final Future<List<NoiseMeasurement>> Function()? loadMeasurements;
+  final Future<bool> Function(String document)? saveExport;
 
   @override
   State<NoiseHistoryPage> createState() => _NoiseHistoryPageState();
@@ -32,6 +37,7 @@ class _NoiseHistoryPageState extends State<NoiseHistoryPage> {
   int sourceLimit = 50;
   Timer? timer;
   int generation = 0;
+  DateTime? windowStart, windowEnd;
 
   @override
   void initState() {
@@ -68,8 +74,19 @@ class _NoiseHistoryPageState extends State<NoiseHistoryPage> {
           ));
       if (!mounted || request != generation) return;
       setState(() {
-        hints = allHints.where((e) => e.end.isAfter(since)).toList();
+        hints = allHints
+            .where((e) => e.end.isAfter(since) && e.start.isBefore(now))
+            .map((e) => SourceHistoryEntry(
+                id: e.id,
+                category: e.category,
+                start: e.start.isBefore(since) ? since : e.start,
+                end: e.end.isAfter(now) ? now : e.end,
+                confidence: e.confidence,
+                isCoverage: e.isCoverage))
+            .toList();
         minutes = allMinutes;
+        windowStart = since;
+        windowEnd = now;
         failed = false;
         loading = false;
       });
@@ -126,6 +143,60 @@ class _NoiseHistoryPageState extends State<NoiseHistoryPage> {
     }
   }
 
+  Future<void> _export() async {
+    setState(() => changing = true);
+    try {
+      final exporter = DiaryExporter();
+      await exporter.cleanStaleTemporaryFiles();
+      await _load();
+      if (!mounted || failed || windowStart == null || windowEnd == null)
+        return;
+      // Freeze the content shown for confirmation. No plaintext file is made
+      // until the user explicitly chooses to save this snapshot.
+      final exportStart = windowStart!, exportEnd = windowEnd!;
+      final document = historyExportJson(
+          minutes: minutes!,
+          hints: hints!,
+          start: exportStart,
+          end: exportEnd,
+          comparisonLine: threshold,
+          maxPauseMinutes: maxPauseMinutes);
+      final confirmed = await showDialog<bool>(
+          context: context,
+          builder: (context) => AlertDialog(
+                title: const Text('Privaten Verlauf exportieren?'),
+                content: SingleChildScrollView(
+                    child: Text(
+                        '${_date(exportStart)} – ${_date(exportEnd)}\n\n'
+                        'Die JSON-Datei ist unverschlüsselt. Sie enthält Minutenwerte, '
+                        'Episoden und ungeprüfte Modellhinweise des ausgewählten Zeitraums. '
+                        'Keine Tonaufnahmen, Tagebuchtexte, Standorte oder Gerätekennungen. '
+                        'Wähle einen privaten Speicherort; es erfolgt kein automatischer Upload.')),
+                actions: [
+                  TextButton(
+                      onPressed: () => Navigator.pop(context, false),
+                      child: const Text('Abbrechen')),
+                  FilledButton(
+                      onPressed: () => Navigator.pop(context, true),
+                      child: const Text('Speicherort wählen')),
+                ],
+              ));
+      if (confirmed != true || !mounted) return;
+      final saved = await (widget.saveExport?.call(document) ??
+          exporter.saveHistory(document));
+      if (mounted && saved)
+        ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Privater Verlauf exportiert.')));
+    } catch (_) {
+      if (mounted)
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text(
+                'Export fehlgeschlagen. Die gespeicherte Historie bleibt erhalten.')));
+    } finally {
+      if (mounted) setState(() => changing = false);
+    }
+  }
+
   String _date(DateTime value) {
     final local = value.toLocal();
     String two(int value) => value.toString().padLeft(2, '0');
@@ -137,9 +208,15 @@ class _NoiseHistoryPageState extends State<NoiseHistoryPage> {
     return '${d.inSeconds} Sek.';
   }
 
+  String _preciseDate(int milliseconds) {
+    final value = DateTime.fromMillisecondsSinceEpoch(milliseconds).toLocal();
+    return '${_date(value)}:${value.second.toString().padLeft(2, '0')}';
+  }
+
   @override
   Widget build(BuildContext context) {
     final sourceBlocks = groupSourceHistory(hints ?? []);
+    final phases = sourcePhases(hints ?? []);
     final levelBlocks = groupLevelHistory(minutes ?? [],
         threshold: threshold, maxPauseMinutes: maxPauseMinutes)
       ..sort((a, b) => b.duration.compareTo(a.duration));
@@ -148,6 +225,10 @@ class _NoiseHistoryPageState extends State<NoiseHistoryPage> {
         : levelBlocks.reduce((a, b) => a.duration >= b.duration ? a : b);
     return Scaffold(
       appBar: AppBar(title: const Text('Geräuschverlauf'), actions: [
+        IconButton(
+            onPressed: changing || loading || failed ? null : _export,
+            tooltip: 'Verlauf exportieren',
+            icon: const Icon(Icons.file_download_outlined)),
         IconButton(
             onPressed: _load,
             tooltip: 'Aktualisieren',
@@ -181,7 +262,7 @@ class _NoiseHistoryPageState extends State<NoiseHistoryPage> {
                             title: Text('Speicherung und Datenschutz'),
                             children: [
                               Text(
-                                  'Modellvorschläge und ihre Zeiträume bleiben auf diesem Gerät, bis du sie löschst. Die Historie wird nicht hochgeladen. Separat aktivierte Ereignis-Uploads können Geräuschhinweise enthalten. Minutenpegel werden separat gespeichert.')
+                                  'Modellvorschläge und ihre Zeiträume bleiben auf diesem Gerät, bis du sie löschst oder ausdrücklich exportierst. Die Historie wird nicht automatisch hochgeladen. Ein bewusst gespeicherter Export ist unverschlüsselt. Separat aktivierte Ereignis-Uploads können Geräuschhinweise enthalten. Minutenpegel werden separat gespeichert.')
                             ],
                           ),
                           if (collector.error != null)
@@ -192,6 +273,7 @@ class _NoiseHistoryPageState extends State<NoiseHistoryPage> {
                         ]))),
             const SizedBox(height: 16),
             DropdownButtonFormField<int>(
+              isExpanded: true,
               initialValue: days,
               decoration: const InputDecoration(labelText: 'Zeitraum'),
               items: const [
@@ -219,7 +301,77 @@ class _NoiseHistoryPageState extends State<NoiseHistoryPage> {
                       'Verlauf konnte nicht geladen werden. Bereits gespeicherte Daten bleiben erhalten.'))
             else ...[
               const SizedBox(height: 20),
-              Text('Zusammenhängende Episoden',
+              Text('Zusammenhängende Geräuschphasen',
+                  style: Theme.of(context).textTheme.titleLarge),
+              const Text('Nach Geräuschart statt Pegelschwelle verbunden. '
+                  'Kurze Unterbrechungen bleiben sichtbar; andere Geräusche dürfen gleichzeitig auftreten. '
+                  'Ein Modellhinweis beweist weder eine Unterhaltung noch eine bestimmte Ursache.'),
+              if (phases.isEmpty)
+                Text((hints ?? []).any((e) => e.isCoverage)
+                    ? 'Noch keine ausreichend belegten Quellenphasen in diesem Zeitraum.'
+                    : 'Für ältere Daten fehlt die dokumentierte Analyseabdeckung. '
+                        'Daraus werden keine lückenlosen Quellenphasen nachträglich angenommen.'),
+              ...phases.take(sourceLimit).map((phase) {
+                final start = DateTime.fromMillisecondsSinceEpoch(phase.start,
+                    isUtc: true);
+                final end =
+                    DateTime.fromMillisecondsSinceEpoch(phase.end, isUtc: true);
+                final nearby = unambiguousMinutes(minutes ?? [])
+                    .where((m) =>
+                        m.leqDb.isFinite &&
+                        (m.samplesCount ?? 0) > 0 &&
+                        m.timestamp * 1000 >= phase.start &&
+                        (m.timestamp + 60) * 1000 <= phase.end)
+                    .toList();
+                final level = nearby.isEmpty ? null : LevelHistoryBlock(nearby);
+                return Card(
+                    child: ExpansionTile(
+                  title: Text(
+                      '${acousticFamilyLabel(phase.family)} · Modellhinweis'),
+                  subtitle: Text('${_date(start)} – ${_date(end)} · '
+                      '${_duration(Duration(milliseconds: phase.duration))}\n'
+                      'Aktiv ${_duration(Duration(milliseconds: phase.activeMs))} · '
+                      'dazwischen ${_duration(Duration(milliseconds: phase.pauseMs))} ohne passenden Quellenhinweis'),
+                  childrenPadding: const EdgeInsets.all(12),
+                  expandedCrossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(level == null
+                        ? 'Keine vollständige Pegelminute in dieser Phase.'
+                        : '${nearby.length} vollständige Minuten der gesamten Umgebung: '
+                            'Mittel ${level.averageMinute.toStringAsFixed(1)} · '
+                            'höchste Minute ${level.highestMinute.toStringAsFixed(1)} (ungeeichte Schätzwerte).'),
+                    const Text('Pausen sind keine nachgewiesene Stille. '
+                        'Die Analyseabdeckung ist dokumentiert; Quellenhinweise bleiben ungeprüft.'),
+                    Text(switch (phase.endReason) {
+                      'inference_gap' =>
+                        'Getrennt durch eine Lücke in der Analyse.',
+                      'pause_limit' =>
+                        'Getrennt durch eine längere Phase ohne diesen Quellenhinweis.',
+                      'sparse_activity' =>
+                        'Getrennt, weil die Hinweise zu vereinzelt auftreten.',
+                      _ =>
+                        'Bis zum letzten belegten Hinweis; eine Fortsetzung ist unbekannt.',
+                    }),
+                    ExpansionTile(
+                      title: Text(
+                          '${phase.activity.length} kurze Aktivitätsabschnitte'),
+                      children: [
+                        ...phase.activity.take(100).map((part) => Text(
+                            '${_preciseDate(part.start)} – ${_preciseDate(part.end)}')),
+                        if (phase.activity.length > 100)
+                          const Text(
+                              'Weitere Aktivitätsabschnitte sind im Export enthalten.'),
+                      ],
+                    ),
+                  ],
+                ));
+              }),
+              if (phases.length > sourceLimit)
+                TextButton(
+                    onPressed: () => setState(() => sourceLimit += 50),
+                    child: const Text('Weitere Geräuschphasen anzeigen')),
+              const SizedBox(height: 20),
+              Text('Pegelabschnitte über der Vergleichslinie',
                   style: Theme.of(context).textTheme.titleLarge),
               Text(
                   'Vergleichslinie ${threshold.round()} · frei wählbar, kein Grenzwert'),
@@ -231,6 +383,7 @@ class _NoiseHistoryPageState extends State<NoiseHistoryPage> {
                   label: '${threshold.round()}',
                   onChanged: (v) => setState(() => threshold = v)),
               DropdownButtonFormField<int>(
+                isExpanded: true,
                 initialValue: maxPauseMinutes,
                 decoration:
                     const InputDecoration(labelText: 'Kurze Pausen verbinden'),

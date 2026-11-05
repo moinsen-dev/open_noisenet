@@ -91,6 +91,7 @@ class SoundSourceSegment {
 
 /// Live structured state for the monitor UI. It contains no PCM samples.
 class SoundSourceActivitySnapshot {
+  final bool isFinal;
   final DateTime observedAt;
   final String latestCategory;
   final double latestConfidence;
@@ -98,6 +99,7 @@ class SoundSourceActivitySnapshot {
   final SoundSourceSegment? lastCompletedSegment;
 
   const SoundSourceActivitySnapshot({
+    this.isFinal = false,
     required this.observedAt,
     required this.latestCategory,
     required this.latestConfidence,

@@ -50,12 +50,20 @@ class AndroidForegroundService {
     }
   }
 
-  Future<bool> startService() async {
+  Future<bool> consumeRestartRequest() async {
     if (!Platform.isAndroid) return false;
-    if (_isServiceRunning) return true;
+    return await _channel.invokeMethod<bool>('consumeRestartRequest') ?? false;
+  }
+
+  Future<bool> startService({bool resumeOnly = false}) async {
+    if (!Platform.isAndroid) return false;
 
     try {
-      await _channel.invokeMethod<bool>('startService');
+      final started = await _channel.invokeMethod<bool>('startService', {
+            'resumeOnly': resumeOnly,
+          }) ??
+          false;
+      if (!started) return false;
       _isServiceRunning = true;
       _lastNotificationUpdateAt = null;
       AppLogger.success('Android microphone foreground service started');

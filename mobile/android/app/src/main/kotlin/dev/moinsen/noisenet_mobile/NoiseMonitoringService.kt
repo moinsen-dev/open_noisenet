@@ -14,9 +14,8 @@ import androidx.core.app.NotificationCompat
 /**
  * Foreground host for the Flutter-owned sensor pipeline.
  *
- * Audio capture and YAMNet inference stay in the already running Flutter
- * engine. This service gives that process the Android microphone foreground
- * service lifetime and a persistent, user-visible stop affordance.
+ * Restores the process-owned Flutter engine after an OS process restart.
+ * A foreground notification alone is not a working sensor.
  */
 class NoiseMonitoringService : Service() {
 
@@ -33,6 +32,15 @@ class NoiseMonitoringService : Service() {
         @Volatile
         var isRunning: Boolean = false
             private set
+
+        fun isRequested(context: Context): Boolean =
+            context.getSharedPreferences("sensor_lifecycle", Context.MODE_PRIVATE)
+                .getBoolean("requested", false)
+
+        fun setRequested(context: Context, requested: Boolean) {
+            context.getSharedPreferences("sensor_lifecycle", Context.MODE_PRIVATE)
+                .edit().putBoolean("requested", requested).commit()
+        }
     }
 
     override fun onCreate() {
@@ -49,7 +57,9 @@ class NoiseMonitoringService : Service() {
                 intent.getDoubleExtra(EXTRA_SPL, 0.0),
                 intent.getStringExtra(EXTRA_STATUS) ?: "Monitoring",
             )
-            ACTION_START_MONITORING, null -> startMonitoring()
+            ACTION_START_MONITORING, null -> {
+                if (isRequested(this)) startMonitoring() else stopSelf()
+            }
         }
         return if (isRunning) START_STICKY else START_NOT_STICKY
     }
@@ -77,12 +87,14 @@ class NoiseMonitoringService : Service() {
         if (isRunning) return
         startForeground(NOTIFICATION_ID, createNotification(0.0, "Starting…"))
         isRunning = true
+        SensorEngine.obtain(this, resume = true)
         android.util.Log.i("NoiseService", "Noise monitoring foreground host started")
     }
 
     private fun stopMonitoring(notifyFlutter: Boolean) {
+        setRequested(this, false)
         if (notifyFlutter) {
-            MainActivity.sensorChannel?.invokeMethod("stopMonitoring", null)
+            SensorEngine.channel?.invokeMethod("stopMonitoring", null)
         }
         isRunning = false
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {

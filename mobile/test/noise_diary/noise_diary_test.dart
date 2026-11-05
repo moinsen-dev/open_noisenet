@@ -60,17 +60,21 @@ void main() {
     final stale = File(
         '${temp.path}/OpenNoiseNet-Tagebuch-12345678-1234-1234-1234-123456789abc.csv');
     final other = File('${temp.path}/personal.csv');
+    final history = File(
+        '${temp.path}/OpenNoiseNet-Verlauf-12345678-1234-1234-1234-123456789abc.json');
     final lookalike = File('${temp.path}/OpenNoiseNet-Tagebuch-other.csv');
     final folder = Directory(
         '${temp.path}/OpenNoiseNet-Tagebuch-87654321-4321-4321-4321-cba987654321.csv');
     await stale.writeAsString('test');
     await other.writeAsString('keep');
+    await history.writeAsString('{}');
     await lookalike.writeAsString('keep');
     await folder.create();
 
     await DiaryExporter().cleanTemporaryDirectory(temp);
 
     expect(await stale.exists(), isFalse);
+    expect(await history.exists(), isFalse);
     expect(await other.readAsString(), 'keep');
     expect(await lookalike.readAsString(), 'keep');
     expect(await folder.exists(), isTrue);

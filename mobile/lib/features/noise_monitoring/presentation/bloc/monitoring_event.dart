@@ -7,16 +7,21 @@ abstract class MonitoringEvent extends Equatable {
   List<Object?> get props => [];
 }
 
-class StartMonitoring extends MonitoringEvent {
-  const StartMonitoring({this.context});
-
-  final BuildContext? context;
-
-  @override
-  List<Object?> get props => [context];
+abstract class MonitoringLifecycleEvent extends MonitoringEvent {
+  const MonitoringLifecycleEvent();
 }
 
-class StopMonitoring extends MonitoringEvent {
+class StartMonitoring extends MonitoringLifecycleEvent {
+  const StartMonitoring({this.context, this.resuming = false});
+
+  final BuildContext? context;
+  final bool resuming;
+
+  @override
+  List<Object?> get props => [context, resuming];
+}
+
+class StopMonitoring extends MonitoringLifecycleEvent {
   const StopMonitoring();
 }
 

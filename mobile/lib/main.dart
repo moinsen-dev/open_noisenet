@@ -11,6 +11,7 @@ import 'core/theme/app_theme.dart';
 import 'features/app/presentation/bloc/app_bloc.dart';
 import 'features/noise_monitoring/presentation/bloc/monitoring_bloc.dart';
 import 'services/background_monitoring_service.dart';
+import 'services/android_foreground_service.dart';
 import 'services/ios_background_service.dart';
 
 void main() async {
@@ -22,6 +23,18 @@ void main() async {
   // Initialize dependency injection
   await configureDependencies();
 
+  var resumingSensor = false;
+  if (Platform.isAndroid) {
+    final service = AndroidForegroundService();
+    await service.initialize();
+    resumingSensor = await service.consumeRestartRequest();
+    if (resumingSensor) {
+      // No Activity/frame or permission prompt is needed for an already
+      // authorized microphone foreground-service restart.
+      getIt<MonitoringBloc>().add(const StartMonitoring(resuming: true));
+    }
+  }
+
   if (Platform.isIOS) {
     await IOSBackgroundService().initialize();
   } else {
@@ -30,10 +43,12 @@ void main() async {
   }
 
   // Set preferred orientations
-  await SystemChrome.setPreferredOrientations([
-    DeviceOrientation.portraitUp,
-    DeviceOrientation.portraitDown,
-  ]);
+  if (!resumingSensor) {
+    await SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+      DeviceOrientation.portraitDown,
+    ]);
+  }
 
   runApp(const NoiseNetApp());
 }
@@ -48,8 +63,8 @@ class NoiseNetApp extends StatelessWidget {
         BlocProvider(
           create: (context) => getIt<AppBloc>()..add(const AppStarted()),
         ),
-        BlocProvider(
-          create: (context) => getIt<MonitoringBloc>(),
+        BlocProvider.value(
+          value: getIt<MonitoringBloc>(),
         ),
       ],
       child: BlocBuilder<AppBloc, AppState>(

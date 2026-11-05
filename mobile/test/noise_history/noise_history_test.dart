@@ -160,6 +160,67 @@ void main() {
     expect(filtered, {'initialized': true, 'inference_count': 4});
   });
 
+  test('multi-source collection persists coverage, splits gaps and clears both',
+      () async {
+    SharedPreferences.setMockInitialValues({});
+    final activity =
+        StreamController<SoundSourceActivitySnapshot>.broadcast(sync: true);
+    final frames =
+        StreamController<SoundClassificationFrame>.broadcast(sync: true);
+    final store = MemoryStore();
+    final start = DateTime.utc(2026, 11, 5);
+    final collector = SoundHistoryCollector(
+        store: store,
+        preferences: await SharedPreferences.getInstance(),
+        activity: activity.stream,
+        frames: frames.stream,
+        now: () => start);
+    addTearDown(() async {
+      collector.dispose();
+      await activity.close();
+      await frames.close();
+    });
+    SoundClassificationFrame frame(int t) => SoundClassificationFrame(
+        windowStart: start.add(Duration(milliseconds: t)),
+        windowEnd: start.add(Duration(milliseconds: t + 975)),
+        category: 'road_traffic',
+        confidence: .9,
+        categoryScores: const {'loud_conversation': .5, 'road_traffic': .9},
+        topYamnetScores: const [],
+        inferenceMs: 1);
+    frames.add(frame(0));
+    await collector.flush();
+    expect(store.records, isEmpty);
+    await collector.setEnabled(true);
+    for (final t in [0, 480, 960, 1440, 10000, 10480, 10960]) {
+      frames.add(frame(t));
+    }
+    activity.add(SoundSourceActivitySnapshot(
+        isFinal: true,
+        observedAt: start,
+        latestCategory: 'unknown_sound_source',
+        latestConfidence: 0,
+        activeSegment: null,
+        lastCompletedSegment: null));
+    await collector.flush();
+    final entries = await store.list();
+    expect(entries.where((e) => e.isCoverage), hasLength(2));
+    expect(
+        entries
+            .where((e) => !e.isCoverage && e.category == 'loud_conversation'),
+        hasLength(2));
+    final phases = sourcePhases(entries);
+    expect(phases.where((p) => p.family == 'speech'), hasLength(2));
+    expect(phases.where((p) => p.family == 'traffic'), hasLength(2));
+    await collector.clear();
+    await collector.flush();
+    expect(await store.list(), isEmpty);
+    await collector.setEnabled(false);
+    frames.add(frame(20000));
+    await collector.flush();
+    expect(await store.list(), isEmpty);
+  });
+
   test('maximal episode bridges short measured pauses but never missing data',
       () {
     final start = DateTime.utc(2026, 11, 5).millisecondsSinceEpoch ~/ 1000;
@@ -231,6 +292,13 @@ void main() {
     final key = await storage.read(key: 'personal_noise_diary_key_v1');
     expect((await store.list()).single.category,
         OpenNoiseCategory.loudConversation);
+    await store.save(SourceHistoryEntry(
+        id: 'coverage-test-id',
+        category: 'unknown_sound_source',
+        start: start,
+        end: start.add(const Duration(seconds: 40)),
+        confidence: 0,
+        isCoverage: true));
     await LocalDiaryRepository.resetForTesting();
     final bytes =
         await File(path.join(directory.path, 'personal_noise_diary.db'))
@@ -239,6 +307,8 @@ void main() {
     expect(String.fromCharCodes(bytes),
         isNot(contains(start.millisecondsSinceEpoch.toString())));
     expect(String.fromCharCodes(bytes), isNot(contains('private diary')));
+    expect(
+        String.fromCharCodes(bytes), isNot(contains('inference_coverage_v1')));
     FlutterSecureStorage.setMockInitialValues({});
     await expectLater(store.list(), throwsA(anything));
     await expectLater(
@@ -248,7 +318,8 @@ void main() {
     await LocalDiaryRepository.resetForTesting();
     FlutterSecureStorage.setMockInitialValues(
         {'personal_noise_diary_key_v1': key!});
-    expect((await store.list()).length, 1);
+    expect((await store.list()).length, 2);
+    expect((await store.list()).where((e) => e.isCoverage), hasLength(1));
     await store.clear();
     expect(await store.list(), isEmpty);
     expect((await repo.list()).single.description, 'private diary');

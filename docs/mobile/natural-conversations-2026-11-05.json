@@ -1,0 +1,190 @@
+{
+  "protocol": {
+    "protocol": "fixed before inference; each available contiguous 20-minute excerpt from 60 seconds; no tuning on these scenes",
+    "license": "CC BY 4.0; AMI Consortium / University of Edinburgh",
+    "source": "https://groups.inf.ed.ac.uk/ami/download/",
+    "scenes": [
+      {
+        "meeting": "EN2002b",
+        "channel": "Mix-Headset",
+        "start_seconds": 60,
+        "duration_seconds": 1200
+      },
+      {
+        "meeting": "EN2002b",
+        "channel": "Array1-01",
+        "start_seconds": 60,
+        "duration_seconds": 1200
+      },
+      {
+        "meeting": "EN2006a",
+        "channel": "Array1-01",
+        "start_seconds": 60,
+        "duration_seconds": 1200
+      }
+    ]
+  },
+  "model_sha256": "4d8b4a53282dc83ef04e3e7dbc4fbc98082e34e44ed798e16c3a0cdd4c584faf",
+  "fixtures": [
+    {
+      "file": "EN2002b.Mix-Headset.wav",
+      "url": "https://groups.inf.ed.ac.uk/ami/AMICorpusMirror/amicorpus/EN2002b/audio/EN2002b.Mix-Headset.wav",
+      "sha256": "50e2c8e4737850c4bf3cc24e7087c755e1c733cd91822106afd0df485ba64893",
+      "bytes": 57179180
+    },
+    {
+      "file": "EN2002b.Array1-01.wav",
+      "url": "https://groups.inf.ed.ac.uk/ami/AMICorpusMirror/amicorpus/EN2002b/audio/EN2002b.Array1-01.wav",
+      "sha256": "e3650cc84250caa0992ac0398f4a3127a8c14ed2c93edc10535245335cc41077",
+      "bytes": 57179180
+    },
+    {
+      "file": "EN2006a.Array1-01.wav",
+      "url": "https://groups.inf.ed.ac.uk/ami/AMICorpusMirror/amicorpus/EN2006a/audio/EN2006a.Array1-01.wav",
+      "sha256": "11a7b72261bfef6946f29bb62bb0bffbf359cd0c8ba4c303f9a57974c41f2489",
+      "bytes": 112815832
+    },
+    {
+      "file": "ami_public_manual_1.6.2.zip",
+      "url": "https://groups.inf.ed.ac.uk/ami/AMICorpusAnnotations/ami_public_manual_1.6.2.zip",
+      "sha256": "b56e5babb2496b8795deeeda7e71178d7fbc9963f94276cf2a3f4b56ebbc9f9d",
+      "bytes": 22887865
+    }
+  ],
+  "scenes": [
+    {
+      "id": "EN2002b.Mix-Headset",
+      "original_start_seconds": 60,
+      "duration_ms": 1200000,
+      "inferred_windows": 2498,
+      "speakers_with_annotations": 4,
+      "manual_word_activity_ms": 1013020,
+      "longest_word_free_gap_ms": 29200,
+      "speech_phase_count": 2,
+      "longest_phase_ms": 1135695,
+      "predicted_speech_activity_ms": 995715,
+      "word_time_recall": 0.9412597974373655,
+      "word_time_precision": 0.9576183948218114,
+      "phases": [
+        {
+          "family": "speech",
+          "start_ms": 63840,
+          "end_ms": 1199535,
+          "active_ms": 989445,
+          "pause_ms": 146250,
+          "end_reason": "end_of_observations",
+          "algorithm": "source_phases_v1",
+          "semantics": "source_activity_not_verified_cause"
+        },
+        {
+          "family": "speech",
+          "start_ms": 21600,
+          "end_ms": 34575,
+          "active_ms": 6270,
+          "pause_ms": 6705,
+          "end_reason": "sparse_activity",
+          "algorithm": "source_phases_v1",
+          "semantics": "source_activity_not_verified_cause"
+        },
+        {
+          "family": "music",
+          "start_ms": 370560,
+          "end_ms": 372015,
+          "active_ms": 1455,
+          "pause_ms": 0,
+          "end_reason": "pause_limit",
+          "algorithm": "source_phases_v1",
+          "semantics": "source_activity_not_verified_cause"
+        }
+      ],
+      "source_segment_count": 46
+    },
+    {
+      "id": "EN2002b.Array1-01",
+      "original_start_seconds": 60,
+      "duration_ms": 1200000,
+      "inferred_windows": 2498,
+      "speakers_with_annotations": 4,
+      "manual_word_activity_ms": 1013020,
+      "longest_word_free_gap_ms": 29200,
+      "speech_phase_count": 2,
+      "longest_phase_ms": 1135215,
+      "predicted_speech_activity_ms": 936390,
+      "word_time_recall": 0.8873812955321712,
+      "word_time_precision": 0.9600006407586582,
+      "phases": [
+        {
+          "family": "speech",
+          "start_ms": 64320,
+          "end_ms": 1199535,
+          "active_ms": 929160,
+          "pause_ms": 206055,
+          "end_reason": "end_of_observations",
+          "algorithm": "source_phases_v1",
+          "semantics": "source_activity_not_verified_cause"
+        },
+        {
+          "family": "speech",
+          "start_ms": 22080,
+          "end_ms": 34575,
+          "active_ms": 7230,
+          "pause_ms": 5265,
+          "end_reason": "sparse_activity",
+          "algorithm": "source_phases_v1",
+          "semantics": "source_activity_not_verified_cause"
+        }
+      ],
+      "source_segment_count": 58
+    },
+    {
+      "id": "EN2006a.Array1-01",
+      "original_start_seconds": 60,
+      "duration_ms": 1200000,
+      "inferred_windows": 2498,
+      "speakers_with_annotations": 4,
+      "manual_word_activity_ms": 882920,
+      "longest_word_free_gap_ms": 13970,
+      "speech_phase_count": 1,
+      "longest_phase_ms": 1199535,
+      "predicted_speech_activity_ms": 962160,
+      "word_time_recall": 0.9492196348480043,
+      "word_time_precision": 0.8710453562816995,
+      "phases": [
+        {
+          "family": "speech",
+          "start_ms": 0,
+          "end_ms": 1199535,
+          "active_ms": 962160,
+          "pause_ms": 237375,
+          "end_reason": "end_of_observations",
+          "algorithm": "source_phases_v1",
+          "semantics": "source_activity_not_verified_cause"
+        }
+      ],
+      "source_segment_count": 80
+    }
+  ],
+  "limitations": [
+    "Real non-scenario English meetings, not a dwelling/TV/through-wall validation",
+    "Manual word spans measure alignment, not complete acoustic speech or nuisance ground truth",
+    "Close and far microphones of EN2002b share the same conversation; not independent scenes",
+    "No parameters tuned on these scenes; no claim of common physical cause from temporal grouping"
+  ],
+  "http_integration": {
+    "natural_scene": "EN2006a.Array1-01",
+    "natural_phase_count": 1,
+    "span_ms": 1199535,
+    "last_revision": 20,
+    "lost_ack_retried": true,
+    "offline_resume": true,
+    "restart_marked_interrupted": true,
+    "remote_erasure_confirmed": true,
+    "backend": "dedicated local HTTP and PostgreSQL, no Pixel connection"
+  },
+  "postgres_checks": {
+    "postgres_concurrent_insert_idempotent": true,
+    "out_of_order_highest_revision_retained": true,
+    "delete_upload_race_cannot_resurrect": true,
+    "migration_upgrade_downgrade_upgrade": "438d7e8c9f10"
+  }
+}

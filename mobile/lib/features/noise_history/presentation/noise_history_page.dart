@@ -10,10 +10,12 @@ import '../../noise_diary/data/diary_export.dart';
 import '../data/history_export.dart';
 import '../data/noise_history.dart';
 import '../../../services/sound_analysis/acoustic_phase.dart';
+import '../../../services/sound_analysis/source_phase_upload.dart';
 
 class NoiseHistoryPage extends StatefulWidget {
   const NoiseHistoryPage(
-      {super.key, this.collector, this.loadMeasurements, this.saveExport});
+      {super.key, this.collector, this.loadMeasurements, this.saveExport, this.phaseUploads});
+  final SourcePhaseUploadService? phaseUploads;
   final SoundHistoryCollector? collector;
   final Future<List<NoiseMeasurement>> Function()? loadMeasurements;
   final Future<bool> Function(String document)? saveExport;
@@ -25,6 +27,9 @@ class NoiseHistoryPage extends StatefulWidget {
 class _NoiseHistoryPageState extends State<NoiseHistoryPage> {
   late final SoundHistoryCollector collector =
       widget.collector ?? GetIt.instance<SoundHistoryCollector>();
+  late final SourcePhaseUploadService? phaseUploads = widget.phaseUploads ??
+      (GetIt.instance.isRegistered<SourcePhaseUploadService>()
+          ? GetIt.instance<SourcePhaseUploadService>() : null);
   List<SourceHistoryEntry>? hints;
   List<NoiseMeasurement>? minutes;
   bool loading = true;
@@ -43,6 +48,7 @@ class _NoiseHistoryPageState extends State<NoiseHistoryPage> {
   void initState() {
     super.initState();
     collector.addListener(_collectorChanged);
+    phaseUploads?.addListener(_collectorChanged);
     _load();
     timer = Timer.periodic(const Duration(seconds: 30), (_) => _load());
   }
@@ -51,6 +57,7 @@ class _NoiseHistoryPageState extends State<NoiseHistoryPage> {
   void dispose() {
     timer?.cancel();
     collector.removeListener(_collectorChanged);
+    phaseUploads?.removeListener(_collectorChanged);
     super.dispose();
   }
 
@@ -102,12 +109,41 @@ class _NoiseHistoryPageState extends State<NoiseHistoryPage> {
   Future<void> _setEnabled(bool value) async {
     setState(() => changing = true);
     try {
+      if (!value) await phaseUploads?.setEnabled(false);
       await collector.setEnabled(value);
       await _load();
     } catch (_) {
       if (mounted)
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
             content: Text('Die Einstellung konnte nicht gespeichert werden.')));
+    } finally {
+      if (mounted) setState(() => changing = false);
+    }
+  }
+
+  Future<void> _changePhaseUpload(bool value, {bool delete = false}) async {
+    final service = phaseUploads;
+    if (service == null) return;
+    final destination = service.transport.baseUrl;
+    if (value || delete) {
+      final confirmed = await showDialog<bool>(context: context, builder: (context) => AlertDialog(
+        title: Text(delete ? 'Übertragene Phasen löschen?' : 'Private Phasen übertragen?'),
+        content: Text(delete
+            ? 'Alle hier bekannten Phasen für $destination werden dort gelöscht. Der Upload wird ausgeschaltet. Offline bleibt der Löschauftrag gespeichert; lokale Historie und Tagebuch bleiben erhalten.'
+            : 'Neue Geräuscharten, Zeitabschnitte und Analyseabdeckung werden an $destination übertragen, ohne Audio, Transkript oder Standort. Sie bleiben auch bei öffentlichen Sensoren privat, sind für den berechtigten Zugriff und den Serverbetreiber lesbar. Bisherige Historie wird nicht nachträglich versendet. Ausstehende Übertragungen für diesen Server werden fortgesetzt. Ausschalten pausiert die Übertragung, löscht aber keine Serverdaten.'),
+        actions: [TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Abbrechen')),
+          TextButton(onPressed: () => Navigator.pop(context, true), child: Text(delete ? 'Löschauftrag speichern' : 'Aktivieren'))],
+      ));
+      if (confirmed != true || !mounted) return;
+      if (service.transport.baseUrl != destination) return;
+    }
+    setState(() => changing = true);
+    try {
+      if (delete) { await service.deleteRemotePhases(); }
+      else { await service.setEnabled(value); }
+    } catch (_) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Die Änderung konnte nicht gespeichert werden.')));
     } finally {
       if (mounted) setState(() => changing = false);
     }
@@ -262,7 +298,7 @@ class _NoiseHistoryPageState extends State<NoiseHistoryPage> {
                             title: Text('Speicherung und Datenschutz'),
                             children: [
                               Text(
-                                  'Modellvorschläge und ihre Zeiträume bleiben auf diesem Gerät, bis du sie löschst oder ausdrücklich exportierst. Die Historie wird nicht automatisch hochgeladen. Ein bewusst gespeicherter Export ist unverschlüsselt. Separat aktivierte Ereignis-Uploads können Geräuschhinweise enthalten. Minutenpegel werden separat gespeichert.')
+                                  'Die Historie bleibt lokal verschlüsselt. Nur bei gesondert aktiviertem Phasenupload werden neue Phasen übertragen. Lokal löschen entfernt keine Serverdaten. Ein bewusst gespeicherter Export ist unverschlüsselt. Ereignis-Uploads können ebenfalls Geräuschhinweise enthalten. Minutenpegel werden separat gespeichert.')
                             ],
                           ),
                           if (collector.error != null)
@@ -271,6 +307,22 @@ class _NoiseHistoryPageState extends State<NoiseHistoryPage> {
                                 child: Text(
                                     'Die Historie konnte zuletzt nicht gespeichert werden. Prüfe den Gerätespeicher.')),
                         ]))),
+            if (phaseUploads != null) Card(child: Padding(
+              padding: const EdgeInsets.all(12), child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  SwitchListTile(contentPadding: EdgeInsets.zero,
+                    title: const Text('Private Geräuschphasen übertragen'),
+                    subtitle: const Text('Nur neue Phasen · ohne Audio · getrennt von Pegelereignissen'),
+                    value: phaseUploads!.enabled,
+                    onChanged: changing || !collector.enabled ? null : _changePhaseUpload),
+                  Text('${phaseUploads!.acknowledgedCount} aktuelle Stände bestätigt · ${phaseUploads!.pendingCount} ausstehend'),
+                  if (phaseUploads!.enabled && !phaseUploads!.destinationMatches)
+                    const Text('Backend gewechselt: alte Phasen bleiben an ihren bisherigen Server gebunden. Für neue Phasen die Auswahl aus- und wieder einschalten.'),
+                  if (phaseUploads!.error != null)
+                    const Text('Die letzte Speicherung oder Übertragung ist fehlgeschlagen. Noch nicht bestätigte Stände bleiben ausstehend.'),
+                  TextButton(onPressed: changing ? null : () => _changePhaseUpload(false, delete: true),
+                    child: const Text('Übertragene Phasen löschen')),
+                ]))),
             const SizedBox(height: 16),
             DropdownButtonFormField<int>(
               isExpanded: true,

@@ -15,6 +15,7 @@ import '../../services/noise_pattern_analyzer.dart';
 import '../../services/ai_analysis_service.dart';
 import '../../services/intelligent_recommendation_engine.dart';
 import '../../services/sound_analysis/on_device_sound_analysis_service.dart';
+import '../../services/sound_analysis/source_phase_upload.dart';
 import '../../features/noise_history/data/noise_history.dart';
 import '../logging/app_logger.dart';
 
@@ -83,6 +84,16 @@ Future<void> configureDependencies() async {
     logger: logger,
   );
   getIt.registerSingleton<ApiClientService>(apiClientService);
+
+  final phaseUpload = SourcePhaseUploadService(
+    store: EncryptedPhaseUploadStore(), transport: apiClientService,
+    preferences: sharedPreferences,
+    frames: getIt<OnDeviceSoundAnalysisService>().results,
+    activity: getIt<OnDeviceSoundAnalysisService>().sourceActivity,
+    historyEnabled: () => getIt<SoundHistoryCollector>().enabled,
+  );
+  await phaseUpload.initialize();
+  getIt.registerSingleton<SourcePhaseUploadService>(phaseUpload);
 
   // Perform preferences migration if needed
   final migrationService = PreferencesMigrationService();

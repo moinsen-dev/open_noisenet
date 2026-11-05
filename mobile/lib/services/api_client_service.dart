@@ -10,6 +10,7 @@ import 'package:talker_flutter/talker_flutter.dart';
 import '../core/models/api_models.dart';
 import 'network_utils.dart';
 import 'device_credential_store.dart';
+import 'sound_analysis/phase_upload_transport.dart';
 
 T? _firstWhereOrNull<T>(Iterable<T> items, bool Function(T item) test) {
   for (final item in items) {
@@ -20,7 +21,7 @@ T? _firstWhereOrNull<T>(Iterable<T> items, bool Function(T item) test) {
   return null;
 }
 
-class ApiClientService {
+class ApiClientService implements PhaseUploadTransport {
   static const String _baseUrlKey = 'api_base_url';
   static const String _accessTokenKey = 'access_token';
   static const String _refreshTokenKey = 'refresh_token';
@@ -84,6 +85,12 @@ class ApiClientService {
     // Add request interceptor for authentication
     _dio.interceptors.add(InterceptorsWrapper(
       onRequest: (options, handler) {
+        final phasePermit = options.extra['source_phase_permitted'];
+        if (phasePermit is bool Function() && !phasePermit()) {
+          handler.reject(DioException(requestOptions: options,
+              error: 'Source phase transfer was paused'));
+          return;
+        }
         final configuredUri = Uri.tryParse(_baseUrl);
         if (configuredUri == null ||
             options.uri.origin != configuredUri.origin ||
@@ -258,8 +265,58 @@ class ApiClientService {
     _logger.info('Updated API base URL: $destination');
   }
 
+  @override
   String get baseUrl => _baseUrl;
+  @override
   String? get deviceId => _deviceId;
+
+  void _checkPhaseDestination(String destination, String device) {
+    if (destination != _baseUrl || device != _deviceId) {
+      throw StateError('Queued phase belongs to a different backend or device');
+    }
+  }
+
+  @override
+  Future<void> preparePhaseUpload(String destination, String device) async {
+    _checkPhaseDestination(destination, device);
+    await ensureDeviceRegistered();
+    _checkPhaseDestination(destination, device);
+  }
+
+  @override
+  Future<Map<String, dynamic>> putSourcePhase(String destination, String device,
+      Map<String, dynamic> payload, bool Function() permitted) async {
+    _checkPhaseDestination(destination, device);
+    final options = await _deviceOptions(device);
+    _checkPhaseDestination(destination, device);
+    options.extra!['source_phase_permitted'] = permitted;
+    final response = await _dio.put<Map<String,dynamic>>(
+      '/source-phases/${Uri.encodeComponent(device)}/${payload['phase_id']}',
+      data: payload, options: options);
+    return response.data ?? <String,dynamic>{};
+  }
+
+  @override
+  Future<Map<String, dynamic>> deleteSourcePhase(String destination, String device,
+      String phaseId, bool Function() permitted) async {
+    _checkPhaseDestination(destination, device);
+    final options = await _deviceOptions(device);
+    _checkPhaseDestination(destination, device);
+    options.extra!['source_phase_permitted'] = permitted;
+    final response = await _dio.delete<Map<String,dynamic>>(
+      '/source-phases/${Uri.encodeComponent(device)}/$phaseId', options: options);
+    return response.data ?? <String,dynamic>{};
+  }
+
+  Future<List<Map<String,dynamic>>> listSourcePhases({int offset = 0}) async {
+    final device = _deviceId;
+    if (device == null) return [];
+    final response = await _dio.get<Map<String,dynamic>>(
+      '/source-phases/${Uri.encodeComponent(device)}',
+      queryParameters: {'offset':offset,'limit':100}, options:await _deviceOptions(device));
+    return (response.data!['items'] as List)
+        .map((v) => Map<String,dynamic>.from(v as Map)).toList();
+  }
 
   Future<Options> _deviceOptions(String? deviceId,
       {bool create = false}) async {
@@ -317,6 +374,7 @@ class ApiClientService {
               as Map<String, dynamic>?)?['last_runtime_status']
           as Map<String, dynamic>?;
 
+  @override
   Future<String> ensureDeviceId() async {
     if (_deviceId != null && _deviceId!.isNotEmpty) {
       return _deviceId!;

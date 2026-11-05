@@ -77,6 +77,8 @@ uploads/
 
 # pyenv
 .python-version
+__pycache__/
+*.py[cod]
 
 # Celery
 celerybeat-schedule

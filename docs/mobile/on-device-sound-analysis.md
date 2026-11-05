@@ -292,7 +292,10 @@ window. The offline chart displays these phases separately from level blocks.
 Private exports remain plaintext and require deliberate saving.
 
 The existing threshold-triggered event upload and server episode engine are
-unchanged. Phase IDs, continuation/finalization messages and a shared server
-projection are later integration work, not implied by local phase export.
+unchanged. A separate, default-off private source-phase upload now preserves
+stable IDs, revisions and finalization through an encrypted outbox, with exact
+server receipts and explicit remote erasure. It is never projected to the public
+map. See [the contract, natural conversation tests and limitations](source-phase-upload.md).
+This implementation is not installed on the unchanged Pixel R2 test.
 EmbeddingGemma 2 was tested offline only. See
 [the actual comparison protocol and results](acoustic-comparison-2026-11-05.md).

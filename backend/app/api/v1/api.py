@@ -13,9 +13,11 @@ from app.api.v1.endpoints import (
     pro_domains,
     pro_incidents,
     snippets,
+    source_phases,
 )
 
 api_router = APIRouter()
+api_router.include_router(source_phases.router, prefix="/source-phases", tags=["private-source-phases"])
 
 # Include all endpoint routers
 api_router.include_router(auth.router, prefix="/auth", tags=["authentication"])

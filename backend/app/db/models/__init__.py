@@ -14,6 +14,7 @@ from app.db.models.pro_domain import (
     Zone,
 )
 from app.db.models.user import User
+from app.db.models.source_phase import SourcePhase
 
 __all__ = [
     "CalibrationProfile",
@@ -28,6 +29,7 @@ __all__ = [
     "OrganizationMembership",
     "Policy",
     "Site",
+    "SourcePhase",
     "User",
     "Zone",
 ]

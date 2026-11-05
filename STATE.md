@@ -2,6 +2,8 @@
 
 ## Übergabe
 
+**Fachlicher Nachtrag 05.11.:** Udi möchte während R2 zunächst die weiterhin unzureichende Bildung großer Geräuschphasen verstehen. Analyse und Konzept unter `docs/mobile/episode-understanding-plan.md`, maßgeblicher Stand in `docs/current-status.md`. EmbeddingGemma 2 ist nicht eingebaut; aktuelle Google-Primärquellen bestätigen Audio-/On-device-Eignung als zu prüfenden Kandidaten. Fehlende gemeinsame Zeitlogik, verlustreiche Gewinnerkategorie und unterschiedliche App-/Server-Gruppierung als strukturelle Grenzen belegt. Kein neuer Modell-/Appbau beauftragt oder begonnen; R2 weder verändert noch unterbrochen. Nächster fachlicher Lernschritt: markierte Referenzszenen, Zeitlogik mit YAMNet als Baseline, danach isolierter Embedding-Vergleich. `.pumuckl` unverändert erhalten.
+
 **05.11.2026: Neuer Pixel-Test R2 läuft bis 06.11.2026 12:12:01 CET. Test-App jetzt nicht aktualisieren, neu starten oder zurücksetzen.**
 
 - Maßgebliche Übersicht: `docs/current-status.md`. Eigener Branch `codex/pixel-longrun-20261105`; fremde Checkouts und `.pumuckl` erhalten.

@@ -2,6 +2,17 @@
 
 ## Übergabe
 
+**05.11.2026, etwa 16:18 CET: Docker-/Backend-Wiederanlauf geprüft, keine ausstehenden Ereignis-Uploads. Pixel-App und R2-Runner unverändert.**
+
+- Maßgeblich: `docs/current-status.md`; Befund/Prüfgrenzen in `docs/operations/backend-recovery-2026-11-05.md`. Ursache jetzt belegt: voller Host-Speicher erzeugte um 15:13 CET OrbStack-Schreibfehler (OS 28 / StorageFull) und VM-Stopp. Beim Wiedereinstieg liefen die vorhandenen drei Feldtest-Container bereits seit 15:55:34 CET wieder; erster gesunder Monitorstand 15:56:23 CET. Kein zusätzlicher Neustart, keine neue App-/Backend-Version oder Migration. Auslöser des früheren Wiederanlaufs unbestätigt.
+- Frische Heartbeats und steigende Erfassungs-/Inferenzzähler, Backend/PostgreSQL/Redis gesund; rund 14 GiB freier Host-Speicher. PostgreSQL-Recovery nach unsauberem Ende abgeschlossen; privater logischer Dump gesichert, Inhaltsverzeichnis lesbar. Kein Restore-/Dateisystem-Vollnachweis.
+- Upload-Abgleich: Queue leer; bereits vor dem Ausfall vorhandene Bestätigung stimmt mit Server überein, keine doppelten UUIDs oder unbestätigten lokalen Stände in den Ausfallbeobachtungen. **Kein physischer Nachlieferungsnachweis**, da keine wartende Sendung beobachtet wurde. Minutenmessungen sind lokale Daten; Phasenupload #73 ist weiterhin nicht auf dem Pixel.
+- Pixel: keine PID-Änderung oder innere Minutenlücke in vorhandenen Beobachtungen; Sensor, USB, Runner und caffeinate aktiv. Alle fünf privaten Runner-Skripte stimmen mit dem konfigurierten SHA-256-Stand überein. Deadline unverändert 06.11.2026 12:12:01 CET. Keine eigene ADB-Aktion, kein Ton, kein Eingriff am Telefon.
+- Privater Audit/Dump/Monitor-Snapshot ausschließlich `~/Library/Application Support/OpenNoiseNet/Feldtest-2026-11-05-R2/backend-recovery-20261105T151723Z/`. Keine privaten Messwerte/IDs/Dateien in Git oder Vault. Eigener temporärer QA-Container aus dem vorherigen Batch anhand ID/Label gezielt entfernt; keine fremden Container/Volumes bereinigt. Die bisher offene QA-Bereinigung ist erledigt.
+- Eigener Worktree/Branch `open_noisenet-phase-upload-20261105` / `codex/source-phase-upload-20261105`; Hauptcheckout mit fremden Änderungen und `.pumuckl` erhalten. Im Ideenkompass: „OpenNoiseNet Docker-Wiederanlauf und Upload-Abgleich 2026-11-05“. Der Betriebsnachtrag wird auf dem bestehenden Branch/Entwurfs-PR #73 gesichert. Nächster fachlicher Schritt bleibt R2-Abschluss nach Deadline und danach die getrennte physische Prüfung des neuen Phasenuploads. Speicherreserve kann durch parallele Arbeit erneut sinken; Testmonitor bleibt unverändert.
+
+## Vorherige Übergabe – Phasenupload
+
 **05.11.2026: Privater Quellenphasen-Upload implementiert und mit natürlichen Gesprächen lokal geprüft. Pixel R2 nicht verändert; neue Backend-Betriebsstörung beachten.**
 
 - Maßgebliche Übersicht: `docs/current-status.md`. Eigener isolierter Worktree `open_noisenet-phase-upload-20261105`, Branch `codex/source-phase-upload-20261105`, Basis `dee1fb0` aus Entwurfs-PR #72. Hauptcheckout/alter Worktree und `.pumuckl` erhalten. Pixel-Backend bindet das Hauptcheckout ein; dort keine neue Quelle oder Migration ausgeführt.

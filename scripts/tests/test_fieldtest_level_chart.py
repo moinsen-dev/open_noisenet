@@ -4,6 +4,8 @@ import json
 from pathlib import Path
 import tempfile
 import unittest
+import contextlib
+import io
 from unittest.mock import patch
 
 spec = importlib.util.spec_from_file_location('fieldtest_level_chart', Path(__file__).resolve().parents[1] / 'fieldtest-level-chart.py')
@@ -12,6 +14,60 @@ spec.loader.exec_module(chart)
 
 
 class FieldtestChartTest(unittest.TestCase):
+    def test_app_export_cli_preserves_parameters_and_requires_no_adb(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            source, output = Path(tmp) / 'history.json', Path(tmp) / 'report.html'
+            source.write_text(json.dumps({'schema': 'opennoisenet.private_history.v1',
+                'window_start': '1970-01-01T00:00:00+00:00',
+                'window_end': '1970-01-01T00:03:00+00:00',
+                'analysis': {'comparison_line': 30, 'max_pause_minutes': 1},
+                'source_hints': [], 'minutes': [{'timestamp': 60, 'estimated_level': 20,
+                    'highest_buffer_estimate': None, 'samples_count': 100}]}))
+            args = ['chart', '--history-export', str(source), '--output', str(output)]
+            with patch('sys.argv', args), contextlib.redirect_stdout(io.StringIO()), patch.object(chart, 'stable_rows', side_effect=AssertionError('No ADB')):
+                chart.main()
+            html = output.read_text()
+            self.assertIn('"comparisonLine":30', html)
+            self.assertIn('"maxPauseMinutes":1', html)
+            self.assertIn('"rows":[[60,20,null,100]]', html)
+            self.assertNotIn('PIXEL 10A', html)
+            self.assertEqual(output.stat().st_mode & 0o777, 0o600)
+
+    def test_device_export_preserves_missing_peaks_and_clips_source_window(self):
+        start = dt.datetime.fromtimestamp(60, dt.timezone.utc)
+        end = dt.datetime.fromtimestamp(180, dt.timezone.utc)
+        report = {'schema': 'opennoisenet.private_history.v1', 'source_hints': [
+            {'start': dt.datetime.fromtimestamp(30, dt.timezone.utc).isoformat(),
+             'end': dt.datetime.fromtimestamp(240, dt.timezone.utc).isoformat(),
+             'category': 'road_traffic', 'confidence': .4}]}
+        with tempfile.TemporaryDirectory() as tmp:
+            file = Path(tmp) / 'export.json';file.write_text(json.dumps(report))
+            hints = chart.load_hints(file, start, end)
+        self.assertEqual(hints[0]['duration_ms'], 120000)
+        self.assertEqual(hints[0]['observed_end'], 180)
+        rows = chart.filtered([(60, 20, None, 100)], start, end)
+        self.assertIsNone(rows[0][2])
+        html = chart.make_html(rows, start, end, hints,
+                               'not_recorded_per_minute', 'device_export', 30)
+        self.assertIn('Berechnungsmethode wurde nicht je Minute gespeichert', html)
+        self.assertIn('Hinweise aus dem Geräteexport', html)
+        self.assertNotIn('flüchtigen Diagnosepuffer', html)
+
+    def test_new_rms_report_keeps_source_and_measurement_provenance(self):
+        start = dt.datetime.fromtimestamp(0, dt.timezone.utc)
+        end = dt.datetime.fromtimestamp(300, dt.timezone.utc)
+        html = chart.make_html([[60, 20, 30, 10]], start, end,
+                               measurement_method='pcm_rms_unweighted_v1',
+                               hint_origin='event_receipts', comparison_line=30)
+        self.assertIn('ohne aktive A-Bewertung', html)
+        self.assertNotIn('ältere, ungeeichte Pegelberechnung', html)
+        self.assertIn('Gerätehistorie ist in diesem Bericht nicht enthalten', html)
+        self.assertIn('"comparisonLine":30', html)
+        legacy = chart.make_html([[60, 20, 30, 10]], start, end)
+        self.assertIn('pegelabhängiger Korrektur', legacy)
+        with self.assertRaises(ValueError):
+            chart.make_html([], start, end, comparison_line=float('nan'))
+
     def test_only_complete_minutes_of_test_are_included(self):
         start = dt.datetime.fromtimestamp(106, dt.timezone.utc)
         end = dt.datetime.fromtimestamp(300, dt.timezone.utc)

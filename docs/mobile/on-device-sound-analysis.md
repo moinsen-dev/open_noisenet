@@ -111,8 +111,9 @@ claims:
 - The taxonomy adapter is transparent and deterministic; it is not yet the
   learned custom neural head proposed for the mature product.
 - The current SPL path remains a calibrated-or-uncalibrated smartphone
-  estimate. It is not a standards-compliant sound-level meter, and its existing
-  broadband A-weighting approximation still needs replacement by validated DSP.
+  RMS estimate. It is not a standards-compliant sound-level meter. The tested
+  A-weighting DSP is not yet enabled in the capture path; reference calibration
+  and validation on physical microphones remain open.
 - YAMNet has not yet been benchmarked on OpenNoiseNet's through-wall,
   closed-window, cross-phone field corpus.
 - The frame-hysteresis timing algorithm is deterministic and unit-tested, and
@@ -120,8 +121,13 @@ claims:
   local storage, upload, and backend receipt. Its real-world onset/offset error
   still needs comparison with known-duration labelled sources.
 - The Android foreground-service host now starts with sensor mode, but
-  process-death/reboot recovery and a 24-hour thermal/battery run still need
-  real-device validation. The legacy periodic WorkManager path is not the
+  process-death recovery now uses a single process-owned Flutter engine shared
+  by the screen and service. An OS sticky-service restart resumes capture only
+  if it was requested before process death and microphone permission remains
+  granted; it does not launch UI or request permissions in the background.
+  Explicit Stop clears the persisted request. Reboot/force-stop recovery and
+  a 24-hour thermal/battery run are separate unverified cases. The legacy
+  periodic WorkManager path is not the
   production sensor path. iOS background behavior likewise needs field runs.
   A simulator or successful build is not release evidence.
 
@@ -216,3 +222,38 @@ Existing ordinary and `.fieldtest` installations remain unchanged. This debug
 package and private certificate are not release artifacts.
 
 Current physical acceptance evidence and remaining limits: `../current-status.md`.
+
+## Explicit full-history export and bounded long-run checks
+
+The history toolbar exports its selected window as
+`opennoisenet.private_history.v1` JSON after an explicit plaintext warning and
+the native file picker. It contains completed minutes, clipped model-hint
+intervals, derived episodes and comparison settings. It excludes diary text,
+coordinates, device identifiers, credentials and audio. The saved file is
+unencrypted; there is no automatic upload. Cancelling does not save a file.
+The measurement method was not stored in every historical minute, so exports
+explicitly retain that limitation rather than relabelling old values as RMS.
+
+Create an offline report from an explicitly saved private export:
+
+```sh
+python3 scripts/fieldtest-level-chart.py \
+  --history-export /private/path/history.json \
+  --output /private/path/pegelverlauf.html
+```
+
+For the dedicated test packages, `private-fieldtest-monitor.py` selects one
+backend device and records PID changes, RSS, heartbeat/minute age, capture and
+inference counters, encrypted history row counts and matching local/server
+receipts. Stale data is an independent failure signal even when a foreground
+service remains present. A successful process recovery still counts as an
+interruption; missing in-memory samples/events cannot be reconstructed.
+
+The finite private runner uses saved configuration and script hashes, stops
+only the selected test sensor through its notification stop path at the
+deadline, allows one minute for finalization, and archives app data. A failed
+graceful stop does not fall back to force-stop. `private-fieldtest-finish.py`
+creates an offline chart from completed minute rows and confirmed event
+segments. That automatic chart does **not** represent the full encrypted local
+source history; the explicit JSON export above provides that separate view.
+All run configuration, logs, receipts, archives and reports stay outside Git.

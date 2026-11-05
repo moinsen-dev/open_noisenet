@@ -93,7 +93,8 @@ Future<void> configureDependencies() async {
 
   // Register BLoCs
   getIt.registerFactory(() => AppBloc());
-  getIt.registerFactory(() => MonitoringBloc());
+  // The screen and a restarted Android service share one sensor session.
+  getIt.registerLazySingleton(() => MonitoringBloc());
 
   // Initialize backend sync service after all dependencies are registered
   final backendSyncService = BackendSyncService();

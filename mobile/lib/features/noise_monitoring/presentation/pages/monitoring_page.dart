@@ -81,9 +81,8 @@ class _NoiseMonitoringPageState extends State<NoiseMonitoringPage> {
                         padding: const EdgeInsets.all(24.0),
                         child: SizedBox(
                           width: MediaQuery.of(context).size.width - 32,
-                          height:
-                              280, // Increased height to accommodate the button
                           child: Column(
+                            mainAxisSize: MainAxisSize.min,
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               Icon(

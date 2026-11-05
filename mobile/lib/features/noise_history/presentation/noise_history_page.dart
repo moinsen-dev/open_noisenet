@@ -6,12 +6,16 @@ import 'package:get_it/get_it.dart';
 import '../../../core/database/dao/noise_measurement_dao.dart';
 import '../../../core/database/models/noise_measurement.dart';
 import '../../noise_diary/data/diary_sound_label.dart';
+import '../../noise_diary/data/diary_export.dart';
+import '../data/history_export.dart';
 import '../data/noise_history.dart';
 
 class NoiseHistoryPage extends StatefulWidget {
-  const NoiseHistoryPage({super.key, this.collector, this.loadMeasurements});
+  const NoiseHistoryPage(
+      {super.key, this.collector, this.loadMeasurements, this.saveExport});
   final SoundHistoryCollector? collector;
   final Future<List<NoiseMeasurement>> Function()? loadMeasurements;
+  final Future<bool> Function(String document)? saveExport;
 
   @override
   State<NoiseHistoryPage> createState() => _NoiseHistoryPageState();
@@ -32,6 +36,7 @@ class _NoiseHistoryPageState extends State<NoiseHistoryPage> {
   int sourceLimit = 50;
   Timer? timer;
   int generation = 0;
+  DateTime? windowStart, windowEnd;
 
   @override
   void initState() {
@@ -70,6 +75,8 @@ class _NoiseHistoryPageState extends State<NoiseHistoryPage> {
       setState(() {
         hints = allHints.where((e) => e.end.isAfter(since)).toList();
         minutes = allMinutes;
+        windowStart = since;
+        windowEnd = now;
         failed = false;
         loading = false;
       });
@@ -126,6 +133,60 @@ class _NoiseHistoryPageState extends State<NoiseHistoryPage> {
     }
   }
 
+  Future<void> _export() async {
+    setState(() => changing = true);
+    try {
+      final exporter = DiaryExporter();
+      await exporter.cleanStaleTemporaryFiles();
+      await _load();
+      if (!mounted || failed || windowStart == null || windowEnd == null)
+        return;
+      // Freeze the content shown for confirmation. No plaintext file is made
+      // until the user explicitly chooses to save this snapshot.
+      final exportStart = windowStart!, exportEnd = windowEnd!;
+      final document = historyExportJson(
+          minutes: minutes!,
+          hints: hints!,
+          start: exportStart,
+          end: exportEnd,
+          comparisonLine: threshold,
+          maxPauseMinutes: maxPauseMinutes);
+      final confirmed = await showDialog<bool>(
+          context: context,
+          builder: (context) => AlertDialog(
+                title: const Text('Privaten Verlauf exportieren?'),
+                content: SingleChildScrollView(
+                    child: Text(
+                        '${_date(exportStart)} – ${_date(exportEnd)}\n\n'
+                        'Die JSON-Datei ist unverschlüsselt. Sie enthält Minutenwerte, '
+                        'Episoden und ungeprüfte Modellhinweise des ausgewählten Zeitraums. '
+                        'Keine Tonaufnahmen, Tagebuchtexte, Standorte oder Gerätekennungen. '
+                        'Wähle einen privaten Speicherort; es erfolgt kein automatischer Upload.')),
+                actions: [
+                  TextButton(
+                      onPressed: () => Navigator.pop(context, false),
+                      child: const Text('Abbrechen')),
+                  FilledButton(
+                      onPressed: () => Navigator.pop(context, true),
+                      child: const Text('Speicherort wählen')),
+                ],
+              ));
+      if (confirmed != true || !mounted) return;
+      final saved = await (widget.saveExport?.call(document) ??
+          exporter.saveHistory(document));
+      if (mounted && saved)
+        ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Privater Verlauf exportiert.')));
+    } catch (_) {
+      if (mounted)
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text(
+                'Export fehlgeschlagen. Die gespeicherte Historie bleibt erhalten.')));
+    } finally {
+      if (mounted) setState(() => changing = false);
+    }
+  }
+
   String _date(DateTime value) {
     final local = value.toLocal();
     String two(int value) => value.toString().padLeft(2, '0');
@@ -148,6 +209,10 @@ class _NoiseHistoryPageState extends State<NoiseHistoryPage> {
         : levelBlocks.reduce((a, b) => a.duration >= b.duration ? a : b);
     return Scaffold(
       appBar: AppBar(title: const Text('Geräuschverlauf'), actions: [
+        IconButton(
+            onPressed: changing || loading || failed ? null : _export,
+            tooltip: 'Verlauf exportieren',
+            icon: const Icon(Icons.file_download_outlined)),
         IconButton(
             onPressed: _load,
             tooltip: 'Aktualisieren',
@@ -181,7 +246,7 @@ class _NoiseHistoryPageState extends State<NoiseHistoryPage> {
                             title: Text('Speicherung und Datenschutz'),
                             children: [
                               Text(
-                                  'Modellvorschläge und ihre Zeiträume bleiben auf diesem Gerät, bis du sie löschst. Die Historie wird nicht hochgeladen. Separat aktivierte Ereignis-Uploads können Geräuschhinweise enthalten. Minutenpegel werden separat gespeichert.')
+                                  'Modellvorschläge und ihre Zeiträume bleiben auf diesem Gerät, bis du sie löschst oder ausdrücklich exportierst. Die Historie wird nicht automatisch hochgeladen. Ein bewusst gespeicherter Export ist unverschlüsselt. Separat aktivierte Ereignis-Uploads können Geräuschhinweise enthalten. Minutenpegel werden separat gespeichert.')
                             ],
                           ),
                           if (collector.error != null)

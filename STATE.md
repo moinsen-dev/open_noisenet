@@ -2,6 +2,19 @@
 
 ## Übergabe
 
+**05.11.2026: Neuer Pixel-Test R2 läuft bis 06.11.2026 12:12:01 CET. Test-App jetzt nicht aktualisieren, neu starten oder zurücksetzen.**
+
+- Maßgebliche Übersicht: `docs/current-status.md`. Eigener Branch `codex/pixel-longrun-20261105`; fremde Checkouts und `.pumuckl` erhalten.
+- Erster Versuch ab 11:25:04 CET um 11:44:56 CET an SIGKILL gescheitert (Ursache unbekannt). Android startete nur den nativen Dienst, keine Flutter-Messkette. Fehlerversuch, Teilgrafik und App-Archiv bleiben privat in `Feldtest-2026-11-05`; beide alten Monitorprozesse gezielt beendet. Nicht als erfolgreichen 24h-Lauf behandeln.
+- Fix auf Pixel geprüft: prozesseigene gemeinsame Flutter-Engine; bereits autorisierter Sensor startet nach OS-Prozessverlust ohne UI wieder. Kontrollierter SIGKILL im Vorlauf führte zu neuen Minuten, Quellenhinweisen und steigenden Aufnahme-/Inferenzzählern. Ein neues Testereignis bestätigt, ACK-Abgleich ohne Abweichung. Bewusster Stopp bleibt nach anschließendem Prozessverlust gestoppt. Keine Reboot-/Force-stop-Garantie daraus ableiten.
+- Expliziter vollständiger JSON-Historienexport über Android-Dateiauswahl geprüft; Datei ausschließlich privat gesichert, temporäre Download-Kopie entfernt. „Sensor Idle“-Overflow behoben und auf Pixel nachgeprüft. Exportbericht mit echten Quellenhinweisen offline erstellt, Browserprüfung mit Episodendetails bestanden.
+- R2: 05.11. **12:12:01 CET** bis 06.11. **12:12:01 CET**, eigene Sicherungen, installierte APK und versionierte Runner-Skripte unter `~/Library/Application Support/OpenNoiseNet/Feldtest-2026-11-05-R2/`. Erste Beobachtung während App-Start; Messkette um 12:12:07 aktiv. Bildschirm seit 12:16:01 CET aus, USB-Strom. Runner und caffeinate in `processes.json`; PID-/Datenalter-/RSS-/Inferenz-/Minuten-/Historien-/ACK-Monitor aktiv. Abschluss nur am Ergebnis ablesen, nicht an Prozessanwesenheit.
+- Prüfungen: Flutter-Analyse/72 Tests, Debug-APK und statische 16-KB-Prüfung (13 Bibliotheken); Monitor 5 Tests, Grafik/Nachbereitung 9 Python- und 3 JS-Tests. Private Daten niemals ins Repository oder in den Vault kopieren.
+- iOS: normaler Simulator-Build erfolgreich; nativer JSON-Export (leere Historie), Abbruch und Entfernung temporärer Klartextdateien geprüft. Frische eigene Testinstallation; Simulator anschließend wieder heruntergefahren. Kein physischer iOS-Nachweis.
+- Nächster Schritt: eigene Änderungen reviewen/sichern; während R2 nur lesend beobachten. Nach Deadline `run-result.json`, Monitorzusammenfassung, App-Archiv, `episode-summary.json` und private Grafik prüfen. Automatische Grafik enthält bestätigte Upload-Quellen; vollständige verschlüsselte Gerätehistorie benötigt den expliziten Export. Kalibrierung, aktive A-Bewertung, Klassifikationsgüte und physischer iOS-Langlauf offen.
+
+## Vorherige Übergabe – Pixel-Integration
+
 **05.11.2026: Lokale App-Arbeit integriert; Episoden und privater Ereignis-Upload auf Pixel physisch geprüft.**
 
 - Arbeitsfolge und Prüfgrenzen sind in `docs/current-status.md` maßgeblich. Eigener Worktree `open_noisenet-pixel-episodes-20261105`; ursprüngliche Checkouts samt uncommitteter Arbeit unangetastet. `.pumuckl` erhalten.

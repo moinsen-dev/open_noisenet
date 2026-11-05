@@ -47,8 +47,8 @@ String diaryEntriesCsv(List<DiaryEntry> entries) {
 class DiaryExporter {
   static const _prefix = 'OpenNoiseNet-Tagebuch-';
   static final Set<String> _active = {};
-  static final RegExp _ownTemporaryFile =
-      RegExp(r'^OpenNoiseNet-Tagebuch-[0-9a-f-]{36}\.csv$');
+  static final RegExp _ownTemporaryFile = RegExp(
+      r'^OpenNoiseNet-(Tagebuch-[0-9a-f-]{36}\.csv|Verlauf-[0-9a-f-]{36}\.json)$');
 
   /// The iOS picker writes a temporary plaintext file before showing its UI.
   /// Clean only our own stale files, never another active export or app data.
@@ -69,15 +69,27 @@ class DiaryExporter {
     }
   }
 
-  Future<bool> save(List<DiaryEntry> entries) async {
-    final name = '$_prefix${const Uuid().v4()}.csv';
+  Future<bool> save(List<DiaryEntry> entries) => _save(
+      '$_prefix${const Uuid().v4()}.csv',
+      diaryEntriesCsv(entries),
+      'text/csv',
+      'Tagebuch exportieren');
+
+  Future<bool> saveHistory(String document) => _save(
+      'OpenNoiseNet-Verlauf-${const Uuid().v4()}.json',
+      document,
+      'application/json',
+      'Geräuschverlauf exportieren');
+
+  Future<bool> _save(
+      String name, String document, String mime, String title) async {
     _active.add(name);
     try {
       final result = await FilePicker.saveFile(
         fileName: name,
-        bytes: Uint8List.fromList(utf8.encode(diaryEntriesCsv(entries))),
-        mimeType: 'text/csv',
-        dialogTitle: 'Tagebuch exportieren',
+        bytes: Uint8List.fromList(utf8.encode(document)),
+        mimeType: mime,
+        dialogTitle: title,
       );
       return result != null;
     } finally {

@@ -73,10 +73,12 @@ class AudioCaptureService {
   }
 
   /// Start capturing audio and calculating SPL
-  Future<bool> startCapture({BuildContext? context}) async {
+  Future<bool> startCapture(
+      {BuildContext? context, bool allowPermissionPrompt = true}) async {
     try {
       // Check permission first
       if (!await hasPermission()) {
+        if (!allowPermissionPrompt) return false;
         if (context != null) {
           // Use dialog service if context is provided
           if (!await requestPermission(context)) {

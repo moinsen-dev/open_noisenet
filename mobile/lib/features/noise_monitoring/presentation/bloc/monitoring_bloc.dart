@@ -25,8 +25,13 @@ part 'monitoring_state.dart';
 
 class MonitoringBloc extends Bloc<MonitoringEvent, MonitoringState> {
   MonitoringBloc() : super(const MonitoringInactive()) {
-    on<StartMonitoring>(_onStartMonitoring);
-    on<StopMonitoring>(_onStopMonitoring);
+    on<MonitoringLifecycleEvent>((event, emit) async {
+      if (event is StartMonitoring) {
+        await _onStartMonitoring(event, emit);
+      } else if (event is StopMonitoring) {
+        await _onStopMonitoring(event, emit);
+      }
+    }, transformer: (events, mapper) => events.asyncExpand(mapper));
     on<UpdateNoiseLevel>(_onUpdateNoiseLevel);
     on<MonitoringFailureOccurred>(_onMonitoringFailureOccurred);
     on<MonitoringWatchdogTick>(_onMonitoringWatchdogTick);
@@ -67,8 +72,23 @@ class MonitoringBloc extends Bloc<MonitoringEvent, MonitoringState> {
 
   Future<void> _onStartMonitoring(
       StartMonitoring event, Emitter<MonitoringState> emit) async {
+    if (state is MonitoringActive || state is MonitoringStarting) return;
     try {
       emit(const MonitoringStarting());
+
+      if (Platform.isAndroid) {
+        await _androidForegroundService.initialize();
+        await _foregroundStopSubscription?.cancel();
+        _foregroundStopSubscription =
+            _androidForegroundService.stopRequests.listen((_) {
+          if (!isClosed) add(const StopMonitoring());
+        });
+      }
+
+      if (event.resuming && !await _audioCaptureService.hasPermission()) {
+        throw StateError(
+            'Microphone permission is no longer granted. Open the app to resume.');
+      }
 
       if (Platform.isIOS) {
         final backgroundReady =
@@ -92,10 +112,15 @@ class MonitoringBloc extends Bloc<MonitoringEvent, MonitoringState> {
       }
 
       // Start real audio capture
-      final success =
-          await _audioCaptureService.startCapture(context: event.context);
+      final success = await _audioCaptureService.startCapture(
+          context: event.context, allowPermissionPrompt: !event.resuming);
 
       if (!success) {
+        if (Platform.isAndroid) {
+          await _foregroundStopSubscription?.cancel();
+          _foregroundStopSubscription = null;
+          await _androidForegroundService.stopService();
+        }
         if (Platform.isIOS) {
           await _iosBackgroundService.stopBackgroundSession();
         }
@@ -107,20 +132,18 @@ class MonitoringBloc extends Bloc<MonitoringEvent, MonitoringState> {
       }
 
       if (Platform.isAndroid) {
-        final notificationPermission = await Permission.notification.request();
+        var notificationPermission = await Permission.notification.status;
+        if (!event.resuming && !notificationPermission.isGranted) {
+          notificationPermission = await Permission.notification.request();
+        }
         if (!notificationPermission.isGranted) {
           AppLogger.warning(
             'Notification permission denied; Android will expose sensor mode '
             'through the active-apps surface instead of the notification drawer.',
           );
         }
-        await _androidForegroundService.initialize();
-        await _foregroundStopSubscription?.cancel();
-        _foregroundStopSubscription =
-            _androidForegroundService.stopRequests.listen((_) {
-          if (!isClosed) add(const StopMonitoring());
-        });
-        final foregroundReady = await _androidForegroundService.startService();
+        final foregroundReady = await _androidForegroundService.startService(
+            resumeOnly: event.resuming);
         if (!foregroundReady) {
           await _foregroundStopSubscription?.cancel();
           _foregroundStopSubscription = null;

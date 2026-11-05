@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import '../../../noise_monitoring/presentation/pages/monitoring_page.dart';
 import '../../../settings/presentation/pages/settings_page.dart';
 import '../../../events/presentation/pages/events_dashboard_page.dart';
+import '../../../noise_diary/presentation/noise_diary_page.dart';
+import '../../../noise_history/presentation/noise_history_page.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -13,11 +15,12 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   int _currentIndex = 0;
-  final PageController _pageController = PageController();
 
   static const List<Widget> _pages = [
     NoiseMonitoringPage(),
+    NoiseHistoryPage(),
     EventsDashboardPage(),
+    NoiseDiaryPage(),
     SettingsPage(),
   ];
 
@@ -29,10 +32,22 @@ class _HomePageState extends State<HomePage> {
       tooltip: 'Real-time noise monitoring',
     ),
     BottomNavigationBarItem(
+      icon: Icon(Icons.timeline),
+      activeIcon: Icon(Icons.timeline),
+      label: 'Verlauf',
+      tooltip: 'Geräuschverlauf',
+    ),
+    BottomNavigationBarItem(
       icon: Icon(Icons.dashboard_outlined),
       activeIcon: Icon(Icons.dashboard),
       label: 'Dashboard',
       tooltip: 'Events and statistics',
+    ),
+    BottomNavigationBarItem(
+      icon: Icon(Icons.book_outlined),
+      activeIcon: Icon(Icons.book),
+      label: 'Tagebuch',
+      tooltip: 'Persönliches Lärmtagebuch',
     ),
     BottomNavigationBarItem(
       icon: Icon(Icons.settings_outlined),
@@ -42,24 +57,7 @@ class _HomePageState extends State<HomePage> {
     ),
   ];
 
-  @override
-  void dispose() {
-    _pageController.dispose();
-    super.dispose();
-  }
-
   void _onTabTapped(int index) {
-    setState(() {
-      _currentIndex = index;
-    });
-    _pageController.animateToPage(
-      index,
-      duration: const Duration(milliseconds: 300),
-      curve: Curves.easeInOut,
-    );
-  }
-
-  void _onPageChanged(int index) {
     setState(() {
       _currentIndex = index;
     });
@@ -68,9 +66,11 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: PageView(
-        controller: _pageController,
-        onPageChanged: _onPageChanged,
+      // Preserve history filters and the monitor's initial-start state. A tab
+      // change must not recreate the monitor and restart an explicitly stopped
+      // microphone, or briefly show the wrong selected destination.
+      body: IndexedStack(
+        index: _currentIndex,
         children: _pages,
       ),
       bottomNavigationBar: NavigationBar(

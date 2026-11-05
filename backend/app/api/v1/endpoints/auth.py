@@ -30,7 +30,7 @@ router = APIRouter()
 @router.post("/register", response_model=TokenResponse, status_code=status.HTTP_201_CREATED)
 async def register(
     data: RegisterRequest,
-    db: AsyncSession = Depends(get_session),
+    db: AsyncSession = Depends(get_session, scope="function"),
 ):
     """Register a new user and return access/refresh tokens."""
     # Check for duplicate email
@@ -59,7 +59,7 @@ async def register(
 @router.post("/login", response_model=TokenResponse)
 async def login(
     data: LoginRequest,
-    db: AsyncSession = Depends(get_session),
+    db: AsyncSession = Depends(get_session, scope="function"),
     _rate_limit: None = Depends(login_rate_limiter),
 ):
     """Authenticate a user and return access/refresh tokens."""
@@ -88,7 +88,7 @@ async def login(
 @router.post("/refresh", response_model=TokenResponse)
 async def refresh_token(
     data: RefreshRequest,
-    db: AsyncSession = Depends(get_session),
+    db: AsyncSession = Depends(get_session, scope="function"),
 ):
     """Issue new tokens using a valid refresh token."""
     payload = decode_token(data.refresh_token)

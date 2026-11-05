@@ -2,16 +2,25 @@
 import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.db.models.device import Device, DeviceType
+from app.db.models.device import Device, DeviceApiKey, DeviceType
+from app.core.device_auth import device_key_hash
 
 
-async def _create_device(db: AsyncSession, device_id: str = "test-device-001", name: str = "Test Device") -> Device:
+@pytest.fixture(autouse=True)
+def device_key(client: AsyncClient):
+    client.headers["X-Device-Key"] = "A" * 43
+
+
+async def _create_device(db: AsyncSession, device_id: str = "test-device-001", name: str = "Test Device", key: str = "A" * 43) -> Device:
     device = Device(
         device_id=device_id,
         name=name,
         device_type=DeviceType.SMARTPHONE,
+        is_public=True,
     )
     db.add(device)
+    await db.flush()
+    db.add(DeviceApiKey(device_id=device.id, key_hash=device_key_hash(key)))
     await db.flush()
     await db.refresh(device)
     return device
@@ -61,7 +70,7 @@ async def test_create_event(client: AsyncClient, db_session: AsyncSession):
 
 
 @pytest.mark.asyncio
-async def test_create_event_auto_creates_device(client: AsyncClient):
+async def test_create_event_rejects_unknown_device(client: AsyncClient):
     response = await client.post(
         "/api/v1/events/",
         json=_base_event_payload(
@@ -70,9 +79,7 @@ async def test_create_event_auto_creates_device(client: AsyncClient):
             leq_db=55.0,
         ),
     )
-    assert response.status_code == 200
-    assert response.json()["event_uuid"] == "evt-test-autocreate-001"
-    assert response.json()["analysis_state"] == "server_classified"
+    assert response.status_code == 404
 
 
 @pytest.mark.asyncio
@@ -253,7 +260,7 @@ async def test_get_event_status_returns_analysis_details(
 async def test_get_event_by_id(client: AsyncClient, db_session: AsyncSession):
     """GET /events/{id} returns event details by server ID."""
     await _create_device(db_session)
-    resp = await client.post("/api/v1/events/", json=_base_event_payload(device_id="dev-getbyid-001"))
+    resp = await client.post("/api/v1/events/", json=_base_event_payload())
     server_id = resp.json()["server_event_id"]
 
     detail = await client.get(f"/api/v1/events/{server_id}")
@@ -270,13 +277,14 @@ async def test_get_nonexistent_event_returns_404(client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_delete_event_requires_auth(client: AsyncClient, db_session: AsyncSession):
-    """DELETE /events/{id} without auth returns 401."""
+    """DELETE /events/{id} without the device key is denied."""
     await _create_device(db_session)
-    resp = await client.post("/api/v1/events/", json=_base_event_payload(device_id="dev-del-001"))
+    resp = await client.post("/api/v1/events/", json=_base_event_payload())
     server_id = resp.json()["server_event_id"]
 
+    client.headers.pop("X-Device-Key")
     del_resp = await client.delete(f"/api/v1/events/{server_id}")
-    assert del_resp.status_code == 401
+    assert del_resp.status_code in (403, 404)
 
 
 @pytest.mark.asyncio
@@ -289,7 +297,7 @@ async def test_delete_event(client: AsyncClient, db_session: AsyncSession):
     token = reg.json()["access_token"]
 
     await _create_device(db_session)
-    resp = await client.post("/api/v1/events/", json=_base_event_payload(device_id="dev-del-002"))
+    resp = await client.post("/api/v1/events/", json=_base_event_payload())
     server_id = resp.json()["server_event_id"]
 
     del_resp = await client.delete(
@@ -322,14 +330,14 @@ async def test_delete_nonexistent_event_returns_404(client: AsyncClient):
 async def test_filter_events_by_device_id(client: AsyncClient, db_session: AsyncSession):
     """List events filtered by device_id returns only that device's events."""
     await _create_device(db_session, device_id="dev-filter-aa", name="Device AA")
-    await _create_device(db_session, device_id="dev-filter-bb", name="Device BB")
+    await _create_device(db_session, device_id="dev-filter-bb", name="Device BB", key="B" * 43)
 
     await client.post("/api/v1/events/", json=_base_event_payload(
         event_uuid="evt-aa-1", device_id="dev-filter-aa"))
     await client.post("/api/v1/events/", json=_base_event_payload(
         event_uuid="evt-aa-2", device_id="dev-filter-aa"))
     await client.post("/api/v1/events/", json=_base_event_payload(
-        event_uuid="evt-bb-1", device_id="dev-filter-bb"))
+        event_uuid="evt-bb-1", device_id="dev-filter-bb"), headers={"X-Device-Key": "B" * 43})
 
     resp = await client.get("/api/v1/events/?device_id=dev-filter-aa")
     assert resp.status_code == 200

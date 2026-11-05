@@ -8,6 +8,7 @@ import '../core/database/dao/noise_measurement_dao.dart';
 import '../core/database/dao/hourly_statistics_dao.dart';
 import '../core/database/dao/daily_statistics_dao.dart';
 import '../core/logging/app_logger.dart';
+import 'energy_average.dart';
 
 class StatisticsAggregationService {
   static final StatisticsAggregationService _instance =
@@ -237,8 +238,7 @@ class StatisticsAggregationService {
           exceedancesByHour.map((hour, measurements) => MapEntry(hour, {
                 'count': measurements.length,
                 'avg_leq':
-                    measurements.map((m) => m.leqDb).reduce((a, b) => a + b) /
-                        measurements.length,
+                    energyAverageDb(measurements.map((m) => (m.leqDb, 1))),
                 'max_leq': measurements.map((m) => m.leqDb).reduce(max),
               }));
 
@@ -339,7 +339,7 @@ class StatisticsAggregationService {
         .cast<double>()
         .toList();
 
-    final avgLeq = leqValues.reduce((a, b) => a + b) / leqValues.length;
+    final avgLeq = energyAverageDb(leqValues.map((value) => (value, 1)))!;
     final maxLeq = leqValues.reduce(max);
     final minLeq = leqValues.reduce(min);
 
@@ -368,11 +368,11 @@ class StatisticsAggregationService {
   /// Calculate daily statistics from hourly statistics
   DailyStatistics _calculateDailyStatistics(
       String date, List<HourlyStatistics> hourlyStats) {
-    final avgLeqValues = hourlyStats.map((h) => h.avgLeq).toList();
     final maxLeqValues = hourlyStats.map((h) => h.maxLeq).toList();
     final minLeqValues = hourlyStats.map((h) => h.minLeq).toList();
 
-    final avgLeq = avgLeqValues.reduce((a, b) => a + b) / avgLeqValues.length;
+    final avgLeq = energyAverageDb(
+        hourlyStats.map((hour) => (hour.avgLeq, hour.totalSamples)))!;
     final maxLeq = maxLeqValues.reduce(max);
     final minLeq = minLeqValues.reduce(min);
 
@@ -419,7 +419,7 @@ class StatisticsAggregationService {
 
     return {
       'count': measurements.length,
-      'avg_leq': leqValues.reduce((a, b) => a + b) / leqValues.length,
+      'avg_leq': energyAverageDb(leqValues.map((value) => (value, 1))),
       'max_leq': leqValues.reduce(max),
       'min_leq': leqValues.reduce(min),
       'exceedances': exceedances,
@@ -439,13 +439,13 @@ class StatisticsAggregationService {
       };
     }
 
-    final avgLeqValues = dailyStats.map((d) => d.avgLeq).toList();
     final totalExceedances =
         dailyStats.map((d) => d.totalExceedances).reduce((a, b) => a + b);
 
     return {
       'count': dailyStats.length,
-      'avg_leq': avgLeqValues.reduce((a, b) => a + b) / avgLeqValues.length,
+      'avg_leq': energyAverageDb(
+          dailyStats.map((day) => (day.avgLeq, day.totalSamples))),
       'max_leq': dailyStats.map((d) => d.maxLeq).reduce(max),
       'min_leq': dailyStats.map((d) => d.minLeq).reduce(min),
       'total_exceedances': totalExceedances,

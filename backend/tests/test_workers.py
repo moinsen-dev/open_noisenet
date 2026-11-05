@@ -23,10 +23,8 @@ def test_spl_noise_statistics():
 
 def test_spl_a_weighting():
     svc = SPLCalculationService()
-    quiet = svc.apply_a_weighting_broadband(25.0)
-    loud = svc.apply_a_weighting_broadband(95.0)
-    assert quiet < 25.0
-    assert loud == 95.0
+    with pytest.raises(NotImplementedError, match="frequency-band energies"):
+        svc.apply_a_weighting_broadband(25.0)
 
 
 def test_threshold_time_restrictions():

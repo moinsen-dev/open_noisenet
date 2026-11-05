@@ -1,5 +1,7 @@
 # OpenNoiseNet — Press Kit
 
+> Historischer Entwurf: Enthält nicht verifizierte Aussagen zu Pilot, Messqualität, Datenschutz, Partnern und Hosting. Nicht zur Veröffentlichung verwenden; maßgeblich ist [current-status.md](current-status.md).
+
 **Stand: Juni 2026**
 
 ---

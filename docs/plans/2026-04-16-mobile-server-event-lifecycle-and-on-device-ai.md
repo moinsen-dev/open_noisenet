@@ -1,7 +1,9 @@
 # Mobile/Server Event Lifecycle And On-Device AI Design
 
 **Date:** 2026-04-16
-**Status:** Proposed
+**Status:** In progress — lifecycle/receipt work and the first YAMNet-based
+on-device sound-analysis slice are implemented. See
+[`docs/mobile/on-device-sound-analysis.md`](../mobile/on-device-sound-analysis.md).
 
 ## Goal
 

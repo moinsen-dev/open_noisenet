@@ -73,13 +73,9 @@ class TestSPLCalculationService:
         assert self.svc.get_noise_level_category(55.0) == "loud"
         assert self.svc.get_noise_level_category(90.0) == "dangerous"
 
-    def test_a_weighting_quiet_reduced(self):
-        quiet = self.svc.apply_a_weighting_broadband(25.0)
-        assert quiet < 25.0
-
-    def test_a_weighting_loud_minimal(self):
-        loud = self.svc.apply_a_weighting_broadband(95.0)
-        assert loud == 95.0
+    def test_a_weighting_cannot_be_inferred_from_a_scalar(self):
+        with pytest.raises(NotImplementedError, match="frequency-band energies"):
+            self.svc.apply_a_weighting_broadband(95.0)
 
     def test_leq_negative_db_values(self):
         """Leq with values below reference level (e.g. very quiet sounds)."""
@@ -90,15 +86,6 @@ class TestSPLCalculationService:
     def test_leq_zero_length_returns_zero(self):
         """Explicit zero-length list returns 0.0 (consistent with empty list)."""
         assert self.svc.calculate_leq([]) == 0.0
-
-    def test_a_weighting_at_1khz_no_change(self):
-        """1 kHz is the A-weighting reference; broadband correction is minimal."""
-        result = self.svc.apply_a_weighting_broadband(60.0)
-        # At moderate levels (50-70), correction is -2 dB — not zero,
-        # but should be close to the raw value for typical environmental noise.
-        assert result <= 60.0
-        assert result >= 55.0
-
 
 class TestThresholdDetectionService:
     def setup_method(self):

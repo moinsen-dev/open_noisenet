@@ -9,6 +9,11 @@ import uuid
 pytestmark = pytest.mark.asyncio
 
 
+@pytest.fixture(autouse=True)
+def device_key(client: AsyncClient):
+    client.headers["X-Device-Key"] = "A" * 43
+
+
 async def _auth_headers(client: AsyncClient, email: str = "owner@example.com"):
     response = await client.post(
         "/api/v1/auth/register",

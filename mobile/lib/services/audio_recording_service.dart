@@ -4,6 +4,7 @@ import 'dart:collection';
 import 'package:path_provider/path_provider.dart';
 import 'package:flutter_sound/flutter_sound.dart';
 import 'package:just_audio/just_audio.dart' as just_audio;
+import 'audio_recording_policy.dart';
 import 'package:uuid/uuid.dart';
 import 'package:path/path.dart' as path;
 import 'package:permission_handler/permission_handler.dart';
@@ -73,18 +74,8 @@ class AudioRecordingService {
     // Initialize just_audio player with proper iOS audio session configuration
     _audioPlayer = just_audio.AudioPlayer();
 
-    // Configure audio session for iOS compatibility
-    try {
-      await _audioPlayer.setAudioSource(
-        just_audio.AudioSource.asset('assets/silence.mp3', package: null),
-      );
-      AppLogger.recording(
-          'AudioPlayer pre-initialized with dummy source for iOS compatibility');
-    } catch (e) {
-      // If no silence asset exists, that's fine - we'll handle it during playback
-      AppLogger.recording(
-          'No silence asset found, will handle audio session during playback');
-    }
+    // Load the real source only when playback is requested. The old missing placeholder
+    // silence.mp3 is not a usable audio source and caused a decoder error on every start.
 
     AppLogger.recording('AudioPlayer initialized successfully');
 
@@ -103,6 +94,7 @@ class AudioRecordingService {
 
   /// Start recording audio with optional event association
   Future<String?> startRecording({String? eventId}) async {
+    if (!AudioRecordingPolicy.newRecordingsAvailable) return null;
     try {
       // Check if we have recording permission
       final permission = await Permission.microphone.request();
@@ -592,6 +584,7 @@ class AudioRecordingService {
   /// Create a test recording for debugging purposes
   Future<String?> createTestRecording(
       {Duration duration = const Duration(seconds: 5)}) async {
+    if (!AudioRecordingPolicy.newRecordingsAvailable) return null;
     try {
       // Check microphone permission first
       final permission = await Permission.microphone.request();

@@ -17,7 +17,7 @@ CREATE TABLE IF NOT EXISTS alembic_version (
 
 DELETE FROM alembic_version;
 INSERT INTO alembic_version (version_num)
-VALUES ('c3e9d4f7ab21');
+VALUES ('94a38b0e8f12');
 
 -- Users table for authentication
 CREATE TABLE users (
@@ -282,9 +282,9 @@ CREATE TABLE cases (
     status VARCHAR(32) NOT NULL DEFAULT 'open',
     title VARCHAR(255) NOT NULL,
     summary TEXT,
-    audit_history JSONB,
-    closed_by_id UUID REFERENCES users(id) ON DELETE SET NULL,
-    last_status_changed_by_id UUID REFERENCES users(id) ON DELETE SET NULL,
+    audit_history JSON,
+    closed_by_id UUID CONSTRAINT fk_cases_closed_by_id_users REFERENCES users(id) ON DELETE SET NULL,
+    last_status_changed_by_id UUID CONSTRAINT fk_cases_last_status_changed_by_id_users REFERENCES users(id) ON DELETE SET NULL,
     last_status_changed_at TIMESTAMP WITH TIME ZONE,
     opened_at TIMESTAMP WITH TIME ZONE NOT NULL,
     closed_at TIMESTAMP WITH TIME ZONE,
@@ -390,8 +390,8 @@ CREATE INDEX idx_case_episode_links_case ON case_episode_links(case_id);
 CREATE INDEX idx_case_episode_links_episode ON case_episode_links(episode_id);
 CREATE INDEX idx_export_jobs_case ON export_jobs(case_id);
 CREATE INDEX idx_export_jobs_created_by ON export_jobs(created_by_id);
-CREATE INDEX idx_cases_closed_by ON cases(closed_by_id) WHERE closed_by_id IS NOT NULL;
-CREATE INDEX idx_cases_last_status_changed_by ON cases(last_status_changed_by_id) WHERE last_status_changed_by_id IS NOT NULL;
+CREATE INDEX ix_cases_closed_by_id ON cases(closed_by_id);
+CREATE INDEX ix_cases_last_status_changed_by_id ON cases(last_status_changed_by_id);
 
 -- Create functions for data management
 CREATE OR REPLACE FUNCTION update_updated_at_column()

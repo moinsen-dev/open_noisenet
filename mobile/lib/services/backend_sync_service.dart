@@ -13,6 +13,8 @@ import '../features/noise_monitoring/data/models/noise_event_model.dart'
 import '../features/noise_monitoring/data/repositories/event_repository.dart';
 import '../services/api_client_service.dart';
 import '../services/audio_capture_service.dart';
+import '../services/sound_analysis/on_device_sound_analysis_service.dart';
+import '../services/sound_analysis/sound_diagnostics_privacy.dart';
 import '../services/sqlite_preferences_service.dart';
 
 enum BackendMode {
@@ -101,6 +103,10 @@ class BackendSyncService {
   SharedPreferences get _prefs => GetIt.instance<SharedPreferences>();
   SQLitePreferencesService get _sqlitePrefs =>
       GetIt.instance<SQLitePreferencesService>();
+  OnDeviceSoundAnalysisService? get _soundAnalysis =>
+      GetIt.instance.isRegistered<OnDeviceSoundAnalysisService>()
+          ? GetIt.instance<OnDeviceSoundAnalysisService>()
+          : null;
   Talker get _logger => GetIt.instance<Talker>();
   EventRepository? _eventRepository;
 
@@ -146,6 +152,12 @@ class BackendSyncService {
       unawaited(_runMaintenanceTick());
     });
     unawaited(_runMaintenanceTick());
+  }
+
+  /// Stop periodic maintenance when the service is no longer used.
+  void dispose() {
+    _maintenanceTimer?.cancel();
+    _maintenanceTimer = null;
   }
 
   Future<void> setSensorModeActive(bool isActive) async {
@@ -479,11 +491,15 @@ class BackendSyncService {
 
     final submissionMode = await getSubmissionMode();
     if (submissionMode == 'disabled') {
-      _logger.info('Submission disabled, clearing queue without sending');
-      final count = _queuedEvents.length;
-      _queuedEvents.clear();
-      await _saveQueuedEvents();
-      return count;
+      _logger.info('Submission disabled, retaining queued events locally');
+      return 0;
+    }
+
+    try {
+      await _apiClient.ensureDeviceRegistered();
+    } catch (e) {
+      _logger.warning('Device registration failed; retaining queued events', e);
+      return 0;
     }
 
     int successCount = 0;
@@ -529,7 +545,12 @@ class BackendSyncService {
       _queuedEvents.remove(event);
     }
 
-    await _saveQueuedEvents();
+    try {
+      await _saveQueuedEvents();
+    } catch (_) {
+      _queuedEvents.addAll(eventsToRemove);
+      rethrow;
+    }
 
     _logger.info('Sync completed', {
       'submitted': successCount,
@@ -618,6 +639,7 @@ class BackendSyncService {
       }
     } catch (e) {
       _logger.error('Failed to load queued events', e);
+      rethrow;
     }
   }
 
@@ -626,9 +648,12 @@ class BackendSyncService {
     try {
       final jsonList = _queuedEvents.map((event) => event.toJson()).toList();
       final data = json.encode(jsonList);
-      await _prefs.setString(_queuedEventsKey, data);
+      if (!await _prefs.setString(_queuedEventsKey, data)) {
+        throw StateError('Queue storage rejected the update');
+      }
     } catch (e) {
       _logger.error('Failed to save queued events', e);
+      rethrow;
     }
   }
 
@@ -705,6 +730,7 @@ class BackendSyncService {
     try {
       final registeredDevice = await _apiClient.ensureDeviceRegistered();
       final diagnostics = _audioCapture.getDiagnostics();
+      final soundDiagnostics = _soundAnalysis?.getDiagnostics();
       final proContext = _apiClient.lastProContext?.toDiagnosticMap();
       await _apiClient.sendHeartbeat(
         HeartbeatRequest(
@@ -719,6 +745,9 @@ class BackendSyncService {
           'restart_count': diagnostics['restartCount'],
           'last_sample_at': diagnostics['lastSampleAt'],
           'time_since_last_sample_ms': diagnostics['timeSinceLastSampleMs'],
+          'sound_analysis': soundDiagnostics == null
+              ? null
+              : publicSoundHealth(soundDiagnostics),
           'assigned_site_id': _apiClient.assignedSiteId,
           'assigned_zone_id': _apiClient.assignedZoneId,
           'assigned_calibration_profile_id':

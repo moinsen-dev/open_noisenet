@@ -147,7 +147,7 @@ export default function EventsPage() {
             Loading events from backend...
           </Typography>
           <Typography variant="body2" color="textSecondary">
-            Connecting to {import.meta.env.VITE_API_URL || 'http://localhost:8100'}
+            Connecting to {import.meta.env.VITE_API_URL || '/api/v1'}
           </Typography>
         </Box>
       </Box>
@@ -171,7 +171,7 @@ export default function EventsPage() {
           <Typography variant="h6">Backend Connection Failed</Typography>
           <Typography variant="body2">{state.error}</Typography>
           <Typography variant="caption" sx={{ mt: 1, display: 'block' }}>
-            Backend URL: {import.meta.env.VITE_API_URL || 'http://localhost:8100/api/v1'}
+            Backend URL: {import.meta.env.VITE_API_URL || '/api/v1'}
           </Typography>
         </Alert>
       </Box>

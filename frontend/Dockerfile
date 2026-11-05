@@ -2,7 +2,7 @@
 FROM node:22-alpine as builder
 
 # Build argument for the Vite API base URL
-ARG VITE_API_URL=http://localhost:8100/api/v1
+ARG VITE_API_URL=/api/v1
 
 # Set environment variables for build
 ENV VITE_API_URL=$VITE_API_URL

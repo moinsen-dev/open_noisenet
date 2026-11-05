@@ -62,3 +62,21 @@ class Device(Base):
     calibration_offset: Mapped[float] = mapped_column(
         Float, nullable=True, default=0.0
     )
+
+
+class DeviceApiKey(Base):
+    """One-way device credential; raw device keys are never stored by the server."""
+
+    __tablename__ = "device_api_keys"
+    # The original Docker bootstrap omitted this otherwise inherited column.
+    # Mapping only the columns common to both existing schemas avoids a data migration.
+    updated_at = None
+
+    device_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("devices.id", ondelete="CASCADE"), nullable=False
+    )
+    key_hash: Mapped[str] = mapped_column(String(64), nullable=False, unique=True)
+    name: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    last_used: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    expires_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)

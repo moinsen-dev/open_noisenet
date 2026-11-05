@@ -27,9 +27,21 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        manifestPlaceholders["applicationLabel"] = "OpenNoiseNet"
     }
 
     buildTypes {
+        debug {
+            val isolatedTestSuffix = System.getenv("NOISENET_TEST_APP_SUFFIX")
+            if (System.getenv("NOISENET_FIELD_TEST_APP") == "1") {
+                applicationIdSuffix = ".fieldtest"
+                manifestPlaceholders["applicationLabel"] = "OpenNoiseNet Field Test"
+            } else if (isolatedTestSuffix != null) {
+                require(isolatedTestSuffix.matches(Regex("[a-z][a-z0-9_]*")))
+                applicationIdSuffix = ".$isolatedTestSuffix"
+                manifestPlaceholders["applicationLabel"] = "OpenNoiseNet Episode Test"
+            }
+        }
         release {
             // TODO: Add your own signing config for the release build.
             // Signing with the debug keys for now, so `flutter run --release` works.

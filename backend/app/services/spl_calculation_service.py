@@ -1,6 +1,6 @@
-"""
-SPL (Sound Pressure Level) calculation service with A-weighting.
-Implements standard acoustic calculations for environmental noise monitoring.
+"""Utilities for sound-level statistics and frequency-weighting references.
+
+A scalar broadband level cannot be converted into an A-weighted level.
 """
 
 import math
@@ -15,7 +15,7 @@ logger = get_logger(__name__)
 
 
 class SPLCalculationService:
-    """Service for calculating A-weighted SPL and equivalent continuous sound levels."""
+    """Service for equivalent levels and other sound-level statistics."""
 
     # A-weighting filter coefficients based on IEC 61672-1 standard
     A_WEIGHTING_TABLE = {
@@ -84,27 +84,11 @@ class SPLCalculationService:
 
     @staticmethod
     def apply_a_weighting_broadband(raw_spl_db: float) -> float:
-        """
-        Apply approximate A-weighting for broadband environmental noise.
-
-        This is a simplified approach for real-time processing without FFT.
-        For precise measurements, frequency-domain A-weighting should be used.
-        """
-        if raw_spl_db < 30:
-            # Very quiet - likely low frequency dominant
-            return raw_spl_db - 8.0
-        elif raw_spl_db < 50:
-            # Quiet - typical background noise
-            return raw_spl_db - 4.0
-        elif raw_spl_db < 70:
-            # Moderate - speech, distant traffic
-            return raw_spl_db - 2.0
-        elif raw_spl_db < 90:
-            # Loud - traffic, machinery
-            return raw_spl_db - 1.0
-        else:
-            # Very loud - minimal correction needed
-            return raw_spl_db
+        """Reject an invalid conversion: one broadband value has no spectrum."""
+        raise NotImplementedError(
+            "A-weighting requires audio samples or frequency-band energies; "
+            "it cannot be inferred from one broadband level"
+        )
 
     @staticmethod
     def calculate_leq(

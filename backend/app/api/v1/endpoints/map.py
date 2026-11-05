@@ -30,12 +30,13 @@ async def get_map_events(
     max_lng: Optional[float] = Query(None),
     hours: int = Query(24, ge=1, le=720),
     limit: int = Query(500, ge=1, le=5000),
-    db: AsyncSession = Depends(get_session),
+    db: AsyncSession = Depends(get_session, scope="function"),
 ) -> GeoJSONResponse:
     """Get events in GeoJSON format for map display."""
     cutoff = datetime.now(timezone.utc) - timedelta(hours=hours)
 
-    stmt = select(Event).options(selectinload(Event.device)).where(
+    stmt = select(Event).join(Device, Event.device_id == Device.id).options(selectinload(Event.device)).where(
+        Device.is_public.is_(True),
         Event.location_lat.is_not(None),
         Event.location_lng.is_not(None),
         Event.timestamp_start >= cutoff,
@@ -86,12 +87,13 @@ async def get_heatmap_data(
     min_lng: float = Query(...),
     max_lng: float = Query(...),
     hours: int = Query(24, ge=1, le=720),
-    db: AsyncSession = Depends(get_session),
+    db: AsyncSession = Depends(get_session, scope="function"),
 ) -> HeatmapResponse:
     """Get aggregated data for heatmap visualization."""
     cutoff = datetime.now(timezone.utc) - timedelta(hours=hours)
 
-    stmt = select(Event).where(
+    stmt = select(Event).join(Device, Event.device_id == Device.id).where(
+        Device.is_public.is_(True),
         Event.location_lat.is_not(None),
         Event.location_lng.is_not(None),
         Event.location_lat >= min_lat,
@@ -128,22 +130,33 @@ async def get_heatmap_data(
 
 @router.get("/stats", response_model=MapStats)
 async def get_map_statistics(
-    db: AsyncSession = Depends(get_session),
+    db: AsyncSession = Depends(get_session, scope="function"),
 ) -> MapStats:
     """Get general statistics for map display."""
     cutoff_24h = datetime.now(timezone.utc) - timedelta(hours=24)
 
     # Total events
-    total_events_result = await db.execute(select(func.count(Event.id)))
+    total_events_result = await db.execute(
+        select(func.count(Event.id))
+        .join(Device, Event.device_id == Device.id)
+        .where(
+            Device.is_public.is_(True),
+            Event.location_lat.is_not(None),
+            Event.location_lng.is_not(None),
+        )
+    )
     total_events = total_events_result.scalar() or 0
 
     # Total devices
-    total_devices_result = await db.execute(select(func.count(Device.id)))
+    total_devices_result = await db.execute(select(func.count(Device.id)).where(Device.is_public.is_(True)))
     total_devices = total_devices_result.scalar() or 0
 
     # Average and max leq_db
     agg_result = await db.execute(
-        select(func.avg(Event.leq_db), func.max(Event.leq_db)).where(
+        select(func.avg(Event.leq_db), func.max(Event.leq_db)).join(Device, Event.device_id == Device.id).where(
+            Device.is_public.is_(True),
+            Event.location_lat.is_not(None),
+            Event.location_lng.is_not(None),
             Event.leq_db.is_not(None)
         )
     )
@@ -153,7 +166,10 @@ async def get_map_statistics(
 
     # Active devices in last 24h (devices that have events in last 24h)
     active_devices_result = await db.execute(
-        select(func.count(func.distinct(Event.device_id))).where(
+        select(func.count(func.distinct(Event.device_id))).join(Device, Event.device_id == Device.id).where(
+            Device.is_public.is_(True),
+            Event.location_lat.is_not(None),
+            Event.location_lng.is_not(None),
             Event.timestamp_start >= cutoff_24h
         )
     )
@@ -161,7 +177,12 @@ async def get_map_statistics(
 
     # Events in last 24h
     events_24h_result = await db.execute(
-        select(func.count(Event.id)).where(Event.timestamp_start >= cutoff_24h)
+        select(func.count(Event.id)).join(Device, Event.device_id == Device.id).where(
+            Device.is_public.is_(True),
+            Event.location_lat.is_not(None),
+            Event.location_lng.is_not(None),
+            Event.timestamp_start >= cutoff_24h,
+        )
     )
     events_24h = events_24h_result.scalar() or 0
 

@@ -185,7 +185,7 @@ class _StatisticsModalState extends State<StatisticsModal> {
                                         ),
                                   ),
                                   Text(
-                                    'dB SPL',
+                                    'dB estimate',
                                     style:
                                         Theme.of(context).textTheme.bodySmall,
                                   ),
@@ -216,7 +216,7 @@ class _StatisticsModalState extends State<StatisticsModal> {
                                         ),
                                   ),
                                   Text(
-                                    'dB SPL',
+                                    'dB estimate',
                                     style:
                                         Theme.of(context).textTheme.bodySmall,
                                   ),

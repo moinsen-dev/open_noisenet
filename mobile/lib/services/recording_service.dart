@@ -15,6 +15,7 @@ import '../core/database/models/ai_analysis_queue.dart';
 import '../core/database/models/audio_recording.dart';
 import '../core/logging/app_logger.dart';
 import 'noise_event_detector.dart';
+import 'audio_recording_policy.dart';
 import 'sqlite_preferences_service.dart';
 
 /// State of the recording system
@@ -160,9 +161,16 @@ class RecordingService {
       _maxBuffers = await _preferences.getMaxRecordingsCount();
       _autoRecordThreshold = await _preferences.getNoiseThreshold();
 
-      // Check if recording is enabled (new setting) - default to true as this is our main functionality
-      _enableRecording =
-          await _preferences.getBool('recording_enabled', defaultValue: true);
+      // Persisting raw audio is a separate, explicit opt-in. Normal sensor
+      // operation uses only ephemeral PCM windows for local classification.
+      _enableRecording = await _preferences.getBool(
+        'continuous_recording_enabled',
+        defaultValue: false,
+      );
+      if (!AudioRecordingPolicy.newRecordingsAvailable && _enableRecording) {
+        _enableRecording = false;
+        await _preferences.setBool('continuous_recording_enabled', false);
+      }
 
       AppLogger.settings(
           'Recording settings loaded - Duration: $_bufferDuration, Threshold: ${_autoRecordThreshold}dB');
@@ -173,6 +181,7 @@ class RecordingService {
 
   /// Start recording
   Future<bool> startRecording() async {
+    if (!AudioRecordingPolicy.newRecordingsAvailable) return false;
     if (!_enableRecording) {
       AppLogger.warning('Recording is disabled in settings');
       return false;
@@ -232,6 +241,7 @@ class RecordingService {
 
   /// Create new recording buffer
   Future<void> _createNewBuffer() async {
+    AudioRecordingPolicy.requireNewRecordingsAvailable();
     final bufferId = _uuid.v4();
     final now = DateTime.now();
 
@@ -592,6 +602,9 @@ class RecordingService {
     double? autoRecordThreshold,
     int? maxBuffers,
   }) async {
+    if (enableContinuousRecording == true) {
+      AudioRecordingPolicy.requireNewRecordingsAvailable();
+    }
     bool needsRestart = false;
 
     if (enableContinuousRecording != null) {

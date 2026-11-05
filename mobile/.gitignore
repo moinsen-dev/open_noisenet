@@ -106,7 +106,15 @@ test/test_driver/
 # Model files for AI
 *.tflite
 *.mlmodel
-assets/models/
+# The official offline YAMNet artifact is intentionally versioned. Normal
+# monitoring must not depend on downloading a model at runtime.
+!assets/models/
+!assets/models/yamnet.tflite
+!assets/models/yamnet_label_list.txt
+!assets/models/README.md
 
 # Large assets
 assets/large/
+
+# Local Kotlin compiler sessions
+android/.kotlin/

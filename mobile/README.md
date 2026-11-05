@@ -19,9 +19,26 @@ Out of scope for the current milestone:
 
 ```bash
 flutter pub get
+dart run build_runner build --delete-conflicting-outputs
 flutter analyze
 flutter test
 ```
+
+The generated Dart files are ignored by Git and must be regenerated in a clean
+checkout. For an Android APK, check 16 KB compatibility after the build with
+the Android SDK's `zipalign` and NDK's `llvm-readelf` available via
+`ANDROID_HOME` (or `PATH`):
+
+```bash
+../scripts/build-mobile-android.sh --no-pub
+python3 ../scripts/check_android_16kb.py build/app/outputs/flutter-apk/app-debug.apk
+```
+
+This checks APK ZIP alignment and the 64-bit native library segments. It does
+not replace a launch and model inference test on an Android 16 KB device.
+When switching from a debug build to `flutter build apk --release`, omit
+`--no-pub` so Flutter regenerates the release plugin registration. The current
+release build uses a debug signing key and is not ready for distribution.
 
 ## Backend Assumption
 
@@ -44,4 +61,4 @@ flutter run -d web-server \
 
 Open `http://127.0.0.1:43123` and wait for the page status to become `PASS`.
 
-Accepted analyzer debt for this milestone is tracked in [ANALYZER_BASELINE.md](/Users/udi/work/moinsen/ideas/open_noisenet/mobile/ANALYZER_BASELINE.md).
+Accepted analyzer debt for this milestone is tracked in [ANALYZER_BASELINE.md](ANALYZER_BASELINE.md).

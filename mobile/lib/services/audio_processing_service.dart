@@ -3,9 +3,10 @@ import 'dart:typed_data';
 
 import '../core/logging/app_logger.dart';
 
-/// Enhanced audio processing service with proper A-weighting implementation
+/// Helpers for level estimates, energy averaging and spectrum weighting.
 class AudioProcessingService {
-  static final AudioProcessingService _instance = AudioProcessingService._internal();
+  static final AudioProcessingService _instance =
+      AudioProcessingService._internal();
   factory AudioProcessingService() => _instance;
   AudioProcessingService._internal();
 
@@ -32,7 +33,7 @@ class AudioProcessingService {
     500.0: -3.2,
     630.0: -1.9,
     800.0: -0.8,
-    1000.0: 0.0,  // Reference frequency
+    1000.0: 0.0, // Reference frequency
     1250.0: 0.6,
     1600.0: 1.0,
     2000.0: 1.2,
@@ -47,60 +48,6 @@ class AudioProcessingService {
     16000.0: -6.6,
     20000.0: -9.3,
   };
-
-  /// Calculate A-weighted sound pressure level from raw audio data
-  double calculateAWeightedSPL(Float32List audioSamples, double sampleRate) {
-    try {
-      // Calculate RMS (Root Mean Square) of the audio signal
-      final rms = _calculateRMS(audioSamples);
-      if (rms == 0.0) return 0.0;
-
-      // Convert RMS to dB SPL
-      // Reference: 20 µPa (threshold of hearing)
-      final dbSPL = 20 * log(rms / 2e-5) / ln10;
-
-      // Apply A-weighting compensation
-      // For broadband signals, we use an approximate A-weighting factor
-      final aWeightedSPL = dbSPL + _getBroadbandAWeighting(sampleRate);
-
-      // Clamp to realistic range
-      return aWeightedSPL.clamp(10.0, 140.0);
-
-    } catch (e) {
-      AppLogger.audio('Error calculating A-weighted SPL: $e');
-      return 0.0;
-    }
-  }
-
-  /// Calculate RMS (Root Mean Square) of audio samples
-  double _calculateRMS(Float32List samples) {
-    if (samples.isEmpty) return 0.0;
-
-    double sumSquares = 0.0;
-    for (final sample in samples) {
-      sumSquares += sample * sample;
-    }
-
-    return sqrt(sumSquares / samples.length);
-  }
-
-  /// Get approximate A-weighting for broadband signals
-  /// This is a simplified approach for real-time processing
-  double _getBroadbandAWeighting(double sampleRate) {
-    // For typical environmental noise (broadband), apply approximate A-weighting
-    // This accounts for the human ear's frequency sensitivity
-
-    if (sampleRate >= 44100) {
-      // High sample rate - full frequency range
-      return -2.0; // Approximate A-weighting for broadband environmental noise
-    } else if (sampleRate >= 22050) {
-      // Medium sample rate
-      return -1.5;
-    } else {
-      // Lower sample rate - limited high frequency response
-      return -1.0;
-    }
-  }
 
   /// Calculate equivalent continuous sound level (Leq) over time period
   double calculateLeq(List<double> splSamples, {Duration? timeWindow}) {
@@ -119,7 +66,6 @@ class AudioProcessingService {
       final leq = 10 * log(meanEnergy) / ln10;
 
       return leq.clamp(10.0, 140.0);
-
     } catch (e) {
       AppLogger.audio('Error calculating Leq: $e');
       return splSamples.isNotEmpty ? splSamples.first : 0.0;
@@ -143,7 +89,8 @@ class AudioProcessingService {
   }
 
   /// Apply frequency-specific A-weighting (for FFT-based analysis)
-  Float32List applyAWeightingToSpectrum(Float32List magnitudes, List<double> frequencies) {
+  Float32List applyAWeightingToSpectrum(
+      Float32List magnitudes, List<double> frequencies) {
     final aWeighted = Float32List(magnitudes.length);
 
     for (int i = 0; i < magnitudes.length; i++) {
@@ -225,9 +172,8 @@ class AudioProcessingService {
         .where((m) => m.timestamp.isAfter(startTime) && m.splDb >= thresholdDb)
         .length;
 
-    final totalSamples = recentMeasurements
-        .where((m) => m.timestamp.isAfter(startTime))
-        .length;
+    final totalSamples =
+        recentMeasurements.where((m) => m.timestamp.isAfter(startTime)).length;
 
     // Event detected if >80% of samples in time window exceed threshold
     return totalSamples > 0 && (exceedingSamples / totalSamples) > 0.8;
@@ -282,14 +228,14 @@ class TimestampedSPL {
 
 /// Comprehensive noise statistics
 class NoiseStatistics {
-  final double leq;    // Equivalent continuous sound level
-  final double lmin;   // Minimum level
-  final double lmax;   // Maximum level
-  final double l10;    // Level exceeded 10% of time
-  final double l50;    // Median level
-  final double l90;    // Level exceeded 90% of time
-  final double l95;    // Level exceeded 95% of time
-  final double l99;    // Level exceeded 99% of time
+  final double leq; // Equivalent continuous sound level
+  final double lmin; // Minimum level
+  final double lmax; // Maximum level
+  final double l10; // Level exceeded 10% of time
+  final double l50; // Median level
+  final double l90; // Level exceeded 90% of time
+  final double l95; // Level exceeded 95% of time
+  final double l99; // Level exceeded 99% of time
   final int sampleCount;
   final Duration timeWindow;
 

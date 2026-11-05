@@ -124,13 +124,16 @@ public class SwiftAudioStreamerPlugin: NSObject, FlutterPlugin, FlutterStreamHan
     engine = AVAudioEngine()
 
     do {
-      try AVAudioSession.sharedInstance().setCategory(
-        AVAudioSession.Category.playAndRecord, options: .mixWithOthers)
-      try AVAudioSession.sharedInstance().setActive(true)
+      let session = AVAudioSession.sharedInstance()
+      try session.setCategory(
+        AVAudioSession.Category.playAndRecord,
+        mode: AVAudioSession.Mode.measurement,
+        options: .mixWithOthers)
+      try session.setActive(true)
 
       if let sampleRateNotNull = sampleRate {
         // Try to set sample rate
-        try AVAudioSession.sharedInstance().setPreferredSampleRate(Double(sampleRateNotNull))
+        try session.setPreferredSampleRate(Double(sampleRateNotNull))
       }
 
       let input = engine.inputNode

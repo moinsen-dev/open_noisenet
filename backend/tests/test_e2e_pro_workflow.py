@@ -5,6 +5,11 @@ from httpx import AsyncClient
 pytestmark = pytest.mark.asyncio
 
 
+@pytest.fixture(autouse=True)
+def device_key(client: AsyncClient):
+    client.headers["X-Device-Key"] = "A" * 43
+
+
 async def test_full_pro_workflow(client: AsyncClient):
     """Walk the entire Pro flow: register → org → site → zone → policy
     → device → assign → event → list → case → export."""

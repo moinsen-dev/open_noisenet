@@ -5,10 +5,12 @@ import 'package:get_it/get_it.dart';
 import '../../../../services/audio_capture_service.dart';
 import '../../../../services/permission_dialog_service.dart';
 import '../../../../services/recording_service.dart';
+import '../../../../services/sound_analysis/on_device_sound_analysis_service.dart';
 import '../../../../services/statistics_service.dart';
 import '../../../../widgets/audio_waveform_widget.dart';
 import '../../../../widgets/shared_app_bar.dart';
 import '../bloc/monitoring_bloc.dart';
+import '../widgets/live_sound_analysis_card.dart';
 
 class NoiseMonitoringPage extends StatefulWidget {
   const NoiseMonitoringPage({super.key});
@@ -135,6 +137,16 @@ class _NoiseMonitoringPageState extends State<NoiseMonitoringPage> {
                     ),
 
                   const SizedBox(height: 8),
+
+                  if (state is MonitoringActive)
+                    LiveSoundAnalysisCard(
+                      analysisService:
+                          GetIt.instance<OnDeviceSoundAnalysisService>(),
+                      audioCaptureService:
+                          GetIt.instance<AudioCaptureService>(),
+                    ),
+
+                  if (state is MonitoringActive) const SizedBox(height: 8),
 
                   // Real-time Statistics
                   _buildRealTimeStatistics(),

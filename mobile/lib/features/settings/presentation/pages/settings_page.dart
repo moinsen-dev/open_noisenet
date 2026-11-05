@@ -1,14 +1,18 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:get_it/get_it.dart';
 import 'package:go_router/go_router.dart';
 import 'package:path_provider/path_provider.dart';
 
+import '../widgets/audio_calibration_dialog.dart';
+
 import '../../../../features/app/presentation/bloc/app_bloc.dart';
 import '../../../../services/audio_capture_service.dart';
 import '../../../../services/location_service.dart';
 import '../../../../services/recording_service.dart';
+import '../../../../services/audio_recording_policy.dart';
 import '../../../../services/sqlite_preferences_service.dart';
 import '../../../../services/api_client_service.dart';
 import '../../../../services/backend_sync_service.dart';
@@ -63,13 +67,14 @@ class _SettingsPageState extends State<SettingsPage> {
 
               // Audio Settings
               _buildAudioSection(context),
+              _buildEventThresholdSection(context),
               const Divider(),
 
               // Continuous Recording Settings
               _buildContinuousRecordingSection(context),
               const Divider(),
 
-              // Backend Integration 
+              // Backend Integration
               _buildSyncSection(context),
               const Divider(),
 
@@ -154,6 +159,63 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
+  Widget _buildEventThresholdSection(BuildContext context) {
+    return FutureBuilder<double>(
+      future: _preferencesService.getNoiseThreshold(),
+      builder: (context, snapshot) => ListTile(
+        leading: const Icon(Icons.timeline),
+        title: const Text('Ereigniserkennung'),
+        subtitle: Text(
+            'Vergleichslinie ${snapshot.data?.round() ?? 55} · kein Grenzwert'),
+        onTap: snapshot.hasData
+            ? () async {
+                var value = snapshot.data!.clamp(10.0, 120.0);
+                final selected = await showDialog<double>(
+                  context: context,
+                  builder: (context) => StatefulBuilder(
+                      builder: (context, update) => AlertDialog(
+                            title: const Text('Vergleichslinie für Ereignisse'),
+                            content: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Text(
+                                      'Gilt ab dem nächsten Messstart. Der gleitende Mittelwert löst die Erkennung aus; kurze Ereignisse können herausgefiltert werden. Ohne Kalibrierung ist dies kein Schallpegel-Grenzwert. Zugewiesene Standortregeln haben Vorrang.'),
+                                  Text('${value.round()}'),
+                                  Slider(
+                                      value: value,
+                                      min: 10,
+                                      max: 120,
+                                      divisions: 110,
+                                      onChanged: (v) =>
+                                          update(() => value = v)),
+                                ]),
+                            actions: [
+                              TextButton(
+                                  onPressed: () => Navigator.pop(context),
+                                  child: const Text('Abbrechen')),
+                              FilledButton(
+                                  onPressed: () =>
+                                      Navigator.pop(context, value),
+                                  child: const Text('Speichern')),
+                            ],
+                          )),
+                );
+                if (selected == null) return;
+                try {
+                  await _preferencesService.setNoiseThreshold(selected);
+                  if (mounted) setState(() {});
+                } catch (_) {
+                  if (context.mounted)
+                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                        content: Text(
+                            'Vergleichslinie konnte nicht gespeichert werden.')));
+                }
+              }
+            : null,
+      ),
+    );
+  }
+
   Widget _buildContinuousRecordingSection(BuildContext context) {
     return FutureBuilder<Map<String, dynamic>>(
       future: () async {
@@ -179,21 +241,27 @@ class _SettingsPageState extends State<SettingsPage> {
                 color: isActive ? Colors.red : null,
               ),
               title: const Text('Continuous Recording'),
-              subtitle: Text(isEnabled
-                  ? (isActive
-                      ? 'Active - Auto-detecting noise events'
-                      : 'Enabled - Ready to start')
-                  : 'Disabled - Manual recording only'),
+              subtitle: !AudioRecordingPolicy.newRecordingsAvailable
+                  ? const Text(AudioRecordingPolicy.unavailableMessage)
+                  : Text(isEnabled
+                      ? (isActive
+                          ? 'Active - Auto-detecting noise events'
+                          : 'Enabled - Ready to start')
+                      : 'Disabled'),
               trailing: Switch(
-                value: isEnabled,
-                onChanged: (value) async {
-                  await _recordingService.updateSettings(
-                    enableContinuousRecording: value,
-                  );
-                  setState(() {});
-                },
+                value: AudioRecordingPolicy.newRecordingsAvailable && isEnabled,
+                onChanged: !AudioRecordingPolicy.newRecordingsAvailable
+                    ? null
+                    : (value) async {
+                        await _recordingService.updateSettings(
+                          enableContinuousRecording: value,
+                        );
+                        setState(() {});
+                      },
               ),
-              onTap: () => _showContinuousRecordingDialog(context),
+              onTap: AudioRecordingPolicy.newRecordingsAvailable
+                  ? () => _showContinuousRecordingDialog(context)
+                  : null,
             ),
             if (isEnabled) ...[
               Padding(
@@ -226,17 +294,11 @@ class _SettingsPageState extends State<SettingsPage> {
   Widget _buildSyncSection(BuildContext context) {
     return Column(
       children: [
-        FutureBuilder<String>(
-          future: _preferencesService.getBackendUrl(),
-          builder: (context, snapshot) {
-            final backendUrl = snapshot.data ?? 'Loading...';
-            return ListTile(
-              leading: const Icon(Icons.cloud_sync),
-              title: const Text('Backend Integration'),
-              subtitle: Text('Backend: $backendUrl'),
-              onTap: () => _showSyncDialog(context),
-            );
-          },
+        ListTile(
+          leading: const Icon(Icons.cloud_sync),
+          title: const Text('Backend Integration'),
+          subtitle: Text('Backend: ${_apiClientService.baseUrl}'),
+          onTap: () => _showSyncDialog(context),
         ),
         FutureBuilder<bool>(
           future: _preferencesService.getForceOfflineMode(),
@@ -245,8 +307,8 @@ class _SettingsPageState extends State<SettingsPage> {
             return ListTile(
               leading: const Icon(Icons.cloud_off),
               title: const Text('Offline Mode'),
-              subtitle: Text(isOfflineMode 
-                  ? 'Offline only - Backend disabled' 
+              subtitle: Text(isOfflineMode
+                  ? 'Offline only - Backend disabled'
                   : 'Auto-detect backend connectivity'),
               trailing: Switch(
                 value: isOfflineMode,
@@ -280,20 +342,20 @@ class _SettingsPageState extends State<SettingsPage> {
                   ],
                 );
               }
-              
+
               final mode = status['mode'] as String;
               final queuedEvents = status['queued_events'] as int;
-              
+
               Color statusColor;
               IconData statusIcon;
               String statusText;
-              
+
               switch (mode) {
                 case 'offline':
                   statusColor = Colors.grey;
                   statusIcon = Icons.cloud_off;
-                  statusText = queuedEvents > 0 
-                      ? 'Offline - $queuedEvents events queued' 
+                  statusText = queuedEvents > 0
+                      ? 'Offline - $queuedEvents events queued'
                       : 'Offline mode';
                   break;
                 case 'anonymous':
@@ -311,7 +373,7 @@ class _SettingsPageState extends State<SettingsPage> {
                   statusIcon = Icons.error;
                   statusText = 'Unknown status';
               }
-              
+
               return Row(
                 children: [
                   Icon(statusIcon, color: statusColor, size: 16),
@@ -338,8 +400,8 @@ class _SettingsPageState extends State<SettingsPage> {
         color: _apiClientService.isAuthenticated ? Colors.green : null,
       ),
       title: const Text('Account Authentication'),
-      subtitle: Text(_apiClientService.isAuthenticated 
-          ? 'Authenticated and connected' 
+      subtitle: Text(_apiClientService.isAuthenticated
+          ? 'Authenticated and connected'
           : 'Login to sync data with backend'),
       onTap: () => context.go('/auth'),
     );
@@ -393,7 +455,7 @@ class _SettingsPageState extends State<SettingsPage> {
       children: [
         ListTile(
           leading: const Icon(Icons.privacy_tip),
-          title: const Text('Privacy Policy'),
+          title: const Text('Privacy information'),
           onTap: () => _showPrivacyPolicy(context),
         ),
         ListTile(
@@ -439,76 +501,18 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   void _showAudioDialog(BuildContext context) {
-    double currentOffset = _audioService.calibrationOffset;
-    final threshold =
-        _recordingService.getSettings()['auto_record_threshold'] as double;
-    showDialog(
+    showDialog<void>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Audio Calibration'),
-        content: StatefulBuilder(
-          builder: (context, setState) => SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Text(
-                    'Adjust calibration to match a professional sound level meter:'),
-                const SizedBox(height: 16),
-                Slider(
-                  value: currentOffset,
-                  min: -10.0,
-                  max: 10.0,
-                  divisions: 40,
-                  label: '${currentOffset.toStringAsFixed(1)} dB',
-                  onChanged: (value) {
-                    setState(() {
-                      currentOffset = value;
-                    });
-                  },
-                ),
-                Text('Current offset: ${currentOffset.toStringAsFixed(1)} dB'),
-                const SizedBox(height: 4),
-                Text(
-                  'Effective threshold: ${(threshold + currentOffset).toStringAsFixed(1)} dB',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Colors.grey,
-                        fontWeight: FontWeight.w600,
-                      ),
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  'Typical smartphone microphone offsets:\n'
-                  '• Pixel / Google phones: -10 to -15 dB\n'
-                  '• iPhones: -8 to -12 dB\n'
-                  '• Samsung: -12 to -18 dB\n'
-                  '• Budget Android: -15 to -25 dB\n'
-                  '\n'
-                  'Set a NEGATIVE offset if your readings seem too high. '
-                  'For best results, calibrate against a reference SPL meter '
-                  'or a known quiet environment (~30-35 dB).',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Colors.grey,
-                      ),
-                ),
-              ],
-            ),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              _audioService.setCalibrationOffset(currentOffset);
-              await _preferencesService.setCalibrationOffset(currentOffset);
-              Navigator.pop(context);
-              setState(() {});
-            },
-            child: const Text('Save'),
-          ),
-        ],
+      builder: (_) => AudioCalibrationDialog(
+        frames: _audioService.pcmFrameStream,
+        captureReady: () =>
+            _audioService.isCapturing && _audioService.actualSampleRateVerified,
+        initialOffset: _audioService.calibrationOffset,
+        onSave: (offset) async {
+          _audioService.setCalibrationOffset(offset);
+          await _preferencesService.setCalibrationOffset(offset);
+          if (mounted) setState(() {});
+        },
       ),
     );
   }
@@ -620,13 +624,14 @@ class _SettingsPageState extends State<SettingsPage> {
 
   void _showSyncDialog(BuildContext context) async {
     // Load current values asynchronously
-    final backendUrl = await _preferencesService.getBackendUrl();
-    final autoSubmissionEnabled = await _preferencesService.getAutoSubmissionEnabled();
+    final autoSubmissionEnabled =
+        await _preferencesService.getAutoSubmissionEnabled();
+    if (!context.mounted) return;
 
     showDialog<void>(
       context: context,
       builder: (context) => _BackendConfigDialog(
-        initialUrl: backendUrl,
+        initialUrl: _apiClientService.baseUrl,
         initialAutoSubmission: autoSubmissionEnabled,
         apiClientService: _apiClientService,
         preferencesService: _preferencesService,
@@ -639,16 +644,16 @@ class _SettingsPageState extends State<SettingsPage> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Privacy Policy'),
+        title: const Text('Privacy information'),
         content: const SingleChildScrollView(
           child: Text(
-            'OpenNoiseNet Privacy Policy\n\n'
-            '• We collect noise level measurements and optional location data\n'
-            '• No audio recordings are stored without explicit consent\n'
-            '• Location data can be disabled in settings\n'
-            '• All data is anonymized and used for environmental research\n'
-            '• You can delete your data at any time\n\n'
-            'For more information, visit our website.',
+            'Microphone data is processed on this device to estimate sound levels and sources. '
+            'Optional recordings can contain sensitive sound.\n\n'
+            '• Location permission is optional. Public sharing requires a separate choice.\n'
+            '• Identifiers, times and coordinates are not necessarily anonymous.\n'
+            '• Clearing local data does not necessarily delete data already sent to a server.\n\n'
+            'The server operator must explain its processing and retention. '
+            'A complete privacy review and automatic server-side deletion remain open.',
           ),
         ),
         actions: [
@@ -1110,7 +1115,7 @@ class _BackendConfigDialog extends StatefulWidget {
 class _BackendConfigDialogState extends State<_BackendConfigDialog> {
   late TextEditingController _urlController;
   late bool _autoSubmissionEnabled;
-  
+
   bool _isTestingConnection = false;
   bool _isDetectingIP = false;
   bool _showPresets = false;
@@ -1124,7 +1129,7 @@ class _BackendConfigDialogState extends State<_BackendConfigDialog> {
     super.initState();
     _urlController = TextEditingController(text: widget.initialUrl);
     _autoSubmissionEnabled = widget.initialAutoSubmission;
-    _loadPresets();
+    if (kDebugMode) _loadPresets();
   }
 
   @override
@@ -1146,16 +1151,17 @@ class _BackendConfigDialogState extends State<_BackendConfigDialog> {
 
   Future<void> _testConnection() async {
     if (_isTestingConnection) return;
-    
+
     setState(() {
       _isTestingConnection = true;
       _connectionStatus = 'Testing connection...';
     });
 
     try {
-      await widget.apiClientService.setBaseUrl(_urlController.text);
-      final result = await widget.apiClientService.testConnectionDetailed();
-      
+      final result = await widget.apiClientService
+          .testConnectionDetailed(candidateUrl: _urlController.text);
+      if (!mounted) return;
+
       setState(() {
         _isTestingConnection = false;
         if (result.success) {
@@ -1165,6 +1171,7 @@ class _BackendConfigDialogState extends State<_BackendConfigDialog> {
         }
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _isTestingConnection = false;
         _connectionStatus = '✗ Unexpected error: ${e.toString()}';
@@ -1174,20 +1181,21 @@ class _BackendConfigDialogState extends State<_BackendConfigDialog> {
 
   Future<void> _autoDetectIP() async {
     if (_isDetectingIP) return;
-    
+
     setState(() {
       _isDetectingIP = true;
     });
 
     try {
       final networkUtils = NetworkUtils();
-      final detectedUrl = await networkUtils.getRecommendedBackendUrl(port: 8100);
-      
+      final detectedUrl =
+          await networkUtils.getRecommendedBackendUrl(port: 8100);
+
       setState(() {
         _urlController.text = detectedUrl;
         _isDetectingIP = false;
       });
-      
+
       // Auto-test the detected URL
       _testConnection();
     } catch (e) {
@@ -1223,36 +1231,37 @@ class _BackendConfigDialogState extends State<_BackendConfigDialog> {
         ),
         const SizedBox(height: 8),
         ..._presets.map((preset) => Card(
-          child: ListTile(
-            title: Text(preset.name),
-            subtitle: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(preset.description),
-                const SizedBox(height: 4),
-                Text(
-                  preset.url,
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontFamily: 'monospace',
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
+              child: ListTile(
+                title: Text(preset.name),
+                subtitle: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(preset.description),
+                    const SizedBox(height: 4),
+                    Text(
+                      preset.url,
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontFamily: 'monospace',
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-            trailing: preset.isAutoDetect
-                ? Icon(Icons.auto_fix_high, color: Theme.of(context).colorScheme.secondary)
-                : null,
-            onTap: () {
-              setState(() {
-                _urlController.text = preset.url;
-                _showPresets = false;
-              });
-              // Auto-test the preset URL
-              _testConnection();
-            },
-          ),
-        )),
+                trailing: preset.isAutoDetect
+                    ? Icon(Icons.auto_fix_high,
+                        color: Theme.of(context).colorScheme.secondary)
+                    : null,
+                onTap: () {
+                  setState(() {
+                    _urlController.text = preset.url;
+                    _showPresets = false;
+                  });
+                  // Auto-test the preset URL
+                  _testConnection();
+                },
+              ),
+            )),
       ],
     );
   }
@@ -1297,7 +1306,7 @@ class _BackendConfigDialogState extends State<_BackendConfigDialog> {
     buffer.writeln('Authenticated: ${info['isAuthenticated']}');
     buffer.writeln('Detected Host IP: ${info['detectedHostIP'] ?? 'None'}');
     buffer.writeln('Recommended URL: ${info['recommendedURL'] ?? 'None'}');
-    
+
     if (info['interfaces'] != null && info['interfaces'] is List) {
       buffer.writeln('\nNetwork Interfaces:');
       final interfaces = info['interfaces'] as List;
@@ -1309,14 +1318,15 @@ class _BackendConfigDialogState extends State<_BackendConfigDialog> {
             for (final addr in addresses) {
               if (addr is Map<String, dynamic> && addr['type'] == 'IPv4') {
                 final isLocal = addr['isLocalNetwork'] == true;
-                buffer.writeln('    ${addr['address']} (${isLocal ? 'Local' : 'External'})');
+                buffer.writeln(
+                    '    ${addr['address']} (${isLocal ? 'Local' : 'External'})');
               }
             }
           }
         }
       }
     }
-    
+
     return buffer.toString();
   }
 
@@ -1339,77 +1349,44 @@ class _BackendConfigDialogState extends State<_BackendConfigDialog> {
                       controller: _urlController,
                       decoration: const InputDecoration(
                         labelText: 'Backend URL',
-                        hintText: 'http://192.168.1.100:8100/api/v1',
+                        hintText: 'https://your-server.example/api/v1',
                       ),
                     ),
                   ),
-                  const SizedBox(width: 8),
-                  SizedBox(
-                    width: 80,
-                    height: 40,
-                    child: ElevatedButton.icon(
-                      onPressed: _isDetectingIP ? null : _autoDetectIP,
-                      icon: _isDetectingIP
-                          ? const SizedBox(
-                              width: 14,
-                              height: 14,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : const Icon(Icons.wifi_find, size: 16),
-                      label: const Text('Auto'),
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  if (kDebugMode) ...[
+                    const SizedBox(width: 8),
+                    SizedBox(
+                      width: 80,
+                      height: 40,
+                      child: ElevatedButton.icon(
+                        onPressed: _isDetectingIP ? null : _autoDetectIP,
+                        icon: _isDetectingIP
+                            ? const SizedBox(
+                                width: 14,
+                                height: 14,
+                                child:
+                                    CircularProgressIndicator(strokeWidth: 2),
+                              )
+                            : const Icon(Icons.wifi_find, size: 16),
+                        label: const Text('Auto'),
+                        style: ElevatedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 4),
+                        ),
                       ),
                     ),
-                  ),
+                  ],
                 ],
               ),
               const SizedBox(height: 16),
 
-              // Quick setup section
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Quick Setup',
-                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'For your MacBook (192.168.178.157):',
-                        style: Theme.of(context).textTheme.bodySmall,
-                      ),
-                      const SizedBox(height: 4),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              'http://192.168.178.157:8100/api/v1',
-                              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                fontFamily: 'monospace',
-                                backgroundColor: Colors.grey.withValues(alpha: 0.1),
-                              ),
-                            ),
-                          ),
-                          TextButton(
-                            onPressed: () {
-                              _urlController.text = 'http://192.168.178.157:8100/api/v1';
-                            },
-                            child: const Text('Use'),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
+              if (widget.apiClientService.isAuthenticated) ...[
+                const Text(
+                  'Saving a different backend signs you out. Test Connection does not change the saved backend.',
                 ),
-              ),
-              const SizedBox(height: 16),
-              
+                const SizedBox(height: 12),
+              ],
+
               // Connection test button
               SizedBox(
                 width: double.infinity,
@@ -1425,7 +1402,7 @@ class _BackendConfigDialogState extends State<_BackendConfigDialog> {
                   label: const Text('Test Connection'),
                 ),
               ),
-              
+
               // Connection status
               if (_connectionStatus.isNotEmpty) ...[
                 const SizedBox(height: 8),
@@ -1440,53 +1417,59 @@ class _BackendConfigDialogState extends State<_BackendConfigDialog> {
                   ),
                 ),
               ],
-              
+
               const SizedBox(height: 16),
-              
-              // Presets toggle
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton.icon(
+
+              if (kDebugMode) ...[
+                // Presets toggle
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: () {
+                          setState(() {
+                            _showPresets = !_showPresets;
+                          });
+                        },
+                        icon: Icon(_showPresets
+                            ? Icons.expand_less
+                            : Icons.expand_more),
+                        label: const Text('Quick Presets'),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    OutlinedButton.icon(
                       onPressed: () {
                         setState(() {
-                          _showPresets = !_showPresets;
+                          _showNetworkDebug = !_showNetworkDebug;
                         });
+                        if (_showNetworkDebug && _networkDebugInfo == null) {
+                          _loadNetworkDebugInfo();
+                        }
                       },
-                      icon: Icon(_showPresets ? Icons.expand_less : Icons.expand_more),
-                      label: const Text('Quick Presets'),
+                      icon: Icon(_showNetworkDebug
+                          ? Icons.expand_less
+                          : Icons.expand_more),
+                      label: const Text('Debug'),
                     ),
-                  ),
-                  const SizedBox(width: 8),
-                  OutlinedButton.icon(
-                    onPressed: () {
-                      setState(() {
-                        _showNetworkDebug = !_showNetworkDebug;
-                      });
-                      if (_showNetworkDebug && _networkDebugInfo == null) {
-                        _loadNetworkDebugInfo();
-                      }
-                    },
-                    icon: Icon(_showNetworkDebug ? Icons.expand_less : Icons.expand_more),
-                    label: const Text('Debug'),
-                  ),
+                  ],
+                ),
+
+                // Presets section
+                if (_showPresets) ...[
+                  const SizedBox(height: 16),
+                  _buildPresetsList(),
                 ],
-              ),
-              
-              // Presets section
-              if (_showPresets) ...[
+
+                // Network debug section
+                if (_showNetworkDebug) ...[
+                  const SizedBox(height: 16),
+                  _buildNetworkDebugInfo(),
+                ],
+
                 const SizedBox(height: 16),
-                _buildPresetsList(),
               ],
-              
-              // Network debug section
-              if (_showNetworkDebug) ...[
-                const SizedBox(height: 16),
-                _buildNetworkDebugInfo(),
-              ],
-              
-              const SizedBox(height: 16),
-              
+
               // Authentication status
               Container(
                 padding: const EdgeInsets.all(12),
@@ -1526,19 +1509,21 @@ class _BackendConfigDialogState extends State<_BackendConfigDialog> {
                       const SizedBox(height: 4),
                       Text(
                         'Device ID: ${widget.apiClientService.deviceId}',
-                        style: const TextStyle(fontSize: 10, color: Colors.grey),
+                        style:
+                            const TextStyle(fontSize: 10, color: Colors.grey),
                       ),
                     ],
                   ],
                 ),
               ),
-              
+
               const SizedBox(height: 16),
-              
+
               // Auto-submit toggle
               SwitchListTile(
                 title: const Text('Auto-submit events'),
-                subtitle: const Text('Automatically send noise events to backend'),
+                subtitle:
+                    const Text('Automatically send noise events to backend'),
                 value: _autoSubmissionEnabled,
                 contentPadding: EdgeInsets.zero,
                 onChanged: (value) {
@@ -1558,21 +1543,23 @@ class _BackendConfigDialogState extends State<_BackendConfigDialog> {
         ),
         ElevatedButton(
           onPressed: () async {
-            // Save settings
-            await widget.preferencesService.setBackendUrl(_urlController.text);
-            await widget.preferencesService.setAutoSubmissionEnabled(_autoSubmissionEnabled);
-            await widget.apiClientService.setBaseUrl(_urlController.text);
-            
-            Navigator.pop(context);
-            widget.onSave();
-            
-            // Show success feedback
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Backend settings saved'),
-                backgroundColor: Colors.green,
-              ),
-            );
+            try {
+              await widget.apiClientService.setBaseUrl(_urlController.text);
+              await widget.preferencesService
+                  .setBackendUrl(widget.apiClientService.baseUrl);
+              await widget.preferencesService
+                  .setAutoSubmissionEnabled(_autoSubmissionEnabled);
+              if (!context.mounted) return;
+              Navigator.pop(context);
+              widget.onSave();
+            } catch (error) {
+              if (!mounted) return;
+              setState(() {
+                final message =
+                    error is FormatException ? error.message : error.toString();
+                _connectionStatus = 'Could not save backend settings: $message';
+              });
+            }
           },
           child: const Text('Save'),
         ),

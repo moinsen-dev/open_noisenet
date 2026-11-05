@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../services/audio_recording_policy.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/database/dao/audio_recording_dao.dart';
@@ -312,9 +313,13 @@ class _RecordingsPageState extends State<RecordingsPage> {
         switch (state) {
           case RecordingState.stopped:
             return FloatingActionButton.extended(
-              onPressed: _startRecording,
+              onPressed: AudioRecordingPolicy.newRecordingsAvailable
+                  ? _startRecording
+                  : null,
               icon: const Icon(Icons.fiber_manual_record),
-              label: const Text('Start Recording'),
+              label: Text(AudioRecordingPolicy.newRecordingsAvailable
+                  ? 'Start Recording'
+                  : 'New recording unavailable'),
               backgroundColor: Colors.red,
               foregroundColor: Colors.white,
             );

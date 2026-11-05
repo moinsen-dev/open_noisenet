@@ -1,8 +1,10 @@
 """Episode detection for anonymous/public events — no Pro context required."""
 from __future__ import annotations
 
+from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
-from typing import Optional, List
+from math import log10
+from typing import Any, Optional, List
 from uuid import uuid4
 
 from sqlalchemy import select
@@ -15,6 +17,7 @@ from app.db.models.pro_domain import (
     Episode,
     EpisodeLifecycleState,
     EpisodeReviewState,
+    EvidenceMode,
     Organization,
     Site,
 )
@@ -101,6 +104,291 @@ CLASSIFICATION_RULES: List[dict] = [
         "peak_pattern": "sustained_high",
     },
 ]
+
+
+_CLASS_FAMILIES = {
+    "speech": {
+        "conversation",
+        "conversation_dispute",
+        "short_shout_or_call",
+        "crowd",
+        "loud_conversation",
+        "shouting_or_dispute",
+    },
+    "music": {
+        "music",
+        "music_party",
+        "party_or_music_with_people",
+        "television_or_music",
+    },
+    "construction": {
+        "construction",
+        "construction_noise",
+        "drilling",
+        "hammering",
+        "sawing",
+        "construction_other",
+    },
+    "traffic": {"traffic", "traffic_noise", "road_traffic"},
+    "mechanical": {
+        "mechanical_hvac",
+        "household_appliance",
+        "sustained_noise",
+    },
+    "animal": {"animal", "animal_barking", "animals"},
+    "impulsive": {
+        "impulsive_noise",
+        "glass_break",
+        "forced_entry_impact",
+        "furniture_movement",
+        "footsteps_or_impact_noise",
+        "door_or_impact",
+    },
+    "alert": {"alarm_siren", "siren"},
+}
+
+_FAMILY_MERGE_GAPS = {
+    # Meetings and parties contain natural pauses. A merge remains a hypothesis
+    # until review and never turns the pause into measured continuous noise.
+    "speech": timedelta(minutes=15),
+    "music": timedelta(minutes=15),
+    "construction": timedelta(minutes=10),
+    "mechanical": timedelta(minutes=10),
+    "traffic": timedelta(minutes=5),
+    "animal": timedelta(minutes=2),
+    "alert": timedelta(minutes=2),
+    "impulsive": timedelta(seconds=45),
+    "continuous": timedelta(minutes=10),
+    "unknown": timedelta(minutes=3),
+}
+
+
+@dataclass(frozen=True)
+class EventEvidence:
+    """Normalized evidence used for episode continuity decisions."""
+
+    event: Event
+    start: datetime
+    end: datetime
+    primary_class: str
+    class_family: str
+    confidence: float
+    timing_basis: str
+    source_duration_seconds: float
+
+
+def _normalize_label(value: Optional[str]) -> str:
+    return (value or "unknown_noise").strip().lower().replace(" ", "_")
+
+
+def _class_family(label: str, segment_type: Optional[str] = None) -> str:
+    normalized = _normalize_label(label)
+    for family, labels in _CLASS_FAMILIES.items():
+        if normalized in labels:
+            return family
+    if segment_type in {
+        "sustained",
+        "fluctuating",
+        "continuous",
+        "background_elevation",
+    }:
+        return "continuous"
+    return "unknown"
+
+
+def _as_utc(value: datetime) -> datetime:
+    if value.tzinfo is None:
+        return value.replace(tzinfo=timezone.utc)
+    return value.astimezone(timezone.utc)
+
+
+def _parse_iso_datetime(value: Any) -> Optional[datetime]:
+    if not isinstance(value, str) or not value.strip():
+        return None
+    try:
+        return _as_utc(datetime.fromisoformat(value.replace("Z", "+00:00")))
+    except ValueError:
+        return None
+
+
+def _source_segments(event: Event, class_family: str) -> List[tuple[datetime, datetime]]:
+    metadata = event.event_metadata if isinstance(event.event_metadata, dict) else {}
+    source_activity = metadata.get("source_activity")
+    if not isinstance(source_activity, dict):
+        return []
+    raw_segments = source_activity.get("segments")
+    if not isinstance(raw_segments, list):
+        return []
+
+    segments: List[tuple[datetime, datetime]] = []
+    for raw_segment in raw_segments:
+        if not isinstance(raw_segment, dict):
+            continue
+        category = _normalize_label(raw_segment.get("category"))
+        segment_family = _class_family(category)
+        if class_family != "unknown" and segment_family != class_family:
+            continue
+        start = _parse_iso_datetime(raw_segment.get("start"))
+        end = _parse_iso_datetime(raw_segment.get("end"))
+        if start is None or end is None or end <= start:
+            continue
+        if end - start > timedelta(hours=24):
+            continue
+        segments.append((start, end))
+    return segments
+
+
+def _union_duration_seconds(
+    intervals: List[tuple[datetime, datetime]],
+) -> float:
+    if not intervals:
+        return 0.0
+    ordered = sorted(intervals, key=lambda interval: interval[0])
+    total = 0.0
+    current_start, current_end = ordered[0]
+    for start, end in ordered[1:]:
+        if start <= current_end:
+            current_end = max(current_end, end)
+            continue
+        total += (current_end - current_start).total_seconds()
+        current_start, current_end = start, end
+    total += (current_end - current_start).total_seconds()
+    return max(total, 0.0)
+
+
+def _event_evidence(event: Event) -> EventEvidence:
+    primary_class = _normalize_label(event.classification_label)
+    class_family = _class_family(primary_class, event.segment_type)
+    event_start = _as_utc(event.timestamp_start or event.created_at)
+    event_end = _as_utc(event.timestamp_end or event.timestamp_start or event.created_at)
+    if event_end < event_start:
+        event_end = event_start
+
+    segments = _source_segments(event, class_family)
+    if segments:
+        start = min(segment[0] for segment in segments)
+        end = max(segment[1] for segment in segments)
+        timing_basis = "source_activity_segments"
+        source_duration_seconds = _union_duration_seconds(segments)
+    else:
+        start = event_start
+        end = event_end
+        timing_basis = "event_threshold_interval"
+        source_duration_seconds = 0.0
+
+    return EventEvidence(
+        event=event,
+        start=start,
+        end=end,
+        primary_class=primary_class,
+        class_family=class_family,
+        confidence=float(event.classification_confidence or 0.0),
+        timing_basis=timing_basis,
+        source_duration_seconds=source_duration_seconds,
+    )
+
+
+def _merge_gap_for_family(
+    family: str,
+    override_minutes: Optional[int] = None,
+) -> timedelta:
+    if override_minutes is not None:
+        return timedelta(minutes=max(0, override_minutes))
+    return _FAMILY_MERGE_GAPS.get(family, _FAMILY_MERGE_GAPS["unknown"])
+
+
+def _can_merge(
+    left: EventEvidence,
+    right: EventEvidence,
+    override_minutes: Optional[int] = None,
+) -> bool:
+    if left.class_family != right.class_family:
+        return False
+    if left.class_family == "unknown" and left.primary_class != right.primary_class:
+        return False
+    if right.end < left.start:
+        gap = left.start - right.end
+    elif right.start > left.end:
+        gap = right.start - left.end
+    else:
+        gap = timedelta(0)
+    return gap <= _merge_gap_for_family(
+        right.class_family,
+        override_minutes,
+    )
+
+
+def _dominant_class(evidence: List[EventEvidence]) -> str:
+    weights: dict[str, float] = {}
+    for item in evidence:
+        duration = max((item.end - item.start).total_seconds(), 1.0)
+        confidence = max(item.confidence, 0.1)
+        weights[item.primary_class] = (
+            weights.get(item.primary_class, 0.0) + duration * confidence
+        )
+    return max(weights, key=weights.get) if weights else "unknown_noise"
+
+
+def _energy_average_leq(evidence: List[EventEvidence]) -> float:
+    weighted_energy = 0.0
+    total_duration = 0.0
+    for item in evidence:
+        if item.event.leq_db is None:
+            continue
+        duration = max(
+            (
+                _as_utc(item.event.timestamp_end or item.event.created_at)
+                - _as_utc(item.event.timestamp_start or item.event.created_at)
+            ).total_seconds(),
+            1.0,
+        )
+        weighted_energy += duration * (10 ** (item.event.leq_db / 10.0))
+        total_duration += duration
+    if total_duration <= 0:
+        return 0.0
+    return 10.0 * log10(weighted_energy / total_duration)
+
+
+def _continuity_metadata(evidence: List[EventEvidence]) -> dict:
+    ordered = sorted(evidence, key=lambda item: item.start)
+    gaps = []
+    for previous, current in zip(ordered, ordered[1:]):
+        gap_seconds = max((current.start - previous.end).total_seconds(), 0.0)
+        if gap_seconds <= 0:
+            continue
+        gaps.append(
+            {
+                "start": previous.end.isoformat(),
+                "end": current.start.isoformat(),
+                "duration_seconds": round(gap_seconds, 1),
+                "evidence_state": "no_threshold_event_or_source_segment",
+            }
+        )
+
+    raw_intervals = [
+        (
+            _as_utc(item.event.timestamp_start or item.event.created_at),
+            _as_utc(item.event.timestamp_end or item.event.created_at),
+        )
+        for item in ordered
+    ]
+    episode_span = max((ordered[-1].end - ordered[0].start).total_seconds(), 0.0)
+    return {
+        "merge_basis": "same_source_family_within_gap",
+        "source_family": ordered[0].class_family,
+        "continuous_noise_claimed": False,
+        "episode_span_seconds": round(episode_span, 1),
+        "observed_event_duration_seconds": round(
+            _union_duration_seconds(raw_intervals),
+            1,
+        ),
+        "source_activity_duration_seconds": round(
+            sum(item.source_duration_seconds for item in ordered),
+            1,
+        ),
+        "inter_event_gaps": gaps,
+        "timing_bases": sorted({item.timing_basis for item in ordered}),
+    }
 
 
 async def _get_or_create_system_user(db: AsyncSession) -> User:
@@ -260,99 +548,242 @@ def _classify_episode_pattern(
     return best_rule
 
 
+def _model_bundle_id(event: Event) -> Optional[str]:
+    metadata = event.event_metadata if isinstance(event.event_metadata, dict) else {}
+    value = metadata.get("model_bundle_id")
+    return value if isinstance(value, str) and value else None
+
+
+def _weighted_confidence(evidence: List[EventEvidence]) -> Optional[float]:
+    weighted = 0.0
+    total = 0.0
+    for item in evidence:
+        if item.confidence <= 0:
+            continue
+        duration = max((item.end - item.start).total_seconds(), 1.0)
+        weighted += item.confidence * duration
+        total += duration
+    return weighted / total if total > 0 else None
+
+
+async def _episode_events(db: AsyncSession, episode_id) -> List[Event]:
+    result = await db.execute(
+        select(Event)
+        .where(Event.episode_id == episode_id)
+        .order_by(Event.timestamp_start.asc())
+    )
+    return list(result.scalars().all())
+
+
+async def _find_episode_candidate(
+    db: AsyncSession,
+    *,
+    device_id,
+    site_id,
+    evidence: EventEvidence,
+    merge_gap_minutes: Optional[int],
+) -> Optional[Episode]:
+    result = await db.execute(
+        select(Episode)
+        .where(
+            Episode.device_id == device_id,
+            Episode.site_id == site_id,
+            Episode.review_state == EpisodeReviewState.PENDING_REVIEW.value,
+            Episode.lifecycle_state != EpisodeLifecycleState.EXPORTED.value,
+        )
+        .order_by(Episode.ended_at.desc())
+        .limit(10)
+    )
+    for episode in result.scalars().all():
+        episode_family = episode.class_family or "unknown"
+        if episode_family != evidence.class_family:
+            continue
+        if episode_family == "unknown" and episode.primary_class != evidence.primary_class:
+            continue
+        episode_start = _as_utc(episode.started_at)
+        episode_end = _as_utc(episode.ended_at)
+        if evidence.end < episode_start:
+            gap = episode_start - evidence.end
+        elif evidence.start > episode_end:
+            gap = evidence.start - episode_end
+        else:
+            gap = timedelta(0)
+        if gap <= _merge_gap_for_family(episode_family, merge_gap_minutes):
+            return episode
+    return None
+
+
+def _apply_episode_evidence(
+    episode: Episode,
+    evidence: List[EventEvidence],
+    *,
+    merge_gap_minutes: Optional[int],
+) -> None:
+    ordered = sorted(evidence, key=lambda item: item.start)
+    primary_class = _dominant_class(ordered)
+    class_family = _class_family(primary_class, ordered[0].event.segment_type)
+    avg_leq = _energy_average_leq(ordered)
+    max_level = max(
+        (
+            item.event.lmax_db
+            if item.event.lmax_db is not None
+            else item.event.leq_db or 0.0
+        )
+        for item in ordered
+    )
+    continuity = _continuity_metadata(ordered)
+    events = [item.event for item in ordered]
+    existing_metadata = (
+        dict(episode.review_metadata)
+        if isinstance(episode.review_metadata, dict)
+        else {}
+    )
+
+    episode.primary_class = primary_class
+    episode.class_family = class_family
+    episode.classification_confidence = _weighted_confidence(ordered)
+    episode.severity = _compute_severity(avg_leq, max_level, ordered[0].start.hour)
+    episode.nuisance_score = round(min(avg_leq * 1.5, 100), 1)
+    episode.quiet_hours_triggered = (
+        ordered[0].start.hour >= 22 or ordered[0].start.hour < 6
+    )
+    episode.started_at = ordered[0].start
+    episode.ended_at = max(item.end for item in ordered)
+    episode.event_count = len(ordered)
+    episode.lifecycle_state = (
+        EpisodeLifecycleState.EXTENDED.value
+        if len(ordered) > 1
+        else EpisodeLifecycleState.CLOSED.value
+    )
+    episode.model_bundle_id = next(
+        (
+            bundle
+            for bundle in (_model_bundle_id(item.event) for item in ordered)
+            if bundle
+        ),
+        None,
+    )
+    episode.review_metadata = {
+        **existing_metadata,
+        "detection_method": "source_aware_temporal_clustering_v2",
+        "avg_leq_db": round(avg_leq, 1),
+        "max_level_db": round(max_level, 1),
+        "merge_gap_minutes": round(
+            _merge_gap_for_family(class_family, merge_gap_minutes).total_seconds()
+            / 60.0,
+            2,
+        ),
+        "loudness_profile": _compute_loudness_profile(events),
+        "classification": {
+            "name": primary_class,
+            "family": class_family,
+            "source": "device_classification",
+        },
+        "continuity": continuity,
+    }
+
+
+async def sync_anonymous_event_to_episode(
+    db: AsyncSession,
+    event: Event,
+    *,
+    device: Optional[DeviceModel] = None,
+    merge_gap_minutes: Optional[int] = None,
+) -> tuple[Episode, bool]:
+    """Attach one anonymous event to a source-aware episode immediately."""
+
+    resolved_device = device or await db.get(DeviceModel, event.device_id)
+    if resolved_device is None:
+        raise ValueError("event device does not exist")
+
+    org = await _get_or_create_default_org(db)
+    site = await _get_or_create_default_site(db, org)
+    evidence = _event_evidence(event)
+    episode = await _find_episode_candidate(
+        db,
+        device_id=resolved_device.id,
+        site_id=site.id,
+        evidence=evidence,
+        merge_gap_minutes=merge_gap_minutes,
+    )
+    created = episode is None
+    if episode is None:
+        episode = Episode(
+            organization_id=org.id,
+            site_id=site.id,
+            device_id=resolved_device.id,
+            primary_class=evidence.primary_class,
+            class_family=evidence.class_family,
+            severity="informational",
+            nuisance_score=0.0,
+            quiet_hours_triggered=False,
+            evidence_mode=EvidenceMode.DERIVED_ONLY.value,
+            review_state=EpisodeReviewState.PENDING_REVIEW.value,
+            lifecycle_state=EpisodeLifecycleState.CLOSED.value,
+            started_at=evidence.start,
+            ended_at=evidence.end,
+            event_count=1,
+        )
+        db.add(episode)
+        await db.flush()
+        existing_events: List[Event] = []
+    else:
+        existing_events = await _episode_events(db, episode.id)
+
+    event.episode_id = episode.id
+    combined_events = [*existing_events]
+    if all(existing.id != event.id for existing in combined_events):
+        combined_events.append(event)
+    _apply_episode_evidence(
+        episode,
+        [_event_evidence(item) for item in combined_events],
+        merge_gap_minutes=merge_gap_minutes,
+    )
+    await db.flush()
+    return episode, created
+
+
 async def detect_episodes_for_device(
     db: AsyncSession,
     device_id: str,
     *,
-    merge_gap_minutes: int = 5,
-    min_event_count: int = 2,
+    merge_gap_minutes: Optional[int] = None,
+    min_event_count: int = 1,
 ) -> List[Episode]:
-    # Resolve string device_id to UUID
-    stmt = select(DeviceModel).where(DeviceModel.device_id == device_id)
-    result = await db.execute(stmt)
-    dev = result.scalar_one_or_none()
-    if not dev:
-        return []
-    device_uuid = dev.id
+    """Backfill all currently unassigned events for one public device ID."""
 
-    # Get unassigned events
-    stmt = (
-        select(Event)
-        .where(
-            Event.device_id == device_uuid,
+    result = await db.execute(
+        select(DeviceModel).where(DeviceModel.device_id == device_id)
+    )
+    device = result.scalar_one_or_none()
+    if not device:
+        return []
+
+    result = await db.execute(
+        select(Event).where(
+            Event.device_id == device.id,
             Event.episode_id.is_(None),
             Event.timestamp_start.isnot(None),
         )
-        .order_by(Event.timestamp_start.asc())
     )
-    result = await db.execute(stmt)
-    events: List[Event] = result.scalars().all()
-
-    if len(events) < min_event_count:
+    events = list(result.scalars().all())
+    evidence = sorted((_event_evidence(event) for event in events), key=lambda item: item.start)
+    if len(evidence) < max(min_event_count, 1):
         return []
 
-    # Group events into temporal clusters
-    clusters: List[List[Event]] = []
-    current_cluster: List[Event] = [events[0]]
-
-    for event in events[1:]:
-        gap = (event.timestamp_start - current_cluster[-1].timestamp_end).total_seconds()
-        if gap <= merge_gap_minutes * 60:
-            current_cluster.append(event)
-        else:
-            clusters.append(current_cluster)
-            current_cluster = [event]
-    clusters.append(current_cluster)
-
-    # Resolve default org+site for anonymous episodes
-    org = await _get_or_create_default_org(db)
-    site = await _get_or_create_default_site(db, org)
-
-    episodes: List[Episode] = []
-    for cluster in clusters:
-        if len(cluster) < min_event_count:
-            continue
-
-        started_at = min(e.timestamp_start for e in cluster)
-        ended_at = max(e.timestamp_end or e.timestamp_start for e in cluster)
-        avg_leq = sum(e.leq_db for e in cluster if e.leq_db) / len(cluster)
-        max_leq = max(e.leq_db for e in cluster if e.leq_db)
-        best_rule = _classify_episode_pattern(cluster, started_at, ended_at)
-
-        episode = Episode(
-            organization_id=org.id,
-            site_id=site.id,
-            primary_class=best_rule["name"] if best_rule else "unknown_noise",
-            class_family=_pattern_to_family(best_rule),
-            classification_confidence=0.7 if best_rule else 0.3,
-            severity=_compute_severity(avg_leq, max_leq, started_at.hour),
-            nuisance_score=round(min(avg_leq * 1.5, 100), 1),
-            quiet_hours_triggered=started_at.hour >= 22 or started_at.hour < 6,
-            review_state=EpisodeReviewState.PENDING_REVIEW.value,
-            lifecycle_state=EpisodeLifecycleState.CLOSED.value,
-            started_at=started_at,
-            ended_at=ended_at,
-            event_count=len(cluster),
-            review_metadata={
-                "detection_method": "temporal_clustering",
-                "avg_leq_db": round(avg_leq, 1),
-                "max_leq_db": round(max_leq, 1),
-                "merge_gap_minutes": merge_gap_minutes,
-                "loudness_profile": _compute_loudness_profile(cluster),
-                "classification": best_rule,
-            },
+    created_episodes: List[Episode] = []
+    for item in evidence:
+        episode, created = await sync_anonymous_event_to_episode(
+            db,
+            item.event,
+            device=device,
+            merge_gap_minutes=merge_gap_minutes,
         )
-        db.add(episode)
-        await db.flush()
-
-        for event in cluster:
-            event.episode_id = episode.id
-            db.add(event)
-
-        episodes.append(episode)
+        if created:
+            created_episodes.append(episode)
 
     await db.flush()
-    return episodes
+    return created_episodes
 
 
 def _pattern_to_family(rule: Optional[dict]) -> str:
@@ -402,7 +833,14 @@ def _compute_loudness_profile(events: List[Event]) -> dict:
     - peak density (peaks per minute)
     - silence ratio (% of time below threshold)
     """
-    db_values = sorted([e.leq_db for e in events if e.leq_db])
+    ordered_events = sorted(
+        [event for event in events if event.timestamp_start],
+        key=lambda event: _as_utc(event.timestamp_start),
+    )
+    chronological_values = [
+        event.leq_db for event in ordered_events if event.leq_db is not None
+    ]
+    db_values = sorted(chronological_values)
     if not db_values:
         return {}
 
@@ -420,8 +858,8 @@ def _compute_loudness_profile(events: List[Event]) -> dict:
 
     # Trend detection: compare first half vs second half
     half = n // 2
-    first_half_avg = sum(db_values[:half]) / max(half, 1)
-    second_half_avg = sum(db_values[half:]) / max(n - half, 1)
+    first_half_avg = sum(chronological_values[:half]) / max(half, 1)
+    second_half_avg = sum(chronological_values[half:]) / max(n - half, 1)
 
     if second_half_avg > first_half_avg * 1.1:
         trend = "steigend (wird lauter)"
@@ -433,7 +871,7 @@ def _compute_loudness_profile(events: List[Event]) -> dict:
         trend = "schwankend"
 
     # Peak density: events above P90 per minute
-    timestamps = [e.timestamp_start for e in events if e.timestamp_start]
+    timestamps = [_as_utc(event.timestamp_start) for event in ordered_events]
     if len(timestamps) >= 2:
         duration_min = max((timestamps[-1] - timestamps[0]).total_seconds() / 60, 0.1)
         peak_threshold = p90 if n >= 10 else p75

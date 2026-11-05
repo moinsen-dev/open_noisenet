@@ -5,6 +5,7 @@ import '../core/database/dao/daily_statistics_dao.dart';
 import '../core/database/dao/noise_measurement_dao.dart';
 import '../core/logging/app_logger.dart';
 import 'audio_recording_service.dart';
+import 'energy_average.dart';
 
 class StatisticsService {
   static final StatisticsService _instance = StatisticsService._internal();
@@ -166,11 +167,8 @@ class StatisticsService {
         return null;
       }
 
-      // Calculate average Leq from measurements
-      final totalLeq =
-          measurements.map((m) => m.leqDb).fold(0.0, (sum, leq) => sum + leq);
-
-      return totalLeq / measurements.length;
+      // Each record represents an observed minute; combine energies, not dB.
+      return energyAverageDb(measurements.map((m) => (m.leqDb, 1)));
     } catch (e) {
       AppLogger.stats('Error calculating today\'s average: $e');
       return null;
@@ -203,11 +201,8 @@ class StatisticsService {
         return null;
       }
 
-      // Calculate average Leq from measurements
-      final totalLeq =
-          measurements.map((m) => m.leqDb).fold(0.0, (sum, leq) => sum + leq);
-
-      return totalLeq / measurements.length;
+      // Each record represents an observed minute; combine energies, not dB.
+      return energyAverageDb(measurements.map((m) => (m.leqDb, 1)));
     } catch (e) {
       AppLogger.stats(
           'Error calculating ${windowDuration.inHours}h average: $e');
@@ -231,35 +226,10 @@ class StatisticsService {
         return null;
       }
 
-      // Group measurements into 15-minute windows and find peak
-      double maxLeq = 0.0;
-      const windowSize = Duration(minutes: 15);
-
-      for (int i = 0; i < 4; i++) {
-        // 4 windows of 15 minutes in an hour
-        final windowStart = startTime.add(Duration(minutes: i * 15));
-        final windowEnd = windowStart.add(windowSize);
-
-        final windowMeasurements = measurements.where((m) {
-          final measurementTime =
-              DateTime.fromMillisecondsSinceEpoch(m.timestamp * 1000);
-          return measurementTime.isAfter(windowStart) &&
-              measurementTime.isBefore(windowEnd);
-        }).toList();
-
-        if (windowMeasurements.isNotEmpty) {
-          final windowAvg = windowMeasurements
-                  .map((m) => m.leqDb)
-                  .fold(0.0, (sum, leq) => sum + leq) /
-              windowMeasurements.length;
-
-          if (windowAvg > maxLeq) {
-            maxLeq = windowAvg;
-          }
-        }
-      }
-
-      return maxLeq > 0 ? maxLeq : null;
+      // Only compare consecutive minute records; missing minutes are not
+      // silently treated as a complete 15-minute observation.
+      return highestQuarterHourEstimate(
+          measurements.map((m) => (m.timestamp, m.leqDb)));
     } catch (e) {
       AppLogger.stats('Error calculating 15-min peak: $e');
       return null;

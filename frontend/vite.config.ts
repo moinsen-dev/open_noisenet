@@ -32,7 +32,7 @@ export default defineConfig({
   ],
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, './src'),
+      '@': path.resolve(import.meta.dirname, './src'),
     },
   },
   server: {
@@ -43,21 +43,15 @@ export default defineConfig({
         target: 'http://localhost:8100',
         changeOrigin: true,
       },
+      '/health': {
+        target: 'http://localhost:8100',
+        changeOrigin: true,
+      },
     },
   },
   build: {
     outDir: 'dist',
     sourcemap: true,
-    rollupOptions: {
-      output: {
-        manualChunks: {
-          vendor: ['react', 'react-dom'],
-          ui: ['@mui/material', '@mui/icons-material'],
-          maps: ['leaflet', 'react-leaflet'],
-          charts: ['recharts'],
-        },
-      },
-    },
   },
   test: {
     globals: true,

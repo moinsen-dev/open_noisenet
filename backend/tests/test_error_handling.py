@@ -27,7 +27,7 @@ async def test_all_error_responses_are_json(client: AsyncClient):
     assert "text/html" not in resp.headers.get("content-type", "")
 
     # 401 — unauthenticated access to protected endpoint
-    resp = await client.delete("/api/v1/devices/nonexistent")
+    resp = await client.get("/api/v1/organizations/")
     assert resp.status_code == 401
     body = resp.json()
     assert "detail" in body
@@ -76,27 +76,49 @@ async def test_security_headers(client: AsyncClient):
     """GET /health → response includes X-Content-Type-Options header."""
 
     resp = await client.get("/health")
-    assert resp.status_code == 200
+    assert resp.status_code in (200, 503)
     assert resp.headers.get("x-content-type-options") == "nosniff"
 
 
 # ---------- Health Check Depth ----------
 
 
-async def test_health_returns_200(client: AsyncClient):
+async def test_health_returns_200(client: AsyncClient, monkeypatch):
     """GET /health → 200 with status=healthy."""
 
+    from contextlib import asynccontextmanager
+    import importlib
+    from types import SimpleNamespace
+    from unittest.mock import AsyncMock
+
+    @asynccontextmanager
+    async def connected():
+        yield AsyncMock()
+
+    monkeypatch.setattr(importlib.import_module('app.main'), 'engine', SimpleNamespace(begin=connected))
     resp = await client.get("/health")
     assert resp.status_code == 200
     body = resp.json()
     assert body["status"] == "healthy"
 
 
-async def test_health_includes_db_check(client: AsyncClient):
-    """GET /health → response includes database status field."""
+async def test_health_reports_disconnected_db_as_unavailable(client: AsyncClient, monkeypatch):
+    """A failed database probe must not report a healthy backend."""
+
+    from contextlib import asynccontextmanager
+    import importlib
+    from types import SimpleNamespace
+
+    @asynccontextmanager
+    async def disconnected():
+        raise RuntimeError('simulated database outage')
+        yield
+
+    monkeypatch.setattr(importlib.import_module('app.main'), 'engine', SimpleNamespace(begin=disconnected))
 
     resp = await client.get("/health")
-    assert resp.status_code == 200
+    assert resp.status_code == 503
     body = resp.json()
     assert "database" in body
-    assert body["database"] in ("connected", "disconnected")
+    assert body["database"] == "disconnected"
+    assert body["status"] == "unhealthy"

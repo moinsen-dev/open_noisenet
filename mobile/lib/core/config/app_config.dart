@@ -18,7 +18,7 @@ abstract class AppConfig {
   int get bufferSize;
   Duration get recordingDuration;
 
-  // Noise Thresholds (dBA)
+  // Thresholds for unweighted digital level estimates (not calibrated dBA).
   double get dayThreshold;
   double get nightThreshold;
   double get peakThreshold;

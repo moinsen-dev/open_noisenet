@@ -260,28 +260,20 @@ show_status() {
 main() {
     case "${1:-deploy}" in
         "deploy")
-            load_environment
-            pre_deployment_checks
-            build_images
-            push_images
-            backup_database
-            deploy_services
-            post_deployment_verification
-            cleanup
-            show_status
-            echo ""
-            echo "🎉 Deployment completed successfully!"
+            echo "❌ Deployment disabled: this legacy script has no verified deployment or recovery procedure." >&2
+            return 1
             ;;
         "rollback")
-            load_environment
-            rollback
+            echo "❌ Rollback disabled: the legacy procedure does not restore a verified previous state." >&2
+            return 1
             ;;
         "status")
             load_environment
             show_status
             ;;
         "cleanup")
-            cleanup
+            echo "❌ Cleanup disabled: review the target resources and backups manually." >&2
+            return 1
             ;;
         *)
             echo "Usage: $0 [deploy|rollback|status|cleanup]"

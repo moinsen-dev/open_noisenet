@@ -100,7 +100,7 @@ class _AudioWaveformWidgetState extends State<AudioWaveformWidget> {
                                 fontWeight: FontWeight.bold,
                               ),
                     ),
-                    const Text('dB SPL'),
+                    const Text('dB estimate'),
                   ],
                 ),
                 Column(

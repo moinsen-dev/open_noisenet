@@ -1,5 +1,7 @@
 # OpenNoiseNet — Monetization & Growth Strategy
 
+> **Historical planning, not verified commercial or technical claims.** Pricing, customers, funding and use cases below are assumptions. Statements about GDPR, calibration, legal evidence or regulatory compliance are not established by the current implementation. See [current status](current-status.md) and the [commercial potential research](commercial-potential-2026-11-03.md) for the current evidence and limits.
+
 **Status:** Strategy document · **Last updated:** 2026-06-02  
 **Product stage:** Pre-commercial (software stabilization gate closing; Pro slices hardening in progress)  
 **Target reader:** Founder, early team, grant reviewers, potential partners  

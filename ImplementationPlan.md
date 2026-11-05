@@ -1,12 +1,14 @@
 # OpenNoiseNet Active Execution Program
 
+> Historical execution context: the current priority is the open-source sensor-to-map system, not commercialization. The authoritative phase and evidence are in [docs/current-status.md](docs/current-status.md).
+
 This file summarizes the active execution focus for the repository.
 
 Use it together with:
 
-- [docs/current-status.md](/Users/udi/work/moinsen/ideas/open_noisenet/docs/current-status.md) for current repo truth
-- [docs/opennoisenet-pro-roadmap.md](/Users/udi/work/moinsen/ideas/open_noisenet/docs/opennoisenet-pro-roadmap.md) for the full commercialization roadmap
-- [docs/execution-backlog.md](/Users/udi/work/moinsen/ideas/open_noisenet/docs/execution-backlog.md) for the ordered remaining work
+- [docs/current-status.md](docs/current-status.md) for current repo truth
+- [docs/opennoisenet-pro-roadmap.md](docs/opennoisenet-pro-roadmap.md) for the full commercialization roadmap
+- [docs/execution-backlog.md](docs/execution-backlog.md) for the ordered remaining work
 
 ## Execution Reality
 
@@ -116,7 +118,7 @@ Execution should now proceed in this order:
 3. Prepare Phase 4 commercial readiness work.
 4. Keep Phase 5 expansion out of the near-term critical path.
 
-The detailed ordered backlog lives in [docs/execution-backlog.md](/Users/udi/work/moinsen/ideas/open_noisenet/docs/execution-backlog.md).
+The detailed ordered backlog lives in [docs/execution-backlog.md](docs/execution-backlog.md).
 
 ## Verification Baseline
 

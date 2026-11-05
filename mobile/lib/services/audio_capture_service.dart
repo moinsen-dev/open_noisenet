@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math';
 
+import 'package:audio_streamer/audio_streamer.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:noise_meter/noise_meter.dart';
@@ -10,22 +11,30 @@ import '../core/logging/app_logger.dart';
 import 'permission_dialog_service.dart';
 import 'sqlite_preferences_service.dart';
 import 'audio_processing_service.dart';
+import 'buffer_level.dart';
+import 'level_history.dart';
+import 'sound_analysis/sound_analysis_models.dart';
 
 class AudioCaptureService {
   static final AudioCaptureService _instance = AudioCaptureService._internal();
   factory AudioCaptureService() => _instance;
   AudioCaptureService._internal();
 
-  NoiseMeter? _noiseMeter;
-  StreamSubscription<NoiseReading>? _noiseSubscription;
+  static const int requestedSampleRate = 48000;
+
+  final AudioStreamer _audioStreamer = AudioStreamer();
+  StreamSubscription<List<double>>? _audioSubscription;
 
   final StreamController<double> _splStreamController =
       StreamController<double>.broadcast();
   final StreamController<NoiseReading> _noiseReadingController =
       StreamController<NoiseReading>.broadcast();
+  final StreamController<PcmAudioFrame> _pcmFrameController =
+      StreamController<PcmAudioFrame>.broadcast();
 
   Stream<double> get splStream => _splStreamController.stream;
   Stream<NoiseReading> get noiseReadingStream => _noiseReadingController.stream;
+  Stream<PcmAudioFrame> get pcmFrameStream => _pcmFrameController.stream;
 
   bool _isCapturing = false;
   bool get isCapturing => _isCapturing;
@@ -33,6 +42,10 @@ class AudioCaptureService {
   int _capturedSampleCount = 0;
   int _restartCount = 0;
   DateTime? _lastRestartAt;
+  int _actualSampleRate = requestedSampleRate;
+  bool _actualSampleRateVerified = false;
+  bool get actualSampleRateVerified => _actualSampleRateVerified;
+  double _lastClippingRatio = 0;
   DateTime? get lastSampleAt => _lastSampleAt;
   int get capturedSampleCount => _capturedSampleCount;
 
@@ -44,9 +57,8 @@ class AudioCaptureService {
       GetIt.instance<SQLitePreferencesService>();
   final AudioProcessingService _audioProcessing = AudioProcessingService();
 
-  // Store recent measurements for enhanced processing
-  final List<TimestampedSPL> _recentMeasurements = [];
-  static const int _maxStoredMeasurements = 900; // 15 minutes at 1Hz
+  // PCM buffers arrive more often than once a second; retain by time.
+  final LevelHistory _recentMeasurements = LevelHistory();
 
   /// Check if microphone permission is granted
   Future<bool> hasPermission() async {
@@ -83,14 +95,14 @@ class AudioCaptureService {
         return true; // Already capturing
       }
 
-      _noiseMeter = NoiseMeter();
-
-      _noiseSubscription = _noiseMeter!.noise.listen(
-        (NoiseReading reading) {
+      _actualSampleRateVerified = false;
+      _audioStreamer.sampleRate = requestedSampleRate;
+      _audioSubscription = _audioStreamer.audioStream.listen(
+        (List<double> samples) {
           try {
-            _handleNoiseReading(reading);
+            _handleAudioBuffer(samples);
           } catch (e) {
-            AppLogger.audio('Error handling noise reading: $e');
+            AppLogger.audio('Error handling PCM audio buffer: $e');
           }
         },
         onError: (Object error) {
@@ -103,6 +115,7 @@ class AudioCaptureService {
       );
 
       _isCapturing = true;
+      unawaited(_refreshActualSampleRate());
       AppLogger.success('AudioCaptureService: Started capturing audio');
       return true;
     } catch (e) {
@@ -115,9 +128,8 @@ class AudioCaptureService {
   /// Stop capturing audio
   Future<void> stopCapture() async {
     try {
-      await _noiseSubscription?.cancel();
-      _noiseSubscription = null;
-      _noiseMeter = null;
+      await _audioSubscription?.cancel();
+      _audioSubscription = null;
       _isCapturing = false;
       AppLogger.success('AudioCaptureService: Stopped capturing audio');
     } catch (e) {
@@ -138,27 +150,68 @@ class AudioCaptureService {
     return restarted;
   }
 
-  /// Handle incoming noise readings
-  void _handleNoiseReading(NoiseReading reading) {
-    // Process readings immediately - StreamController is already thread-safe
-    _processNoiseReading(reading);
+  /// Fan out one microphone stream to level DSP and ephemeral model windows.
+  void _handleAudioBuffer(List<double> samples) {
+    if (samples.isEmpty) return;
+
+    final capturedAt = DateTime.now();
+    final immutableSamples = List<double>.unmodifiable(samples);
+    _lastClippingRatio =
+        samples.where((sample) => sample.abs() >= 0.98).length / samples.length;
+
+    if (!_pcmFrameController.isClosed) {
+      _pcmFrameController.add(PcmAudioFrame(
+        samples: immutableSamples,
+        sampleRate: _actualSampleRate,
+        capturedAt: capturedAt,
+      ));
+    }
+
+    _processAudioLevel(samples);
+
+    // Legacy noise readings are peak-based and used only if a listener asks
+    // for them; they do not feed the event or level calculations.
+    if (_noiseReadingController.hasListener &&
+        !_noiseReadingController.isClosed) {
+      _noiseReadingController.add(NoiseReading(List<double>.from(samples)));
+    }
   }
 
-  /// Process noise reading with enhanced A-weighting
-  void _processNoiseReading(NoiseReading reading) {
+  Future<void> _refreshActualSampleRate() async {
+    for (var attempt = 0; attempt < 4; attempt++) {
+      try {
+        final actual = await _audioStreamer.actualSampleRate;
+        if (actual > 0) {
+          _actualSampleRate = actual;
+          _actualSampleRateVerified = true;
+          AppLogger.audio(
+            'AudioCaptureService: actual PCM rate is $_actualSampleRate Hz',
+          );
+          return;
+        }
+      } catch (e) {
+        if (attempt == 3) {
+          AppLogger.audio(
+            'AudioCaptureService: could not read actual sample rate; '
+            'using $requestedSampleRate Hz ($e)',
+          );
+          return;
+        }
+      }
+      await Future<void>.delayed(const Duration(milliseconds: 100));
+    }
+  }
+
+  /// Process an unweighted PCM RMS estimate with the configured offset.
+  void _processAudioLevel(List<double> samples) {
     try {
+      // The library NoiseReading uses peak amplitudes, not RMS. A weighted
+      // or calibrated pressure value cannot be inferred from that value.
+      final clampedMeanDb =
+          bufferLevelDb(samples, offsetDb: _calibrationOffset);
+      if (clampedMeanDb == null) return;
       _lastSampleAt = DateTime.now();
       _capturedSampleCount++;
-
-      // Apply device calibration
-      final calibratedMeanDb = reading.meanDecibel + _calibrationOffset;
-
-      // Enhanced A-weighting processing (simplified for noise_meter package)
-      // The noise_meter package provides basic dB readings, we enhance with proper A-weighting
-      final aWeightedDb = _applyEnhancedAWeighting(calibratedMeanDb);
-
-      // Ensure values are within realistic range (10-140 dB)
-      final clampedMeanDb = aWeightedDb.clamp(10.0, 140.0);
 
       // Store timestamped measurement for statistics
       final timestamped = TimestampedSPL(
@@ -167,46 +220,12 @@ class AudioCaptureService {
       );
       _recentMeasurements.add(timestamped);
 
-      // Maintain rolling window
-      if (_recentMeasurements.length > _maxStoredMeasurements) {
-        _recentMeasurements.removeAt(0);
-      }
-
       // Safely emit the calibrated mean SPL for simple display
       if (!_splStreamController.isClosed) {
         _splStreamController.add(clampedMeanDb);
       }
-
-      // Safely emit full reading for detailed analysis
-      if (!_noiseReadingController.isClosed) {
-        _noiseReadingController.add(reading);
-      }
     } catch (e) {
-      AppLogger.audio('Error in _processNoiseReading: $e');
-    }
-  }
-
-  /// Apply enhanced A-weighting based on the measurement level
-  double _applyEnhancedAWeighting(double rawDb) {
-    // For broadband environmental noise, apply frequency-dependent A-weighting
-    // This is an approximation since we don't have access to frequency spectrum
-    // from the noise_meter package
-
-    if (rawDb < 30) {
-      // Very quiet - likely background noise (low frequency dominant)
-      return rawDb - 8.0; // Strong A-weighting correction
-    } else if (rawDb < 50) {
-      // Quiet - typical indoor/suburban background
-      return rawDb - 4.0; // Moderate A-weighting correction
-    } else if (rawDb < 70) {
-      // Moderate - speech, traffic at distance
-      return rawDb - 2.0; // Light A-weighting correction
-    } else if (rawDb < 90) {
-      // Loud - traffic, machinery
-      return rawDb - 1.0; // Minimal A-weighting correction
-    } else {
-      // Very loud - strong broadband content
-      return rawDb; // Minimal correction for high-level sounds
+      AppLogger.audio('Error in _processAudioLevel: $e');
     }
   }
 
@@ -215,20 +234,20 @@ class AudioCaptureService {
     return _audioProcessing.calculateLeq(splValues);
   }
 
-  /// Calculate Leq15 (15-minute equivalent level) for regulatory compliance
+  /// Estimate Leq over available samples in the last 15 minutes.
   double calculateLeq15() {
-    return _audioProcessing.calculateLeq15(_recentMeasurements);
+    return _audioProcessing.calculateLeq15(_recentMeasurements.samples);
   }
 
   /// Get noise statistics for recent measurements
   NoiseStatistics getNoiseStatistics({Duration? timeWindow}) {
     final measurements = timeWindow != null
-        ? _recentMeasurements
+        ? _recentMeasurements.samples
             .where(
                 (m) => m.timestamp.isAfter(DateTime.now().subtract(timeWindow)))
             .map((m) => m.splDb)
             .toList()
-        : _recentMeasurements.map((m) => m.splDb).toList();
+        : _recentMeasurements.samples.map((m) => m.splDb).toList();
 
     return _audioProcessing.calculateNoiseStatistics(measurements);
   }
@@ -243,7 +262,7 @@ class AudioCaptureService {
       currentSPL: currentSPL,
       thresholdDb: thresholdDb,
       minDuration: minDuration,
-      recentMeasurements: _recentMeasurements,
+      recentMeasurements: _recentMeasurements.samples,
     );
   }
 
@@ -281,6 +300,7 @@ class AudioCaptureService {
     stopCapture();
     _splStreamController.close();
     _noiseReadingController.close();
+    _pcmFrameController.close();
   }
 
   /// Runtime diagnostics for unattended sensor operation.
@@ -291,6 +311,13 @@ class AudioCaptureService {
       'restartCount': _restartCount,
       'lastRestartAt': _lastRestartAt?.toIso8601String(),
       'lastSampleAt': _lastSampleAt?.toIso8601String(),
+      'requestedSampleRateHz': requestedSampleRate,
+      'actualSampleRateHz': _actualSampleRate,
+      'calibrationOffsetDb': _calibrationOffset,
+      'levelQuality': _calibrationOffset == 0
+          ? 'uncalibrated_estimate'
+          : 'offset_adjusted_unverified',
+      'lastClippingRatio': _lastClippingRatio,
       'timeSinceLastSampleMs': _lastSampleAt == null
           ? null
           : DateTime.now().difference(_lastSampleAt!).inMilliseconds,

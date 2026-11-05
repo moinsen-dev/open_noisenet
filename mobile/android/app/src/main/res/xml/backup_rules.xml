@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<full-backup-content>
+    <!-- Event payloads/queue and credentials live in shared preferences.
+         They must not leave this device through an unrelated OS backup. -->
+    <exclude domain="sharedpref" path="." />
+    <exclude domain="root" path="app_flutter/noisenet.db" />
+    <exclude domain="root" path="app_flutter/noisenet.db-wal" />
+    <exclude domain="root" path="app_flutter/noisenet.db-shm" />
+    <exclude domain="root" path="app_flutter/noisenet.db-journal" />
+    <!-- The encrypted diary key is device-bound; restoring the database alone
+         would make its contents unreadable. User-directed export is separate. -->
+    <exclude domain="database" path="personal_noise_diary.db" />
+    <exclude domain="database" path="personal_noise_diary.db-wal" />
+    <exclude domain="database" path="personal_noise_diary.db-shm" />
+    <exclude domain="database" path="personal_noise_diary.db-journal" />
+    <!-- path_provider's Android documents directory is app_flutter. -->
+    <exclude domain="root" path="app_flutter/recordings/" />
+    <exclude domain="root" path="app_flutter/continuous_recordings/" />
+</full-backup-content>

@@ -127,6 +127,10 @@ async def process_real_time_measurement(
                 "timestamp": timestamp.isoformat(),
             }
 
+    except NotImplementedError:
+        # Invalid input cannot become valid by retrying the same scalar level.
+        logger.warning("Real-time weighting requires frequency-resolved input")
+        raise
     except Exception as e:
         logger.error(
             f"Error processing real-time measurement from device {device_id}: {e}"

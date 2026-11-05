@@ -4,6 +4,16 @@ import 'package:json_annotation/json_annotation.dart';
 
 part 'api_models.g.dart';
 
+DateTime _apiDateTimeFromJson(String value) => DateTime.parse(value);
+
+String _apiDateTimeToUtcJson(DateTime value) => value.toUtc().toIso8601String();
+
+DateTime? _nullableApiDateTimeFromJson(String? value) =>
+    value == null ? null : DateTime.parse(value);
+
+String? _nullableApiDateTimeToUtcJson(DateTime? value) =>
+    value?.toUtc().toIso8601String();
+
 /// Device types supported by the backend
 enum DeviceType {
   @JsonValue('smartphone')
@@ -75,9 +85,17 @@ class NoiseEventModel {
   final String? eventUuid;
   @JsonKey(name: 'device_id')
   final String deviceId;
-  @JsonKey(name: 'timestamp_start')
+  @JsonKey(
+    name: 'timestamp_start',
+    fromJson: _apiDateTimeFromJson,
+    toJson: _apiDateTimeToUtcJson,
+  )
   final DateTime timestampStart;
-  @JsonKey(name: 'timestamp_end')
+  @JsonKey(
+    name: 'timestamp_end',
+    fromJson: _apiDateTimeFromJson,
+    toJson: _apiDateTimeToUtcJson,
+  )
   final DateTime timestampEnd;
   @JsonKey(name: 'leq_db')
   final double leqDb;
@@ -121,7 +139,11 @@ class NoiseEventModel {
   final double? thresholdExceedanceRatio;
   @JsonKey(name: 'analysis_state')
   final String? analysisState;
-  @JsonKey(name: 'analysis_updated_at')
+  @JsonKey(
+    name: 'analysis_updated_at',
+    fromJson: _nullableApiDateTimeFromJson,
+    toJson: _nullableApiDateTimeToUtcJson,
+  )
   final DateTime? analysisUpdatedAt;
 
   NoiseEventModel({

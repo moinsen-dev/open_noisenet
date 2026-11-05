@@ -3,11 +3,12 @@
 from typing import Iterable, List, Optional
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, Header, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.deps import require_user
+from app.core.device_auth import can_access_device
 from app.db.models.device import Device
 from app.db.models.pro_domain import (
     CalibrationProfile,
@@ -121,7 +122,7 @@ def _organization_response(organization: Organization, role: str) -> Organizatio
 @organizations_router.post("/", response_model=OrganizationResponse, status_code=status.HTTP_201_CREATED)
 async def create_organization(
     data: OrganizationCreate,
-    db: AsyncSession = Depends(get_session),
+    db: AsyncSession = Depends(get_session, scope="function"),
     user: User = Depends(require_user),
 ):
     """Create an organization and grant owner membership to the current user."""
@@ -153,7 +154,7 @@ async def create_organization(
 
 @organizations_router.get("/", response_model=List[OrganizationResponse])
 async def list_organizations(
-    db: AsyncSession = Depends(get_session),
+    db: AsyncSession = Depends(get_session, scope="function"),
     user: User = Depends(require_user),
 ):
     """List organizations visible to the current user."""
@@ -173,7 +174,7 @@ async def list_organizations(
 @organizations_router.get("/{organization_id}", response_model=OrganizationResponse)
 async def get_organization(
     organization_id: UUID,
-    db: AsyncSession = Depends(get_session),
+    db: AsyncSession = Depends(get_session, scope="function"),
     user: User = Depends(require_user),
 ):
     """Fetch one organization visible to the current user."""
@@ -186,7 +187,7 @@ async def get_organization(
 @sites_router.post("/", response_model=SiteResponse, status_code=status.HTTP_201_CREATED)
 async def create_site(
     data: SiteCreate,
-    db: AsyncSession = Depends(get_session),
+    db: AsyncSession = Depends(get_session, scope="function"),
     user: User = Depends(require_user),
 ):
     """Create a site inside one organization."""
@@ -208,7 +209,7 @@ async def create_site(
 @sites_router.get("/", response_model=List[SiteResponse])
 async def list_sites(
     organization_id: UUID,
-    db: AsyncSession = Depends(get_session),
+    db: AsyncSession = Depends(get_session, scope="function"),
     user: User = Depends(require_user),
 ):
     """List sites for one organization."""
@@ -225,7 +226,7 @@ async def list_sites(
 @sites_router.get("/{site_id}", response_model=SiteResponse)
 async def get_site(
     site_id: UUID,
-    db: AsyncSession = Depends(get_session),
+    db: AsyncSession = Depends(get_session, scope="function"),
     user: User = Depends(require_user),
 ):
     """Fetch one site if the user belongs to the parent organization."""
@@ -238,7 +239,7 @@ async def get_site(
 @sites_router.get("/{site_id}/devices", response_model=List[SiteDeviceResponse])
 async def list_site_devices(
     site_id: UUID,
-    db: AsyncSession = Depends(get_session),
+    db: AsyncSession = Depends(get_session, scope="function"),
     user: User = Depends(require_user),
 ):
     """List devices assigned to one site."""
@@ -256,7 +257,7 @@ async def list_site_devices(
 @zones_router.post("/", response_model=ZoneResponse, status_code=status.HTTP_201_CREATED)
 async def create_zone(
     data: ZoneCreate,
-    db: AsyncSession = Depends(get_session),
+    db: AsyncSession = Depends(get_session, scope="function"),
     user: User = Depends(require_user),
 ):
     """Create a zone inside one site."""
@@ -278,7 +279,7 @@ async def create_zone(
 @zones_router.get("/", response_model=List[ZoneResponse])
 async def list_zones(
     site_id: UUID,
-    db: AsyncSession = Depends(get_session),
+    db: AsyncSession = Depends(get_session, scope="function"),
     user: User = Depends(require_user),
 ):
     """List zones for one site."""
@@ -294,7 +295,7 @@ async def list_zones(
 @zones_router.get("/{zone_id}", response_model=ZoneResponse)
 async def get_zone(
     zone_id: UUID,
-    db: AsyncSession = Depends(get_session),
+    db: AsyncSession = Depends(get_session, scope="function"),
     user: User = Depends(require_user),
 ):
     """Fetch one zone if the user belongs to the parent organization."""
@@ -308,7 +309,7 @@ async def get_zone(
 @policies_router.post("/", response_model=PolicyResponse, status_code=status.HTTP_201_CREATED)
 async def create_policy(
     data: PolicyCreate,
-    db: AsyncSession = Depends(get_session),
+    db: AsyncSession = Depends(get_session, scope="function"),
     user: User = Depends(require_user),
 ):
     """Create one organization-, site-, or zone-scoped policy."""
@@ -349,7 +350,7 @@ async def list_policies(
     organization_id: Optional[UUID] = None,
     site_id: Optional[UUID] = None,
     zone_id: Optional[UUID] = None,
-    db: AsyncSession = Depends(get_session),
+    db: AsyncSession = Depends(get_session, scope="function"),
     user: User = Depends(require_user),
 ):
     """List policies for one scope."""
@@ -376,7 +377,7 @@ async def list_policies(
 @policies_router.get("/{policy_id}", response_model=PolicyResponse)
 async def get_policy(
     policy_id: UUID,
-    db: AsyncSession = Depends(get_session),
+    db: AsyncSession = Depends(get_session, scope="function"),
     user: User = Depends(require_user),
 ):
     """Fetch one policy if the user belongs to the owning organization."""
@@ -403,7 +404,7 @@ async def get_policy(
 @calibration_profiles_router.post("/", response_model=CalibrationProfileResponse, status_code=status.HTTP_201_CREATED)
 async def create_calibration_profile(
     data: CalibrationProfileCreate,
-    db: AsyncSession = Depends(get_session),
+    db: AsyncSession = Depends(get_session, scope="function"),
     user: User = Depends(require_user),
 ):
     """Create a calibration profile for one organization or site."""
@@ -431,7 +432,7 @@ async def create_calibration_profile(
 async def list_calibration_profiles(
     organization_id: UUID,
     site_id: Optional[UUID] = None,
-    db: AsyncSession = Depends(get_session),
+    db: AsyncSession = Depends(get_session, scope="function"),
     user: User = Depends(require_user),
 ):
     """List calibration profiles for one organization."""
@@ -452,7 +453,7 @@ async def list_calibration_profiles(
 @calibration_profiles_router.get("/{profile_id}", response_model=CalibrationProfileResponse)
 async def get_calibration_profile(
     profile_id: UUID,
-    db: AsyncSession = Depends(get_session),
+    db: AsyncSession = Depends(get_session, scope="function"),
     user: User = Depends(require_user),
 ):
     """Fetch one calibration profile if the user belongs to the organization."""
@@ -471,8 +472,9 @@ async def get_calibration_profile(
 async def assign_device_to_site(
     device_id: str,
     data: DeviceAssignmentUpdate,
-    db: AsyncSession = Depends(get_session),
+    db: AsyncSession = Depends(get_session, scope="function"),
     user: User = Depends(require_user),
+    device_key: Optional[str] = Header(default=None, alias="X-Device-Key"),
 ):
     """Assign one registered device into the Pro site and zone model."""
 
@@ -514,6 +516,15 @@ async def assign_device_to_site(
     device = result.scalar_one_or_none()
     if not device:
         raise HTTPException(status_code=404, detail="Device not found")
+
+    if not await can_access_device(db, device, user, device_key):
+        raise HTTPException(status_code=404, detail="Device not found")
+    if device.site_id:
+        previous_site = await _get_site_or_404(db, device.site_id)
+        await _require_org_membership(
+            db, previous_site.organization_id, user,
+            allowed_roles=(MembershipRole.OWNER.value, MembershipRole.ADMIN.value),
+        )
 
     device.site_id = site.id
     device.zone_id = zone.id if zone else None

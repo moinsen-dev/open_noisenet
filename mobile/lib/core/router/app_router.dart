@@ -7,6 +7,7 @@ import '../../features/auth/presentation/pages/auth_page.dart';
 import '../../features/device_setup/presentation/pages/setup_page.dart';
 import '../../features/onboarding/presentation/pages/onboarding_page.dart';
 import '../../features/home/presentation/pages/home_page.dart';
+import '../../features/noise_diary/presentation/noise_diary_page.dart';
 import '../../features/settings/presentation/pages/settings_page.dart';
 import '../../features/statistics/presentation/pages/statistics_page.dart';
 import '../../features/recordings/presentation/pages/recordings_page.dart';
@@ -61,6 +62,12 @@ class AppRouter {
         path: '/home',
         name: 'home',
         builder: (context, state) => const HomePage(),
+      ),
+
+      GoRoute(
+        path: '/diary',
+        name: 'diary',
+        builder: (context, state) => const NoiseDiaryPage(),
       ),
 
       // Legacy monitoring route - redirect to home

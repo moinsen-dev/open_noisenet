@@ -37,7 +37,8 @@ COPY migrations ./migrations
 COPY alembic.ini ./
 
 # Install dependencies using the locked UV environment
-RUN uv sync --frozen --no-dev --active
+# Do not bake uv's download cache into the runtime image.
+RUN uv sync --frozen --no-dev --active --no-cache
 
 # Create uploads directory
 RUN mkdir -p /app/uploads && chown -R app:app /app/uploads

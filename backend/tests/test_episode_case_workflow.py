@@ -7,6 +7,11 @@ from httpx import AsyncClient
 pytestmark = pytest.mark.asyncio
 
 
+@pytest.fixture(autouse=True)
+def device_key(client: AsyncClient):
+    client.headers["X-Device-Key"] = "A" * 43
+
+
 async def _auth_headers(client: AsyncClient, email: str = "pro-ops@example.com"):
     response = await client.post(
         "/api/v1/auth/register",
@@ -150,6 +155,53 @@ async def test_event_creates_episode_and_merges_recent_followup(client: AsyncCli
     assert merged["lifecycle_state"] == "extended"
 
 
+async def test_speech_episode_merges_across_a_natural_meeting_pause(
+    client: AsyncClient,
+):
+    """Speech episodes may contain a pause without claiming continuous noise."""
+    headers, organization_id, site_id, _zone_id = await _bootstrap_site_context(
+        client
+    )
+
+    first = await client.post(
+        "/api/v1/events/",
+        json=_event_payload(
+            event_uuid="evt-speech-pause-001",
+            timestamp_start="2026-04-17T18:00:00Z",
+            timestamp_end="2026-04-17T18:10:00Z",
+            classification_label="loud_conversation",
+            classification_confidence=0.82,
+            classification_source="device_yamnet_taxonomy_v1",
+            segment_type="repeated_impulses",
+        ),
+    )
+    assert first.status_code == 200
+
+    followup = await client.post(
+        "/api/v1/events/",
+        json=_event_payload(
+            event_uuid="evt-speech-pause-002",
+            timestamp_start="2026-04-17T18:20:00Z",
+            timestamp_end="2026-04-17T18:25:00Z",
+            classification_label="loud_conversation",
+            classification_confidence=0.79,
+            classification_source="device_yamnet_taxonomy_v1",
+            segment_type="repeated_impulses",
+        ),
+    )
+    assert followup.status_code == 200
+    assert followup.json()["episode_id"] == first.json()["episode_id"]
+
+    episodes = await client.get(
+        "/api/v1/episodes/",
+        params={"organization_id": organization_id, "site_id": site_id},
+        headers=headers,
+    )
+    continuity = episodes.json()["episodes"][0]["review_metadata"]["continuity"]
+    assert continuity["continuous_noise_claimed"] is False
+    assert continuity["inter_event_gaps"][0]["duration_seconds"] == 600.0
+
+
 async def test_episode_review_case_and_export_flow(client: AsyncClient):
     headers, organization_id, site_id, zone_id = await _bootstrap_site_context(
         client
@@ -174,6 +226,15 @@ async def test_episode_review_case_and_export_flow(client: AsyncClient):
     assert reviewed.json()["review_metadata"]["previous_review_state"] == "pending_review"
     assert reviewed.json()["review_metadata"]["new_review_state"] == "overridden"
     assert reviewed.json()["review_metadata"]["closed_by_review"] is True
+    assert reviewed.json()["review_metadata"]["continuity"] == {
+        "merge_basis": "single_event",
+        "continuous_noise_claimed": False,
+        "episode_span_seconds": 240.0,
+        "observed_event_duration_seconds": 240.0,
+        "inter_event_gaps": [],
+        "timing_bases": ["event_threshold_interval"],
+    }
+    assert reviewed.json()["review_metadata"]["avg_leq_db"] == 69.0
 
     created_case = await client.post(
         "/api/v1/cases/",
@@ -481,12 +542,9 @@ async def test_case_transition_to_closed_via_patch(client: AsyncClient):
     assert response.json()["closed_by_id"] is not None
 
 
-async def test_case_closed_can_return_to_open_via_patch(client: AsyncClient):
-    """Current contract: PATCH accepts any status value; closed→open clears closed_at.
-
-    NOTE: transition validation (rejecting invalid status flows with 422) is a
-    planned hardening item — once implemented, this test must be updated.
-    """
+@pytest.mark.parametrize("target_status", ["open", "in_review"])
+async def test_closed_case_cannot_return_to_active_status(client: AsyncClient, target_status: str):
+    """A rejected reopen leaves the closed case and other requested changes intact."""
     headers, organization_id, site_id, zone_id = await _bootstrap_site_context(client)
     event = await client.post("/api/v1/events/", json=_event_payload())
     assert event.status_code == 200
@@ -514,12 +572,14 @@ async def test_case_closed_can_return_to_open_via_patch(client: AsyncClient):
 
     reopened = await client.patch(
         f"/api/v1/cases/{case_id}",
-        json={"status": "open"},
+        json={"status": target_status, "title": "Must not change"},
         headers=headers,
     )
-    assert reopened.status_code == 200
-    assert reopened.json()["status"] == "open"
-    assert reopened.json()["closed_at"] is None
+    assert reopened.status_code == 422
+    unchanged = await client.get(f"/api/v1/cases/{case_id}", headers=headers)
+    assert unchanged.json()["status"] == "closed"
+    assert unchanged.json()["closed_at"] is not None
+    assert unchanged.json()["title"] == "Reopen transition test"
 
 
 # ── Export Fidelity ────────────────────────────────────────────────
@@ -612,3 +672,104 @@ async def test_export_case_json(client: AsyncClient):
     )
     assert response.status_code == 201
     assert response.json()["content_type"] == "application/json"
+
+
+async def test_case_and_export_are_isolated_from_other_organization(client: AsyncClient):
+    owner, org_id, site_id, zone_id = await _bootstrap_site_context(client)
+    event = await client.post('/api/v1/events/', json=_event_payload())
+    case = await client.post('/api/v1/cases/', json={
+        'organization_id': org_id, 'site_id': site_id, 'zone_id': zone_id,
+        'title': 'Private case', 'episode_ids': [event.json()['episode_id']],
+    }, headers=owner)
+    assert case.status_code == 201
+    case_id = case.json()['id']
+    export = await client.post('/api/v1/exports/', json={'case_id': case_id, 'format': 'json'}, headers=owner)
+    assert export.status_code == 201
+    export_id = export.json()['id']
+    outsider = await _auth_headers(client, email='other-export-tenant@example.org')
+    for path in (f'/api/v1/cases/{case_id}', f'/api/v1/cases/{case_id}/episodes',
+                 f'/api/v1/exports/{export_id}', f'/api/v1/exports/{export_id}/content'):
+        assert (await client.get(path, headers=outsider)).status_code in (403, 404)
+    assert (await client.patch(f'/api/v1/cases/{case_id}', json={'title': 'Unwanted'}, headers=outsider)).status_code in (403, 404)
+    assert (await client.post('/api/v1/exports/', json={'case_id': case_id, 'format': 'json'}, headers=outsider)).status_code in (403, 404)
+    assert (await client.get(f'/api/v1/exports/?organization_id={org_id}', headers=outsider)).status_code in (403, 404)
+    assert (await client.get(f'/api/v1/cases/{case_id}', headers=owner)).json()['title'] == 'Private case'
+
+
+async def test_case_rejects_zone_from_another_site(client: AsyncClient):
+    headers, org_id, site_id, _zone_id = await _bootstrap_site_context(client)
+    event = await client.post('/api/v1/events/', json=_event_payload())
+    site = await client.post('/api/v1/sites/', json={'organization_id': org_id, 'name': 'Other site', 'timezone': 'UTC'}, headers=headers)
+    zone = await client.post('/api/v1/zones/', json={'site_id': site.json()['id'], 'name': 'Other zone'}, headers=headers)
+    response = await client.post('/api/v1/cases/', json={
+        'organization_id': org_id, 'site_id': site_id, 'zone_id': zone.json()['id'],
+        'title': 'Mismatched zone', 'episode_ids': [event.json()['episode_id']],
+    }, headers=headers)
+    assert response.status_code == 400
+    cases = await client.get('/api/v1/cases/', params={'organization_id': org_id}, headers=headers)
+    assert cases.json() == []
+
+
+async def test_csv_export_neutralizes_formulas_and_uses_safe_download_name(client: AsyncClient):
+    import csv
+    import io
+
+    headers, org_id, site_id, zone_id = await _bootstrap_site_context(client)
+    event = await client.post('/api/v1/events/', json=_event_payload())
+    episode_id = event.json()['episode_id']
+    review = await client.post(f'/api/v1/episodes/{episode_id}/review', json={
+        'review_state': 'confirmed', 'notes': '  =HYPERLINK("https://example.org")',
+    }, headers=headers)
+    assert review.status_code == 200
+    case = await client.post('/api/v1/cases/', json={
+        'organization_id': org_id, 'site_id': site_id, 'zone_id': zone_id,
+        'title': '=1+1', 'episode_ids': [episode_id],
+    }, headers=headers)
+    assert case.status_code == 201
+    export = await client.post('/api/v1/exports/', json={'case_id': case.json()['id'], 'format': 'csv'}, headers=headers)
+    assert export.status_code == 201
+    download = await client.get(f"/api/v1/exports/{export.json()['id']}/content", headers=headers)
+    assert download.status_code == 200
+    row = next(csv.DictReader(io.StringIO(download.text)))
+    assert row['case_title'] == "'=1+1"
+    assert row['review_notes'].startswith("'  =")
+    assert download.headers['content-disposition'] == f"attachment; filename=\"case-{case.json()['id']}.csv\""
+
+
+@pytest.mark.parametrize('format_name', ['json', 'csv', 'pdf'])
+async def test_export_download_contains_reviewed_evidence(client: AsyncClient, format_name: str):
+    import csv
+    import io
+    headers, org_id, site_id, zone_id = await _bootstrap_site_context(client)
+    event = await client.post('/api/v1/events/', json=_event_payload())
+    episode_id = event.json()['episode_id']
+    reviewed = await client.post(f'/api/v1/episodes/{episode_id}/review', headers=headers,
+                                 json={'review_state': 'confirmed', 'review_label': 'reviewed_noise',
+                                       'severity': 'medium', 'notes': 'Verified observation'})
+    assert reviewed.status_code == 200
+    case = await client.post('/api/v1/cases/', headers=headers, json={
+        'organization_id': org_id, 'site_id': site_id, 'zone_id': zone_id,
+        'title': 'Evidence check', 'episode_ids': [episode_id],
+    })
+    assert case.status_code == 201
+    exported = await client.post('/api/v1/exports/', headers=headers,
+                                 json={'case_id': case.json()['id'], 'format': format_name})
+    assert exported.status_code == 201
+    downloaded = await client.get(f"/api/v1/exports/{exported.json()['id']}/content", headers=headers)
+    assert downloaded.status_code == 200
+    if format_name == 'json':
+        body = downloaded.json()
+        assert body['case']['title'] == 'Evidence check'
+        assert body['case']['audit_history'][0]['event_type'] == 'case_created'
+        assert body['episodes'][0]['id'] == episode_id
+        assert body['episodes'][0]['review_notes'] == 'Verified observation'
+        assert body['episodes'][0]['effective_label'] == 'reviewed_noise'
+    elif format_name == 'csv':
+        row = next(csv.DictReader(io.StringIO(downloaded.text)))
+        assert row['episode_id'] == episode_id
+        assert row['case_title'] == 'Evidence check'
+        assert row['review_notes'] == 'Verified observation'
+        assert row['effective_label'] == 'reviewed_noise'
+    else:
+        assert downloaded.content.startswith(b'%PDF-')
+        assert downloaded.headers['content-type'] == 'application/pdf'

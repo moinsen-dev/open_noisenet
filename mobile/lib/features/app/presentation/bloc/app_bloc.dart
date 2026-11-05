@@ -11,8 +11,7 @@ part 'app_state.dart';
 class AppBloc extends Bloc<AppEvent, AppState> {
   final SQLitePreferencesService _preferencesService =
       GetIt.instance<SQLitePreferencesService>();
-  final BackendSyncService _syncService =
-      GetIt.instance<BackendSyncService>();
+  final BackendSyncService _syncService = GetIt.instance<BackendSyncService>();
 
   AppBloc() : super(const AppInitial()) {
     on<AppStarted>(_onAppStarted);
@@ -33,25 +32,26 @@ class AppBloc extends Bloc<AppEvent, AppState> {
 
       // Initialize backend sync service and check connectivity
       await _syncService.initialize();
-      
+
       // Check backend status and emit connection notification
       final backendStatus = await _syncService.getBackendStatus();
       final mode = backendStatus['mode'] as String;
       final queuedEvents = backendStatus['queued_events'] as int;
-      
+
       String connectionMessage;
       bool isConnected;
-      
+
       switch (mode) {
         case 'offline':
           isConnected = false;
-          connectionMessage = queuedEvents > 0 
+          connectionMessage = queuedEvents > 0
               ? 'Running offline - $queuedEvents events queued for sync'
               : 'Running in offline mode - Events stored locally';
           break;
         case 'anonymous':
           isConnected = true;
-          connectionMessage = 'Connected - Anonymous data sharing enabled';
+          connectionMessage =
+              'Mit Server verbunden · Upload gemäß Einstellungen';
           break;
         case 'authenticated':
           isConnected = true;
@@ -61,14 +61,14 @@ class AppBloc extends Bloc<AppEvent, AppState> {
           isConnected = false;
           connectionMessage = 'Unknown connection status';
       }
-      
+
       // Emit connection status notification
       emit(AppConnectionStatus(
         isConnected: isConnected,
         mode: mode,
         message: connectionMessage,
       ));
-      
+
       // Small delay to show the notification, then load the main app
       await Future<void>.delayed(const Duration(milliseconds: 500));
 

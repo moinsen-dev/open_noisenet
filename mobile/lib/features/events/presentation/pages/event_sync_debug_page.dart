@@ -10,6 +10,7 @@ import '../../../../services/backend_sync_service.dart';
 import '../../../../services/event_detection_service.dart';
 import '../../../../services/ios_background_service.dart';
 import '../../../../services/recording_service.dart';
+import '../../../../services/sound_analysis/on_device_sound_analysis_service.dart';
 import '../../../../widgets/shared_app_bar.dart';
 
 class EventSyncDebugPage extends StatefulWidget {
@@ -26,6 +27,8 @@ class _EventSyncDebugPageState extends State<EventSyncDebugPage> {
   final EventDetectionService _eventDetection = EventDetectionService();
   final RecordingService _recordingService = RecordingService();
   final IOSBackgroundService _iosBackgroundService = IOSBackgroundService();
+  final OnDeviceSoundAnalysisService _soundAnalysis =
+      GetIt.instance<OnDeviceSoundAnalysisService>();
 
   late Future<_EventSyncSnapshot> _snapshotFuture;
 
@@ -46,6 +49,7 @@ class _EventSyncDebugPageState extends State<EventSyncDebugPage> {
       recentEvents: recentEvents,
       audioDiagnostics: _audioCapture.getDiagnostics(),
       eventDetectionStatus: _eventDetection.getStatus(),
+      soundAnalysisStatus: _soundAnalysis.getDiagnostics(),
       recordingStatus: recordingStatus,
       iosBackgroundStatus:
           Platform.isIOS ? _iosBackgroundService.getServiceStatistics() : null,
@@ -370,6 +374,41 @@ class _EventSyncDebugPageState extends State<EventSyncDebugPage> {
                               '${data.eventDetectionStatus['isMonitoring'] ?? false} / samples ${data.eventDetectionStatus['sampleCount'] ?? 0}',
                         ),
                         _KeyValueRow(
+                          label: 'Sound Model',
+                          value:
+                              '${data.soundAnalysisStatus['running'] ?? false} / ${data.soundAnalysisStatus['model'] ?? 'unavailable'}',
+                        ),
+                        _KeyValueRow(
+                          label: 'Latest Scene',
+                          value:
+                              '${data.soundAnalysisStatus['latest_category'] ?? 'none'} / ${_formatConfidence(data.soundAnalysisStatus['latest_confidence'])}',
+                        ),
+                        _KeyValueRow(
+                          label: 'Active Source',
+                          value:
+                              '${data.soundAnalysisStatus['active_source_category'] ?? 'none'} / ${data.soundAnalysisStatus['active_source_duration_ms'] ?? 0} ms',
+                        ),
+                        _KeyValueRow(
+                          label: 'Source Timing',
+                          value:
+                              '${data.soundAnalysisStatus['source_timing_method'] ?? 'unavailable'} / ${data.soundAnalysisStatus['source_timing_resolution_ms'] ?? 'n/a'} ms',
+                        ),
+                        _KeyValueRow(
+                          label: 'Inference',
+                          value:
+                              '${data.soundAnalysisStatus['inference_count'] ?? 0} frames / ${data.soundAnalysisStatus['latest_inference_ms'] ?? 'n/a'} ms latest',
+                        ),
+                        _KeyValueRow(
+                          label: 'Audio Privacy',
+                          value:
+                              '${data.soundAnalysisStatus['audio_retention'] ?? 'unknown'} / speech recognition ${data.soundAnalysisStatus['speech_recognition'] ?? false}',
+                        ),
+                        if (data.soundAnalysisStatus['last_error'] != null)
+                          _KeyValueRow(
+                            label: 'Model Error',
+                            value: '${data.soundAnalysisStatus['last_error']}',
+                          ),
+                        _KeyValueRow(
                           label: 'Recorder',
                           value:
                               '${data.recordingStatus['active_buffers'] ?? 0} buffers / ${data.recordingStatus['settings']?['enabled'] ?? false}',
@@ -452,6 +491,11 @@ class _EventSyncDebugPageState extends State<EventSyncDebugPage> {
     }
     return '${value.substring(0, 8)}…${value.substring(value.length - 4)}';
   }
+
+  String _formatConfidence(Object? value) {
+    if (value is! num) return 'n/a';
+    return '${(value.toDouble() * 100).round()}%';
+  }
 }
 
 class _EventSyncSnapshot {
@@ -459,6 +503,7 @@ class _EventSyncSnapshot {
   final List<NoiseEventModel> recentEvents;
   final Map<String, dynamic> audioDiagnostics;
   final Map<String, dynamic> eventDetectionStatus;
+  final Map<String, dynamic> soundAnalysisStatus;
   final Map<String, dynamic> recordingStatus;
   final Map<String, dynamic>? iosBackgroundStatus;
 
@@ -467,6 +512,7 @@ class _EventSyncSnapshot {
     required this.recentEvents,
     required this.audioDiagnostics,
     required this.eventDetectionStatus,
+    required this.soundAnalysisStatus,
     required this.recordingStatus,
     required this.iosBackgroundStatus,
   });

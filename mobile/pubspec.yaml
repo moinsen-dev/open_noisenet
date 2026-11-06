@@ -2,7 +2,7 @@ name: noisenet_mobile
 description: OpenNoiseNet mobile application for environmental noise monitoring with on-device AI processing.
 publish_to: "none"
 
-version: 0.1.0+2
+version: 0.1.0+3
 
 environment:
   sdk: ">=3.1.0 <4.0.0"

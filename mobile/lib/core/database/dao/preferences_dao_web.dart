@@ -1,3 +1,4 @@
+import '../../config/backend_defaults.dart';
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
@@ -238,7 +239,7 @@ extension PreferencesDaoExtensions on PreferencesDao {
   Future<void> setCalibrationOffset(double value) => setDouble(PreferenceKeys.calibrationOffset, value, description: 'Audio calibration offset in dB');
 
   // Sync preferences
-  Future<String> getBackendUrl() => getString(PreferenceKeys.backendUrl, defaultValue: 'http://localhost:8100/api/v1');
+  Future<String> getBackendUrl() => getString(PreferenceKeys.backendUrl, defaultValue: BackendDefaults.current);
   Future<void> setBackendUrl(String value) => setString(PreferenceKeys.backendUrl, value, description: 'Backend server URL for data sync');
 
   Future<bool> getAutoSubmissionEnabled() => getBool(PreferenceKeys.autoSubmissionEnabled, defaultValue: true);

@@ -1,5 +1,6 @@
 // API client service for communicating with the OpenNoiseNet backend.
 
+import '../core/config/backend_defaults.dart';
 import 'dart:async';
 
 import 'package:dio/dio.dart';
@@ -27,17 +28,7 @@ class ApiClientService implements PhaseUploadTransport {
   static const String _refreshTokenKey = 'refresh_token';
   static const String _deviceIdKey = 'device_id';
 
-  // Smart backend URL detection for development
-  static String get _defaultBaseUrl {
-    // For release builds, use production URL
-    if (kReleaseMode) {
-      return 'https://api.open-noisenet.org/api/v1';
-    }
-
-    // For development builds, use localhost as fallback
-    // The NetworkUtils.getRecommendedBackendUrl() will provide better detection
-    return 'http://localhost:8100/api/v1';
-  }
+  static String get _defaultBaseUrl => BackendDefaults.current;
 
   static String get defaultBaseUrl => _defaultBaseUrl;
 
@@ -92,7 +83,8 @@ class ApiClientService implements PhaseUploadTransport {
           return;
         }
         final configuredUri = Uri.tryParse(_baseUrl);
-        if (configuredUri == null ||
+        if (BackendDefaults.isLocalOnly(options.uri) ||
+            configuredUri == null ||
             options.uri.origin != configuredUri.origin ||
             (kReleaseMode && options.uri.scheme != 'https')) {
           handler.reject(DioException(
@@ -1096,7 +1088,11 @@ class ApiClientService implements PhaseUploadTransport {
       {String? candidateUrl}) async {
     final destination = (candidateUrl ?? _baseUrl).trim();
     try {
-      _validatedBackendUrl(destination);
+      if (BackendDefaults.isLocalOnly(_validatedBackendUrl(destination))) {
+        return ConnectionTestResult(success: false, latencyMs: null,
+            error: 'On this device only. Configure a HTTPS backend to connect.',
+            baseUrl: destination);
+      }
       final startTime = DateTime.now();
       if (candidateUrl == null) {
         await healthCheck();

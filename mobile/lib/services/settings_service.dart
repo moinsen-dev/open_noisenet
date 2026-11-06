@@ -1,3 +1,4 @@
+import '../core/config/backend_defaults.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class SettingsService {
@@ -80,7 +81,7 @@ class SettingsService {
   // Sync Settings
   String get backendUrl {
     _ensureInitialized();
-    return _prefs!.getString(_keyBackendUrl) ?? 'http://localhost:8100/api/v1';
+    return _prefs!.getString(_keyBackendUrl) ?? BackendDefaults.current;
   }
 
   Future<bool> setBackendUrl(String url) async {

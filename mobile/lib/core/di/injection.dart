@@ -1,3 +1,4 @@
+import '../config/backend_defaults.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -30,7 +31,7 @@ Future<void> configureDependencies() async {
   final dio = Dio();
   dio.options = BaseOptions(
     baseUrl: const String.fromEnvironment('API_BASE_URL',
-        defaultValue: 'http://localhost:8100/api/v1'),
+        defaultValue: BackendDefaults.current),
     connectTimeout: const Duration(seconds: 5),
     receiveTimeout: const Duration(seconds: 3),
     headers: {
@@ -38,6 +39,14 @@ Future<void> configureDependencies() async {
       'Accept': 'application/json',
     },
   );
+
+  dio.interceptors.add(InterceptorsWrapper(onRequest: (options, handler) {
+    if (BackendDefaults.isLocalOnly(options.uri)) {
+      handler.reject(DioException(requestOptions: options, error: 'No backend configured'));
+      return;
+    }
+    handler.next(options);
+  }));
 
   // Add logging interceptor in debug mode
   if (const bool.fromEnvironment('DEBUG', defaultValue: false)) {

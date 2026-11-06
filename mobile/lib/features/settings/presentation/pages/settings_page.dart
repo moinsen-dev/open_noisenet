@@ -17,6 +17,7 @@ import '../../../../services/sqlite_preferences_service.dart';
 import '../../../../services/api_client_service.dart';
 import '../../../../services/backend_sync_service.dart';
 import '../../../../services/network_utils.dart';
+import '../../../../core/config/backend_defaults.dart';
 import '../../../../core/database/dao/noise_measurement_dao.dart';
 import '../../../../core/database/dao/daily_statistics_dao.dart';
 import '../../../../core/database/dao/audio_recording_dao.dart';
@@ -297,7 +298,9 @@ class _SettingsPageState extends State<SettingsPage> {
         ListTile(
           leading: const Icon(Icons.cloud_sync),
           title: const Text('Backend Integration'),
-          subtitle: Text('Backend: ${_apiClientService.baseUrl}'),
+          subtitle: Text(_apiClientService.baseUrl == BackendDefaults.localOnly
+              ? 'On this device only'
+              : 'Backend: ${_apiClientService.baseUrl}'),
           onTap: () => _showSyncDialog(context),
         ),
         FutureBuilder<bool>(
@@ -980,7 +983,8 @@ class _SettingsPageState extends State<SettingsPage> {
       await _preferencesService.setCalibrationOffset(0.0);
 
       // Reset backend URL to default
-      await _preferencesService.setBackendUrl('http://localhost:8100/api/v1');
+      await _apiClientService.setBaseUrl(ApiClientService.defaultBaseUrl);
+      await _preferencesService.setBackendUrl(ApiClientService.defaultBaseUrl);
 
       // Reset auto-submission
       await _preferencesService.setAutoSubmissionEnabled(false);

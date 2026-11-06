@@ -1,3 +1,4 @@
+import '../../config/backend_defaults.dart';
 import 'package:flutter/material.dart';
 import 'package:sqflite/sqflite.dart';
 
@@ -318,7 +319,7 @@ extension PreferencesDaoExtensions on PreferencesDao {
 
   // Sync preferences
   Future<String> getBackendUrl() => getString(PreferenceKeys.backendUrl,
-      defaultValue: 'http://localhost:8100/api/v1');
+      defaultValue: BackendDefaults.current);
   Future<void> setBackendUrl(String value) =>
       setString(PreferenceKeys.backendUrl, value,
           description: 'Backend server URL for data sync');

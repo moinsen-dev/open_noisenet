@@ -27,16 +27,16 @@
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-	<string>OpenNoiseNet needs your location to tag noise measurements with geographic coordinates, helping create accurate community noise maps.</string>
+	<string>You can optionally add your location to noise measurements for the community map. Monitoring works without location.</string>
 	<key>NSLocationTemporaryUsageDescriptionDictionary</key>
 	<dict>
 		<key>NoiseMapping</key>
 		<string>We need precise location to accurately map noise levels in your area.</string>
 	</dict>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>OpenNoiseNet needs your location to tag noise measurements with geographic coordinates, helping create accurate community noise maps.</string>
+	<string>You can optionally add your location to noise measurements for the community map. Monitoring works without location.</string>
 	<key>NSMicrophoneUsageDescription</key>
-	<string>OpenNoiseNet needs access to your microphone to measure environmental noise levels and contribute to community noise monitoring.</string>
+	<string>OpenNoiseNet uses the microphone to measure sound levels and suggest possible sound sources on this device. New audio recordings are disabled.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
@@ -63,7 +63,6 @@
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>audio</string>
-		<string>background-processing</string>
 	</array>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>

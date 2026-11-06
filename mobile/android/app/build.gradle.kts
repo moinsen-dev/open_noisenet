@@ -1,8 +1,20 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("kotlin-android")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
+}
+
+// Store credentials live outside the checkout. Debug builds never need them.
+val uploadProperties = Properties()
+val uploadConfig = providers.environmentVariable("NOISENET_ANDROID_SIGNING_PROPERTIES").orNull
+if (uploadConfig != null) {
+    file(uploadConfig).inputStream().use { uploadProperties.load(it) }
+    for (key in listOf("storeFile", "storePassword", "keyAlias", "keyPassword")) {
+        require(!uploadProperties.getProperty(key).isNullOrBlank()) { "Missing upload signing field: $key" }
+    }
 }
 
 android {
@@ -30,6 +42,17 @@ android {
         manifestPlaceholders["applicationLabel"] = "OpenNoiseNet"
     }
 
+    signingConfigs {
+        create("upload") {
+            if (uploadConfig != null) {
+                storeFile = file(uploadProperties.getProperty("storeFile"))
+                storePassword = uploadProperties.getProperty("storePassword")
+                keyAlias = uploadProperties.getProperty("keyAlias")
+                keyPassword = uploadProperties.getProperty("keyPassword")
+            }
+        }
+    }
+
     buildTypes {
         debug {
             val isolatedTestSuffix = System.getenv("NOISENET_TEST_APP_SUFFIX")
@@ -43,13 +66,21 @@ android {
             }
         }
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.getByName("upload")
         }
     }
 }
 
 flutter {
     source = "../.."
+}
+
+
+// AGP can silently emit unsigned artifacts if a signing configuration is empty.
+tasks.matching { it.name in setOf("packageRelease", "packageReleaseBundle", "signReleaseBundle", "bundleRelease", "assembleRelease") }.configureEach {
+    doFirst {
+        check(uploadConfig != null) {
+            "Release signing requires NOISENET_ANDROID_SIGNING_PROPERTIES (see docs/mobile/store-beta.md)."
+        }
+    }
 }

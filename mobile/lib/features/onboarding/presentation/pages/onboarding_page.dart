@@ -521,7 +521,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        'Standard monitoring keeps audio only in a short-lived memory buffer for local classification. It uploads levels, categories, and times — never speech or raw audio. Saving audio is a separate opt-in setting.',
+                        'Sound is analyzed on this device. No new audio recordings are saved. To share measurements or source hints, configure your own HTTPS backend and enable the corresponding upload.',
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: colorScheme.onSurface.withValues(alpha: 0.7),
                         ),

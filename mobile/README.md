@@ -37,16 +37,15 @@ python3 ../scripts/check_android_16kb.py build/app/outputs/flutter-apk/app-debug
 This checks APK ZIP alignment and the 64-bit native library segments. It does
 not replace a launch and model inference test on an Android 16 KB device.
 When switching from a debug build to `flutter build apk --release`, omit
-`--no-pub` so Flutter regenerates the release plugin registration. The current
-release build uses a debug signing key and is not ready for distribution.
+`--no-pub` so Flutter regenerates the release plugin registration. Release builds require the dedicated upload key. The
+[internal beta guide](../docs/mobile/store-beta.md) describes signing,
+TestFlight-only export and bundle validation.
 
 ## Backend Assumption
 
-The mobile client expects the local backend at:
-
-- `http://localhost:8100/api/v1`
-
-Override with the `API_BASE_URL` Dart define when needed.
+Development defaults to `http://localhost:8100/api/v1`. Fresh store installs
+start locally without a backend. To test transfers, choose an explicit trusted
+HTTPS endpoint in Settings and enable the applicable sharing option.
 
 ## Live Backend Smoke
 

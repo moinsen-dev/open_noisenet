@@ -2,7 +2,9 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:noisenet_mobile/core/config/backend_defaults.dart';
 import 'package:noisenet_mobile/services/api_client_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:talker_flutter/talker_flutter.dart';
@@ -10,6 +12,27 @@ import 'package:talker_flutter/talker_flutter.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   setUpAll(() => HttpOverrides.global = null);
+
+  test(
+      'local-only destination never reaches the transport or sends credentials',
+      () async {
+    SharedPreferences.setMockInitialValues({
+      'api_base_url': BackendDefaults.localOnly,
+      'access_token': 'private-token',
+    });
+    final api = ApiClientService(
+        prefs: await SharedPreferences.getInstance(), logger: Talker());
+    await expectLater(
+        api.healthCheck(),
+        throwsA(isA<DioException>().having(
+            (e) => e.error,
+            'intercepted before transport',
+            'Request is outside the configured secure backend')));
+    final probe = await api.testConnectionDetailed(
+        candidateUrl: BackendDefaults.localOnly);
+    expect(probe.success, isFalse);
+    expect(probe.error, contains('On this device only'));
+  });
 
   test('probing another backend does not change it or leak a bearer token',
       () async {

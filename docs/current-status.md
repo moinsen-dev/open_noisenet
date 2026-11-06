@@ -2,6 +2,12 @@
 
 Stand: 2026-11-06. Auftrag: Das offene, gemeinschaftlich betriebene und datensparsame Lärmmesssystem selbstständig bis zu einem belastbaren Stand weiterentwickeln; die Wiederaufnahmephasen werden in Reihenfolge bearbeitet. Udi möchte außerdem das kommerzielle Potenzial der beobachteten Geräuscherkennung erkunden; eine Geschäftsmodell- oder Lizenzentscheidung ist damit nicht getroffen. Lokale Builds oder synthetische Tests ersetzen keine Geräte-, Datenschutz- oder Betriebsvalidierung.
 
+## Interne Store-Beta · 06.11.2026
+
+1. **Geprüft · Release-Kandidat 0.1.0 (3).** Reguläre App, privates Startverhalten ohne voreingestellten Server, Modell in beiden Paketen geprüft. Flutter-Analyse sauber; 94 Tests bestanden, ein Test mit gesondertem HTTP-Testserver übersprungen. Die vorhandene Pixel-Installation wurde nicht verändert.
+2. **Geprüft · Android-Paket.** Eigener Upload-Schlüssel; Signatur, Manifest, AAB-Struktur und die ZIP-/ELF-Ausrichtung aller zwölf nativen 64-Bit-Bibliotheken der aus dem Bundle erzeugten APK sind lokal geprüft. Im finalen Manifest fehlen Telefonstatus, Aufnahme des Systemtons, Overlay und Zugriff auf den gemeinsamen Dateispeicher. Der Paketname wurde im Moinsen-Konto als verfügbar angezeigt. Google verlangt vor der Anlage Erklärungen zu Developer Program Policies und US-Exportrecht.
+3. **→ Wartet auf Kontoinhaber · Store-Verteilung.** Apple bestätigt den Build als `VALID / INTERNAL_ONLY`; Testhinweise sind auf Deutsch und Englisch hinterlegt. Die Zuordnung zu „OpenNoiseNet intern“ scheiterte mit `MISSING_EXPORT_COMPLIANCE` (HTTP 422). Nach der sachlichen Angabe „Standardverschlüsselung zusätzlich zum Betriebssystem“ fragt Apple nach Verteilung in Frankreich. Play: kostenlose App und Paketname vorbereitet, die Richtlinien-/Exporterklärungen nicht abgegeben, noch kein Upload. Kein Produktionsrelease, keine Einladungen, keine Installation aus einem Store belegt. [Build- und Testanleitung](mobile/store-beta.md).
+
 ## Geräuschverarbeitung im unterbrochenen Lauf · 06.11.2026
 
 1. **Geprüft · R2 ist ein Teillauf.** Der Mac-Monitor endete vor der vorgesehenen Deadline. Die letzte beobachtete Messminute liegt vor der letzten Monitorprobe. Für die Nacht fehlt die Beobachtungsgrundlage. Udi berichtet von einem Neustart des Mac.

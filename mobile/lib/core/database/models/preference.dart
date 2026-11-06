@@ -1,3 +1,4 @@
+import '../../config/backend_defaults.dart';
 /// Model for storing app preferences and settings in SQLite
 class Preference {
   final int? id;
@@ -237,7 +238,7 @@ class PreferenceKeys {
       // Sync
       Preference.createString(
         key: backendUrl,
-        value: 'http://localhost:8100/api/v1',
+        value: BackendDefaults.current,
         description: 'Backend server URL for data sync',
       ),
       Preference.createBool(

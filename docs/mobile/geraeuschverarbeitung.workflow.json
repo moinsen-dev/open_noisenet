@@ -1,0 +1,193 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "OpenNoiseNet · Vom Mikrofonsignal zur Geräuschphase",
+    "quality_profile": "showcase",
+    "legend": {
+      "mode": "hidden"
+    }
+  },
+  "lanes": [
+    {
+      "id": "level",
+      "label": "Pegelereignis · bestehender Pixel-Test (R2)"
+    },
+    {
+      "id": "source",
+      "label": "Geräteanalyse · Mikrofon und YAMNet auch in R2; Phasenbildung neu"
+    },
+    {
+      "id": "send",
+      "label": "Private Übertragung · nur bei gesonderter Zustimmung"
+    }
+  ],
+  "mainPath": [
+    "mic",
+    "yam",
+    "hints",
+    "rule",
+    "block",
+    "queue",
+    "api"
+  ],
+  "nodes": [
+    {
+      "id": "mic",
+      "lane": "source",
+      "col": 0,
+      "type": "frontend",
+      "label": "Mikrofon",
+      "sublabel": "Mono-PCM im RAM"
+    },
+    {
+      "id": "yam",
+      "lane": "source",
+      "col": 1,
+      "type": "backend",
+      "label": "YAMNet",
+      "sublabel": "975 ms je Fenster"
+    },
+    {
+      "id": "hints",
+      "lane": "source",
+      "col": 2,
+      "type": "backend",
+      "label": "Quellenhinweise",
+      "sublabel": "z. B. Sprache, Verkehr",
+      "width": 154
+    },
+    {
+      "id": "level",
+      "lane": "level",
+      "col": 0,
+      "type": "backend",
+      "label": "Gesamtpegel",
+      "sublabel": "RMS aller Geräusche"
+    },
+    {
+      "id": "threshold",
+      "lane": "level",
+      "col": 1,
+      "type": "backend",
+      "label": "Pegelschwelle",
+      "sublabel": "Leq 10 min ≥ 27 dB"
+    },
+    {
+      "id": "event",
+      "lane": "level",
+      "col": 2,
+      "type": "database",
+      "label": "Pegelereignis",
+      "sublabel": "30 s unter Schwelle: Ende",
+      "width": 154
+    },
+    {
+      "id": "rule",
+      "lane": "source",
+      "col": 3,
+      "type": "backend",
+      "label": "Pause prüfen",
+      "sublabel": "je Quellenfamilie",
+      "tag": "Neue Zeitlogik"
+    },
+    {
+      "id": "block",
+      "lane": "source",
+      "col": 4,
+      "type": "frontend",
+      "label": "Quellenphase",
+      "sublabel": "Spanne, aktiv, Pause",
+      "tag": "Neue Zeitlogik"
+    },
+    {
+      "id": "queue",
+      "lane": "send",
+      "col": 4,
+      "type": "security",
+      "label": "Warteschlange",
+      "sublabel": "AES-GCM · nur mit Freigabe",
+      "width": 154
+    },
+    {
+      "id": "api",
+      "lane": "send",
+      "col": 5,
+      "type": "database",
+      "label": "Privater Server",
+      "sublabel": "speichern, dann bestätigen",
+      "width": 154
+    }
+  ],
+  "edges": [
+    {
+      "from": "mic",
+      "to": "yam",
+      "label": "16 kHz"
+    },
+    {
+      "from": "yam",
+      "to": "hints",
+      "label": "480-ms-Schritt"
+    },
+    {
+      "from": "mic",
+      "to": "level"
+    },
+    {
+      "from": "level",
+      "to": "threshold"
+    },
+    {
+      "from": "threshold",
+      "to": "event"
+    },
+    {
+      "from": "hints",
+      "to": "event",
+      "label": "bei Abschluss"
+    },
+    {
+      "from": "hints",
+      "to": "rule",
+      "label": "Intervalle"
+    },
+    {
+      "from": "rule",
+      "to": "block"
+    },
+    {
+      "from": "block",
+      "to": "queue",
+      "label": "Opt-in"
+    },
+    {
+      "from": "queue",
+      "to": "api",
+      "label": "Revision"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "violet",
+      "title": "Wann bleibt es eine Phase?",
+      "items": [
+        "Sprache: Pause ≤ 90 s, lückenlos analysiert. Vor Wiederbeginn ≥ 20 % Sprachaktivität im Rückblick von bis zu 5 min. Sonst neuer Block."
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "Beispiel · Diktieren",
+      "items": [
+        "40 s Sprache → 20 s Denkpause → 30 s Sprache: ein Block von 90 s, davon 70 s aktiv. Ohne Analyse in der Pause: zwei Blöcke."
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "Was bedeutet die Quelle?",
+      "items": [
+        "Sprache ist ein Modellhinweis. Der Pegel gilt für die gesamte Szene. Inhalt, Sprecher und persönliche Belästigung bleiben offen."
+      ]
+    }
+  ]
+}

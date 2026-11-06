@@ -2,6 +2,10 @@
 
 ## Übergabe
 
+**06.11.2026 · Architektur-Ablaufdiagramm.** [Technische Zeichnung und Diktierbeispiel](docs/mobile/geraeuschverarbeitung.md) trennen den installierten Pegelpfad R2 vom neuen Quellenphasenkern. Gegenprobe mit dem echten Dart-Kern: 90 s Block mit 70 s Aktivität bei analysierter Pause; ohne Analyse zwei Phasen (40 s und 30 s). Interaktive HTML-Ansicht lokal erzeugt und im Browser geprüft; editierbare Quelle und eigenständige SVG-Zeichnung im Projekt. Keine Geräteaktion. Der physische Test des neuen Builds bleibt offen; maßgebliche Übersicht in `docs/current-status.md`.
+
+## Vorherige Übergabe – Private Feldauswertung
+
 **06.11.2026 morgens · Privates Bild zur Geräuschverarbeitung erstellt.** Der R2-Monitor endete am Vorabend vor dem geplanten Testende. Udi berichtet vom Herunter- und Hochfahren des Mac. Ein R2-Abschlussbericht liegt beim Wiedereinstieg nicht vor. Der Zustand des Telefons nach dem letzten Monitorstand bleibt offen.
 
 Die Grafik unterscheidet den gespeicherten Pegelblock, die zeitlich begrenzten Quellenhinweise und den separaten AMI-Test der neuen Quellenphasen. Der R2-Upload fragt den Quellenverlauf erst am Ereignisende ab. Abgeschlossene Abschnitte werden standardmäßig rund 30 Minuten vorgehalten. Bei langen Ereignissen kann der frühe Teil der Quellenhistorie im Upload fehlen. Der Befund stammt aus dem gesicherten Original-Upload, dem Monitor und dem Code des Feldtest-Builds. PNG und SVG liegen privat im R2-Ordner unter `algorithmusbild/`. Keine Geräte- oder Dienstaktion. Nächster offener Nachweis ist der physische Test der fortlaufenden Quellenphasen. Maßgebliche Übersicht in `docs/current-status.md`.

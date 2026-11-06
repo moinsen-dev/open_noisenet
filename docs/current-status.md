@@ -6,7 +6,8 @@ Stand: 2026-11-06. Auftrag: Das offene, gemeinschaftlich betriebene und datenspa
 
 1. **Geprüft · R2 ist ein Teillauf.** Der Mac-Monitor endete vor der vorgesehenen Deadline. Die letzte beobachtete Messminute liegt vor der letzten Monitorprobe. Für die Nacht fehlt die Beobachtungsgrundlage. Udi berichtet von einem Neustart des Mac.
 2. **Erledigt · Private Grafik erstellt.** Der gesicherte Ereignisbeleg liefert Pegelblock und einen zeitlich begrenzten Modellhinweis. Die R2-App greift beim Abschluss auf einen begrenzten Verlauf abgeschlossener Quellenabschnitte zu. Die Grafik zeigt separat, wie der neue Kern im AMI-Referenzgespräch Aktivität und Pausen zu einer Quellenphase verbindet. Bild und personenbezogene Messdaten verbleiben privat im Feldtestordner.
-3. **→ Offen · Physischer Nachweis der neuen Quellenphasen.** Das Bild beruht auf vorhandenen Daten. Ein Gerätelauf mit der neuen Version und abschnittsweiser Speicherung steht aus.
+3. **Erledigt · Architektur-Ablaufdiagramm.** [Datenwege, Zeitentscheidung und Diktierbeispiel](mobile/geraeuschverarbeitung.md). Der Dart-Kern liefert bei vollständig analysierter Denkpause einen Block, bei fehlender Analyse zwei. Die Architektur enthält keine Feldmesswerte.
+4. **→ Offen · Physischer Nachweis der neuen Quellenphasen.** Ein Gerätelauf mit der neuen Version und abschnittsweiser Speicherung steht aus.
 
 ## Vorheriger Auftrag: Backend-Wiederanlauf und Upload-Abgleich (05.11.2026)
 

@@ -1,0 +1,69 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1020 809" width="1020" height="809" role="img" aria-labelledby="title desc">
+<title id="title">OpenNoiseNet: Vom Mikrofonsignal zur Geräuschphase</title>
+<desc id="desc">Zwei parallele Wege: Der Gesamtpegel entscheidet über Pegelereignisse im Pixel-Build R2. YAMNet liefert Quellenhinweise. In der neuen Zeitlogik entscheiden Analyseabdeckung, Pausenlimit und Aktivitätsanteil über Fortsetzung oder Trennung der Phase. Das eigene Belastungserleben wird nicht automatisch bestimmt.</desc>
+<defs><marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 10 5 0 10Z" fill="#415667"/></marker></defs>
+<style>text{font-family:Arial,Helvetica,sans-serif;fill:#152d3d}.head{font-size:27px;font-weight:700}.lane{font-size:15px;font-weight:700;letter-spacing:.2px}.name{font-size:18px;font-weight:700}.sub{font-size:15px}.small{font-size:14px}.line{stroke:#415667;stroke-width:1.8;fill:none;stroke-linejoin:round}.lab{font-size:14px;font-weight:700}</style>
+<rect width="1020" height="809" rx="8" fill="#fff"/>
+<text x="34" y="44" class="head" text-anchor="start">OpenNoiseNet  |  Vom Mikrofonsignal zur Geräuschphase</text>
+<rect x="325" y="68" width="370" height="61" rx="8" fill="#f7f8fa" stroke="#8c9aa6" stroke-width="1.6"/>
+<text x="510.0" y="93.5" class="name" text-anchor="middle">Mikrofon auf dem Telefon</text>
+<text x="510.0" y="113.5" class="sub" text-anchor="middle">Ein Mono-Audiosignal im Arbeitsspeicher</text>
+<path d="M510 129 V150 H236 V209" class="line" marker-end="url(#arr)"/>
+<path d="M510 150 H742 V209" class="line" marker-end="url(#arr)"/>
+<text x="40" y="196" class="lane" text-anchor="start" style="fill:#3a6784">A · PEGEL (PIXEL R2)</text>
+<text x="530" y="196" class="lane" text-anchor="start" style="fill:#306c59">B · QUELLE (R2 + NEU)</text>
+<rect x="45" y="213" width="382" height="68" rx="8" fill="#edf5f9" stroke="#688ea9" stroke-width="1.6"/>
+<text x="236.0" y="242.0" class="name" text-anchor="middle">Gesamtpegel berechnen</text>
+<text x="236.0" y="262.0" class="sub" text-anchor="middle">RMS → energieäquivalenter Pegel über 10 min</text>
+<rect x="552" y="213" width="380" height="68" rx="8" fill="#e9f5ef" stroke="#427a68" stroke-width="1.6"/>
+<text x="742.0" y="242.0" class="name" text-anchor="middle">YAMNet analysiert kurze Fenster</text>
+<text x="742.0" y="262.0" class="sub" text-anchor="middle">16 kHz · Fenster 975 ms · Schritt 480 ms</text>
+<path d="M236 281 V316" class="line" marker-end="url(#arr)"/>
+<rect x="45" y="319" width="382" height="76" rx="8" fill="#edf5f9" stroke="#688ea9" stroke-width="1.6"/>
+<text x="236.0" y="342.0" class="name" text-anchor="middle">Schwelle entscheidet über den Block</text>
+<text x="236.0" y="362.0" class="sub" text-anchor="middle">R2: Start bei ≥ 27 dB (Testwert); Abschluss</text>
+<text x="236.0" y="382.0" class="sub" text-anchor="middle">nach 30 s darunter, Ende am letzten Überschreiten.</text>
+<path d="M236 395 V448" class="line" marker-end="url(#arr)"/>
+<rect x="45" y="451" width="382" height="82" rx="8" fill="#edf5f9" stroke="#688ea9" stroke-width="1.6"/>
+<text x="236.0" y="477.0" class="name" text-anchor="middle">Ergebnis: Pegelereignis</text>
+<text x="236.0" y="497.0" class="sub" text-anchor="middle">Beginn, Ende und Pegel der gesamten Szene.</text>
+<text x="236.0" y="517.0" class="sub" text-anchor="middle">Quellenhinweise beim Abschluss, soweit vorhanden.</text>
+<path d="M742 281 V319" class="line" marker-end="url(#arr)"/>
+<rect x="552" y="322" width="380" height="71" rx="8" fill="#e9f5ef" stroke="#427a68" stroke-width="1.6"/>
+<text x="742.0" y="352.5" class="name" text-anchor="middle">Stabile Quellenintervalle</text>
+<text x="742.0" y="372.5" class="sub" text-anchor="middle">z. B. Sprache oder Verkehr · getrennt je Familie</text>
+<path d="M552 357 H481 V494 H429" class="line" stroke-dasharray="5 4" marker-end="url(#arr)"/>
+<text x="473" y="416" class="small" text-anchor="end" style="fill:#415667">bei R2</text>
+<path d="M742 393 V426" class="line" marker-end="url(#arr)"/>
+<polygon points="742,428 968,481 742,534 516,481" fill="#fff6dc" stroke="#9b741d" stroke-width="1.7"/>
+<text x="742" y="463" class="name" text-anchor="middle">Neue Zeitlogik</text>
+<text x="742" y="485" class="sub" text-anchor="middle">Analyse ohne Lücke?</text>
+<text x="742" y="505" class="sub" text-anchor="middle">Pause und Aktivität passend?</text>
+<path d="M634 509 V557" class="line" marker-end="url(#arr)"/>
+<path d="M854 509 V557" class="line" marker-end="url(#arr)"/>
+<text x="612" y="549" class="lab" text-anchor="middle">Ja</text>
+<text x="878" y="549" class="lab" text-anchor="middle">Nein</text>
+<rect x="516" y="559" width="219" height="61" rx="8" fill="#e9f5ef" stroke="#427a68" stroke-width="1.6"/>
+<text x="625.5" y="584.5" class="name" text-anchor="middle">Phase fortsetzen</text>
+<text x="625.5" y="604.5" class="sub" text-anchor="middle">Pause zählt zur Spanne.</text>
+<rect x="755" y="559" width="219" height="61" rx="8" fill="#e9f5ef" stroke="#427a68" stroke-width="1.6"/>
+<text x="864.5" y="584.5" class="name" text-anchor="middle">Neue Phase</text>
+<text x="864.5" y="604.5" class="sub" text-anchor="middle">Vorigen Block beenden.</text>
+<path d="M625 620 V635 H742" class="line"/>
+<path d="M864 620 V635 H742 V650" class="line" marker-end="url(#arr)"/>
+<rect x="520" y="652" width="448" height="61" rx="8" fill="#e9f5ef" stroke="#427a68" stroke-width="1.6"/>
+<text x="744.0" y="677.5" class="name" text-anchor="middle">Private Historie bei aktivierter Speicherung</text>
+<text x="744.0" y="697.5" class="sub" text-anchor="middle">Familie · Beginn / Ende · aktive Zeit · Pausenzeit</text>
+<path d="M744 713 V727" class="line" marker-end="url(#arr)"/>
+<rect x="520" y="730" width="448" height="60" rx="8" fill="#f7f8fa" stroke="#8c9aa6" stroke-width="1.6"/>
+<text x="744.0" y="755.0" class="name" text-anchor="middle">Optional: privater Server</text>
+<text x="744.0" y="775.0" class="sub" text-anchor="middle">Separates Opt-in → verschlüsselte Queue → Quittung</text>
+<text x="45" y="578" class="name" text-anchor="start">Was gilt für Sprache?</text>
+<text x="45" y="604" class="sub" text-anchor="start">Gleiche Familie, höchstens 90 s Pause und</text>
+<text x="45" y="625" class="sub" text-anchor="start">mindestens 20 % Aktivität in den bis zu 5 min</text>
+<text x="45" y="646" class="sub" text-anchor="start">vor Wiederbeginn. Eine echte Analyselücke trennt.</text>
+<text x="45" y="695" class="name" text-anchor="start">Was bedeutet „Sprache“?</text>
+<text x="45" y="721" class="sub" text-anchor="start">Ein Modellhinweis, keine Sprecheridentität und</text>
+<text x="45" y="742" class="sub" text-anchor="start">kein Gesprächsinhalt. Ob es jemanden belastet,</text>
+<text x="45" y="763" class="sub" text-anchor="start">kann nur die betroffene Person einordnen.</text>
+</svg>

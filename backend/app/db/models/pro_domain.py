@@ -126,10 +126,10 @@ class Organization(Base):
         String(32), nullable=False, default=OrganizationStatus.PILOT.value
     )
     billing_state: Mapped[str] = mapped_column(String(32), nullable=False, default="trial")
-    created_by_id: Mapped[uuid.UUID] = mapped_column(
+    created_by_id: Mapped[Optional[uuid.UUID]] = mapped_column(
         Uuid(as_uuid=True),
-        ForeignKey("users.id", ondelete="CASCADE"),
-        nullable=False,
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True,
         index=True,
     )
 

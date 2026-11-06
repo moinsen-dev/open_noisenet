@@ -1,5 +1,5 @@
-# Use Python 3.9 slim image for librosa compatibility
-FROM python:3.9-slim
+# Source-phase timestamps use datetime.UTC (Python 3.11+).
+FROM python:3.11-slim
 
 # Set environment variables
 ENV PYTHONUNBUFFERED=1 \
@@ -31,10 +31,10 @@ RUN groupadd -r app && useradd -r -g app app
 WORKDIR /app
 
 # Copy application metadata and source
-COPY pyproject.toml uv.lock ./
-COPY app ./app
-COPY migrations ./migrations
-COPY alembic.ini ./
+COPY --chown=app:app pyproject.toml uv.lock ./
+COPY --chown=app:app app ./app
+COPY --chown=app:app migrations ./migrations
+COPY --chown=app:app alembic.ini ./
 
 # Install dependencies using the locked UV environment
 # Do not bake uv's download cache into the runtime image.

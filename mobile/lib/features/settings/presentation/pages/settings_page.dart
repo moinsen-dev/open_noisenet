@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:get_it/get_it.dart';
 import 'package:go_router/go_router.dart';
@@ -650,16 +651,19 @@ class _SettingsPageState extends State<SettingsPage> {
         title: const Text('Privacy information'),
         content: const SingleChildScrollView(
           child: Text(
-            'Microphone data is processed on this device to estimate sound levels and sources. '
-            'Optional recordings can contain sensitive sound.\n\n'
-            '• Location permission is optional. Public sharing requires a separate choice.\n'
-            '• Identifiers, times and coordinates are not necessarily anonymous.\n'
-            '• Clearing local data does not necessarily delete data already sent to a server.\n\n'
-            'The server operator must explain its processing and retention. '
-            'A complete privacy review and automatic server-side deletion remain open.',
+            'Die App schätzt Pegel und Geräuscharten auf diesem Gerät. Es werden keine neuen Tonaufnahmen oder Transkripte gespeichert. Standort und Server sind optional. '
+            'Lokale Historie und Tagebuch sind verschlüsselt; ein Export ist lesbar. Für Daten auf einem eigenen Server ist dessen Betreiber zuständig. '
+            'Ein Serverkonto kannst du unter Account Authentication löschen.',
           ),
         ),
         actions: [
+          TextButton(
+            onPressed: () async {
+              final ok = await launchUrl(Uri.parse('https://opennoisenet.moinsen.dev/app-privacy/'), mode: LaunchMode.externalApplication);
+              if (!ok && context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Datenschutz: https://opennoisenet.moinsen.dev/app-privacy/')));
+              }
+            }, child: const Text('Datenschutzerklärung öffnen')),
           TextButton(
             onPressed: () => Navigator.pop(context),
             child: const Text('Close'),

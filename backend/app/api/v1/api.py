@@ -5,6 +5,7 @@ API v1 router configuration.
 from fastapi import APIRouter
 
 from app.api.v1.endpoints import (
+    account_deletion,
     admin,
     auth,
     devices,
@@ -20,6 +21,7 @@ api_router = APIRouter()
 api_router.include_router(source_phases.router, prefix="/source-phases", tags=["private-source-phases"])
 
 # Include all endpoint routers
+api_router.include_router(account_deletion.router, prefix="/auth", tags=["account-deletion"])
 api_router.include_router(auth.router, prefix="/auth", tags=["authentication"])
 api_router.include_router(devices.router, prefix="/devices", tags=["devices"])
 api_router.include_router(events.router, prefix="/events", tags=["events"])

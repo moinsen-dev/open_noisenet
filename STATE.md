@@ -2,6 +2,10 @@
 
 ## Übergabe
 
+**06.11.2026 · Öffentliche DACH-Kandidaten.** iOS Build 5 geprüft und angehängt (manuelle Freigabe); Apple meldet keinen offenen Vertrag mehr. Android Build 6 mit eingeschränkten Vordergrundrechten ist im Play-Produktionsentwurf verarbeitet. Freiwilliger Server und Konto bleiben; Passwortbestätigung und echte Kontolöschung in App und Browser sind umgesetzt. Die statischen Store-Hilfeseiten sind öffentlich. Ein isolierter Prüferzugang und die Mikrofon-Demo sind der aktuelle Schritt; keine öffentliche Store-Freigabe belegt. [Maßgeblicher Stand](docs/current-status.md).
+
+## Vorherige Übergabe – Physische Beta und Diktierprobe
+
 **06.11.2026 · Physische Play-Beta und Diktierprobe geprüft.** Android bestätigt Build 0.1.0 (3) aus Google Play auf dem Pixel 10a. Die lokale Historie zeigte im markierten Diktierfenster eine Sprachphase mit drei Aktivitätsabschnitten und zwei überbrückten Pausen. Der Sensor ist regulär gestoppt, kein aktiver Mikrofonzugriff mehr. Kein Audio gespeichert, kein Backend einbezogen. Zeitwerte und Gerätebeleg liegen ausschließlich im privaten Pixel-Play-Testordner. Die öffentliche Store-Einreichung bleibt offen. [Maßgeblicher Stand und Prüfgrenzen](docs/current-status.md).
 
 ## Vorherige Übergabe – DACH und AX41

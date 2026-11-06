@@ -9,6 +9,7 @@ export default function PrivacyPage() {
           <ArrowLeft className="h-4 w-4" /> Back to OpenNoiseNet
         </Link>
         <h1 className="mt-10 text-4xl font-bold">Privacy and project status</h1>
+        <p className="mt-4"><a className="underline" href="https://opennoisenet.moinsen.dev/app-privacy/">Datenschutzerklärung der mobilen App</a> · <a className="underline" href="https://opennoisenet.moinsen.dev/account-deletion/">Serverkonto löschen</a></p>
         <div className="mt-8 space-y-8 rounded-xl border border-slate-700 bg-slate-800/50 p-6 text-slate-300 sm:p-8">
           <p>
             OpenNoiseNet is open-source software under development. This page describes the

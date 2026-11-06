@@ -166,7 +166,7 @@ uploads/
 static/
 
 # Alembic
-alembic.ini
+# Versioned configuration uses the runtime database URL, never credentials.
 alembic/versions/*.py
 
 # Audio processing temp files

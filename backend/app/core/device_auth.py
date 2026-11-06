@@ -14,6 +14,11 @@ from app.db.models.device import Device, DeviceApiKey
 _KEY_PATTERN = re.compile(r"^[A-Za-z0-9_-]{43}$")
 
 
+def retirement_fingerprint(key_hash: str) -> str:
+    # The original device key has 256 bits of entropy.
+    return hashlib.sha256(("retired-opennoisenet:" + key_hash).encode("ascii")).hexdigest()
+
+
 def device_key_hash(key: Optional[str]) -> str:
     if not key or not _KEY_PATTERN.fullmatch(key):
         raise HTTPException(status_code=401, detail="Valid device key required")

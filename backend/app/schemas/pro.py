@@ -34,7 +34,7 @@ class OrganizationResponse(BaseModel):
     plan_tier: str
     status: str
     billing_state: str
-    created_by_id: uuid.UUID
+    created_by_id: Optional[uuid.UUID]
     current_user_role: str
     created_at: datetime
     updated_at: datetime

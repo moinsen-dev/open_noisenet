@@ -1,0 +1,50 @@
+name: opennoisenet-store-review
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: opennoisenet_store_review
+      POSTGRES_PASSWORD: ${REVIEW_DB_PASSWORD:?}
+    volumes:
+      - review_database:/var/lib/postgresql/data
+    networks: [private]
+    restart: unless-stopped
+    mem_limit: 256m
+    pids_limit: 96
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres", "-d", "opennoisenet_store_review"]
+      interval: 5s
+      timeout: 3s
+      retries: 15
+  api:
+    build:
+      context: ../../backend
+      dockerfile: Dockerfile
+    command: ["sh", "-ec", "alembic upgrade head && exec uvicorn app.store_review:create_app --factory --host 0.0.0.0 --port 8000 --no-access-log"]
+    environment:
+      DATABASE_URL: postgresql+asyncpg://postgres:${REVIEW_DB_PASSWORD:?}@postgres/opennoisenet_store_review
+      SECRET_KEY: ${REVIEW_APP_SECRET:?}
+      REVIEW_ACCOUNTS_FILE: /run/secrets/review_accounts
+      ENABLE_AUDIO_SNIPPETS: "false"
+      ENABLE_BACKGROUND_TASKS: "false"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports: ["127.0.0.1:${REVIEW_PORT:-18769}:8000"]
+    networks: [private, ingress]
+    secrets: [review_accounts]
+    restart: unless-stopped
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    mem_limit: 768m
+    pids_limit: 128
+networks:
+  private: {internal: true}
+  ingress: {}
+volumes:
+  review_database:
+secrets:
+  review_accounts:
+    file: ${REVIEW_ACCOUNTS_PATH:?}

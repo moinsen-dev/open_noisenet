@@ -414,6 +414,10 @@ class ApiClientService implements PhaseUploadTransport {
     try {
       final credentialDestination = _baseUrl;
       final credentialEpoch = _credentialEpoch;
+      final capability = await _dio.get<Map<String, dynamic>>('/auth/account-deletion/capability');
+      if (capability.data?['account_deletion'] != 1 || credentialEpoch != _credentialEpoch) {
+        throw StateError('This server must support account deletion before registration.');
+      }
       final request = RegisterRequest(
         email: email,
         password: password,
@@ -422,6 +426,7 @@ class ApiClientService implements PhaseUploadTransport {
       final response = await _dio.post<Map<String, dynamic>>(
         '/auth/register',
         data: request.toJson(),
+        options: Options(extra: {'noisenet_backend_epoch': credentialEpoch}),
       );
 
       if (_baseUrl != credentialDestination) {
@@ -442,6 +447,20 @@ class ApiClientService implements PhaseUploadTransport {
       _logger.error('Registration failed', e);
       rethrow;
     }
+  }
+
+  Future<void> deleteOwnAccount(String password, {required String destination}) async {
+    final epoch = _credentialEpoch;
+    if (_baseUrl != destination || !isAuthenticated) {
+      throw StateError('Account or server changed');
+    }
+    final response = await _dio.post<void>('/auth/account-deletion',
+        data: {'password': password},
+        options: Options(extra: {'noisenet_backend_epoch': epoch, 'noisenet_refresh_attempted': true}));
+    if (response.statusCode != 204 || epoch != _credentialEpoch || destination != _baseUrl) {
+      throw StateError('Account deletion was not confirmed');
+    }
+    await setBaseUrl(BackendDefaults.localOnly);
   }
 
   Future<void> logout() async {

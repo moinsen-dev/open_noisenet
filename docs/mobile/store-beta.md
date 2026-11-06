@@ -53,3 +53,9 @@ hier wird keine Freistellung behauptet.
 Anbieter: [Interne TestFlight-Gruppen](https://developer.apple.com/help/app-store-connect/test-a-beta-version/add-internal-testers/),
 [Apples Angaben zur Verschlüsselung](https://developer.apple.com/help/app-store-connect/manage-app-information/overview-of-export-compliance/),
 [interner Play-Test](https://support.google.com/googleplay/android-developer/answer/9845334).
+
+## Public DACH candidate
+
+Use the [release status](../current-status.md) for the current store build numbers and provider evidence. iOS review IPAs must be exported for **App Store**, not “TestFlight internal only”. Android version codes may advance independently. The Play bundle must declare only the foreground-service permissions the app actually uses. For the Android microphone declaration, demonstrate user-started monitoring, active notification while the main UI is backgrounded, and the user stopping monitoring. Use synthetic device data and a video with no audio track.
+
+Self-hosters must upgrade the database with the included Alembic migrations before offering account creation/deletion. Make a verified backup first; do not stamp or reset someone else's database. Current builds check the versioned deletion capability before registration. A valid login and the current password are required to delete the account. A successful transaction removes associated devices, measurements, phases and derived records, revokes the old keys and tokens, and preserves other members' shared organization. Account-free sensors, separately exported copies, backup rotation and local diary deletion are separate operations. After confirmed in-app deletion the app switches to local mode; a retired device key must not be silently re-enrolled or used to replay queued data. Use the [isolated review runbook](../../infrastructure/store-review/README.md) for store credentials, not a field-test account.

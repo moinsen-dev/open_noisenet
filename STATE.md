@@ -2,6 +2,10 @@
 
 ## Übergabe
 
+**06.11.2026 · Neue Quellenphasen auf dem physischen Pixel 10a samt Upload geprüft.** Vorherige drei Testpakete und Host-/Serverdaten privat gesichert, sieben SQLite-Datenbanken strukturell geprüft. Separate Android-Debug-App aus `4bf58a4` mit beschränktem privatem HTTPS-Ziel. Lokaler Verlauf und reale Serverrevisionen zeigen verbundene Sprachabschnitte mit Pausen. Später freigegebener Upload berücksichtigt nur seine eigene Zeitabdeckung. Identität, Intervalldauern, Digest und Quittungszähler abgeglichen. Sensor regulär gestoppt, Phasenupload abgeschaltet und private Testdienste beendet. Persönliche Zeiten und Bildschirmfotos liegen ausschließlich im privaten Testordner. [Maßgeblicher Stand](docs/current-status.md).
+
+## Vorherige Übergabe – Worktrees
+
 **06.11.2026 · Worktrees von acht Registrierungen auf drei reduziert.** Aktiv sind Hauptcheckout (lokale App-Arbeit und Docker), Phasenupload (PR #73 und nächster Gerätetest) sowie dieser Diagramm-Worktree. Die vier Checkouts für Tagebuch, erste Feldauswertung, Pixel-Episoden und Webseite sind privat archiviert und abgemeldet. Der fünfte Eintrag war eine verwaiste Registrierung ohne Verzeichnis. Alle ursprünglichen Branches sind erhalten. Die lokalen Pumuckl-Fassungen liegen zusätzlich als eigene Git-Commits unter `refs/archive/worktrees-20261106/`. Wiederherstellung über Manifest und Anleitung im privaten Worktree-Sicherungsordner unter Application Support/OpenNoiseNet. Verzeichnisinhalte abgeglichen und Git-Bundle in einem leeren Repository geprüft. Alte absolute Checkout-Pfade in historischen Notizen beziehen sich auf diese Archive. [Übersicht](docs/current-status.md).
 
 ## Vorherige Übergabe – Architektur-Ablaufdiagramm

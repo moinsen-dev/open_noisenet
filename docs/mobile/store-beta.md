@@ -8,6 +8,13 @@ funktionieren ohne Konto oder Standort. Für freiwillige Übertragungen muss
 ein eigenes vertrauenswürdiges HTTPS-Ziel eingerichtet sein.
 Der [Projektstand](../current-status.md) dokumentiert den tatsächlichen Verteilerstatus.
 
+## Zugang für das Team
+
+- **iOS** · In App Store Connect unter TestFlight die Gruppe **OpenNoiseNet intern** öffnen und die gewünschten internen Konten hinzufügen. Build **0.1.0 (3)** ist der Gruppe bereits zugeordnet. Die ausgewählten Personen öffnen die Einladung mit ihrem Apple-Konto in TestFlight.
+- **Android** · In der Play Console unter **Internal testing → Testers** die eigenen Testkonten per E-Mail-Liste auswählen und speichern. Die ausgewählten Personen öffnen den Beitrittslink aus diesem Reiter mit demselben Google-Konto, das sie im Play Store verwenden.
+
+Udi übernimmt die Testerpflege für beide Plattformen. Die direkten Teamlinks stehen im privaten Ideenkompass.
+
 ## Bauen und prüfen
 
 Im Verzeichnis `mobile`: `flutter pub get --enforce-lockfile`, `dart run build_runner build`,

@@ -2,7 +2,7 @@
 
 ## Übergabe
 
-**06.11.2026 · Erste interne Store-Beta 0.1.0 (3).** Android-App-Bundle mit eigenem Upload-Key, iOS-IPA mit internem Exportprofil. Frische Store-Installationen bleiben ohne konfigurierten HTTPS-Server lokal. Analyse und 94 Flutter-Tests bestanden (ein gesonderter HTTP-Test übersprungen), Store-Paketnamen und Offline-Modell geprüft. Die [maßgebliche Übersicht](docs/current-status.md) trennt lokale Prüfungen, Apple-Verarbeitung und ausstehende Store-Schritte. Apple: App 6831511809, Build gültig und intern; Gruppenzuordnung wartet auf Exportangabe. Google: Paketname verfügbar, Eingaben im Play-Formular vorbelegt; Richtlinien- und Exporterklärungen stehen aus. Artefakte und Signiermaterial außerhalb von Git. Keine Änderung an Pixel oder anderen Worktrees.
+**06.11.2026 · Beide internen Store-Releases sind verfügbar.** Version 0.1.0 (3) ist bei Apple der Gruppe „OpenNoiseNet intern“ zugeordnet und hat den Status „Ready to Test“. Google Play hat die kostenlose App angelegt und führt Version 3 im internen Track als „Available to internal testers“. Udi hat beide Google-Erklärungen bestätigt und die erste Testergruppe auf das eigene Team in Deutschland begrenzt. Die Tester ergänzt das Team selbst. Die erste tatsächliche Installation über die Stores steht noch aus. [Projektstand](docs/current-status.md) · [Testanleitung](docs/mobile/store-beta.md).
 
 ## Vorherige Übergabe – Ablaufdiagramm
 

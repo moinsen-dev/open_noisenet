@@ -2,7 +2,7 @@
 
 ## Übergabe
 
-**06.11.2026 · Beide öffentlichen DACH-Kandidaten eingereicht.** Apple 0.1.0 (5) steht auf „Waiting for Review“, Google 0.1.0 (6) auf „Changes in review“ nach abgeschlossener automatischer Vorprüfung. Der isolierte Prüfdienst auf dem AX41 ist aktiv; je ein synthetisches Konto in den privaten Store-Formularen. Die Anmeldung aus dem Android-Release ist am 16-KB-Emulator geprüft. Web-Kontolöschung inklusive alter Sitzung extern geprüft. 95 Flutter-Tests bestanden, einer übersprungen; Analyse ohne Befund, 193 Backendtests bestanden (zwei übersprungen), zwei Proxytests bestanden. Der Pixel blieb unverändert. Udi hat den Händlerstatus und die öffentlichen Moinsen-Kontaktdaten freigegeben. Google bestätigt die Nummer als verifiziert. **Nächster Schritt** ist die gesonderte Selbstzertifizierung des Kontoinhabers im Abschlussformular, danach die Erklärung für OpenNoiseNet. Nach den Anbieterentscheidungen folgen die manuelle Apple-Freigabe und die Prüfung der Sichtbarkeit in allen drei Ländern. [Maßgeblicher Stand](docs/current-status.md).
+**06.11.2026 · OpenNoiseNet ist auf Google Play in Deutschland, Österreich und der Schweiz öffentlich.** Build 0.1.0 (6) ist im Produktionskanal aktiv. Alle drei öffentlichen Store-Seiten bieten die Installation an. Google hat die verifizierte Geschäftsnummer und die Händlererklärung für das Moinsen-Konto bestätigt. Die einzelne App-Erklärung für OpenNoiseNet ist zur Prüfung eingereicht. Der AX41-Prüfdienst bleibt aktiv. **Nächster Schritt** ist die Entscheidung von Apple zu Build 0.1.0 (5), aktuell „Waiting for Review“. Nach Genehmigung manuell veröffentlichen und die drei iOS-Store-Seiten prüfen. [Maßgeblicher Stand](docs/current-status.md).
 
 ## Vorherige Übergabe – Physische Beta und Diktierprobe
 

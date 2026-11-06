@@ -2,7 +2,7 @@
 
 ## Übergabe
 
-**06.11.2026 · Öffentliche DACH-Kandidaten.** iOS Build 5 geprüft und angehängt (manuelle Freigabe); Apple meldet keinen offenen Vertrag mehr. Android Build 6 mit eingeschränkten Vordergrundrechten ist im Play-Produktionsentwurf verarbeitet. Freiwilliger Server und Konto bleiben; Passwortbestätigung und echte Kontolöschung in App und Browser sind umgesetzt. Die statischen Store-Hilfeseiten sind öffentlich. Ein isolierter Prüferzugang und die Mikrofon-Demo sind der aktuelle Schritt; keine öffentliche Store-Freigabe belegt. [Maßgeblicher Stand](docs/current-status.md).
+**06.11.2026 · Beide öffentlichen DACH-Kandidaten eingereicht.** Apple 0.1.0 (5) steht auf „Waiting for Review“, Google 0.1.0 (6) auf „Changes in review“ mit automatischer Vorprüfung. Der isolierte Prüfdienst auf dem AX41 ist aktiv; je ein synthetisches Konto in den privaten Store-Formularen. Die Anmeldung aus dem Android-Release ist am 16-KB-Emulator geprüft. Web-Kontolöschung inklusive alter Sitzung extern geprüft. 95 Flutter-Tests bestanden, einer übersprungen; Analyse ohne Befund, 193 Backendtests bestanden (zwei übersprungen), zwei Proxytests bestanden. Der Pixel blieb unverändert. **Nächster Schritt:** öffentliche Kontaktdaten und Händlererklärung mit Udi abschließen; anschließend Anbieterentscheidungen, manuelle Apple-Freigabe und tatsächliche Sichtbarkeit in allen drei Ländern prüfen. [Maßgeblicher Stand](docs/current-status.md).
 
 ## Vorherige Übergabe – Physische Beta und Diktierprobe
 

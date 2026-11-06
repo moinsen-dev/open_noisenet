@@ -33,3 +33,5 @@ Store robots can encounter a managed challenge on the custom domain. The store d
 ## Separate GitHub Pages target
 
 The existing workflow `.github/workflows/deploy-landing.yml` serves `https://moinsen-dev.github.io/open_noisenet/`. It explicitly sets `NEXT_PUBLIC_BASE_PATH=/open_noisenet`. Run it through `workflow_dispatch` or the existing `landing_v*` tag convention. A successful GitHub Pages run does not deploy the custom-domain container, and vice versa.
+
+The [Android microphone demonstration](https://moinsen-dev.github.io/open_noisenet/store-review/android-microphone.mp4) is served from the Pages mirror. It shows a fresh emulator, the user starting measurement, the foreground notification and stopping the sensor. It has no audio track or field-test data. No deployment of this video to the AX41 static site is implied.

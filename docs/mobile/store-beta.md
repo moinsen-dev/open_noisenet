@@ -1,4 +1,4 @@
-# Interner Store-Test · OpenNoiseNet 0.1.0 (3)
+# Interner Store-Test · OpenNoiseNet 0.1.0
 
 Android: `dev.moinsen.noisenet_mobile`. iOS: `dev.moinsen.noisenetMobile`.
 Getestet wird der reguläre Einstieg `lib/main.dart`. Feldtestpakete mit Suffix,
@@ -11,7 +11,7 @@ Der [Projektstand](../current-status.md) dokumentiert den tatsächlichen Verteil
 ## Zugang für das Team
 
 - **iOS** · In App Store Connect unter TestFlight die Gruppe **OpenNoiseNet intern** öffnen und die gewünschten internen Konten hinzufügen. Build **0.1.0 (3)** ist der Gruppe bereits zugeordnet. Die ausgewählten Personen öffnen die Einladung mit ihrem Apple-Konto in TestFlight.
-- **Android** · In der Play Console unter **Internal testing → Testers** die eigenen Testkonten per E-Mail-Liste auswählen und speichern. Die ausgewählten Personen öffnen den Beitrittslink aus diesem Reiter mit demselben Google-Konto, das sie im Play Store verwenden.
+- **Android** · In der Play Console unter **Internal testing → Testers** die eigenen Testkonten per E-Mail-Liste auswählen und speichern. Build **0.1.0 (6)** wird im internen Track angeboten; der letzte physisch belegte Play-Build auf dem Pixel ist **3**. Die ausgewählten Personen öffnen den Beitrittslink aus diesem Reiter mit demselben Google-Konto, das sie im Play Store verwenden.
 
 Für die erste Runde hat Udi ein einziges Konto für beide Plattformen ausgewählt. Die direkten Teamlinks stehen im privaten Ideenkompass.
 

@@ -8,7 +8,7 @@ from fastapi import FastAPI, Depends, HTTPException
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.v1.endpoints import auth, account_deletion, devices, events, source_phases
+from app.api.v1.endpoints import auth, account_deletion, devices, events, source_phases, pro_domains
 from app.core.deps import require_user
 from app.core.rate_limit import login_rate_limiter
 from app.db.session import get_session
@@ -51,9 +51,21 @@ def create_app():
 
     include(auth.router, "auth", {("POST", "/login"), ("POST", "/refresh")})
     app.include_router(account_deletion.router, prefix="/api/v1/auth")
-    include(devices.router, "devices", {("POST", "/register"), ("GET", "/{device_id}"),
+    include(devices.router, "devices", {("POST", "/register"), ("GET", "/"), ("GET", "/{device_id}"),
+            ("PUT", "/{device_id}"), ("GET", "/{device_id}/timeline"),
             ("POST", "/{device_id}/heartbeat")}, True)
-    include(events.router, "events", {("POST", "/"), ("GET", "/status/{event_uuid}")}, True)
+    include(events.router, "events", {("POST", "/"), ("GET", "/"), ("GET", "/stats/"), ("GET", "/status/{event_uuid}")}, True)
     include(source_phases.router, "source-phases", {("PUT", "/{device_id}/{phase_id}"),
             ("DELETE", "/{device_id}/{phase_id}"), ("GET", "/{device_id}")}, True)
+    for router, prefix, resource in (
+        (pro_domains.organizations_router, "organizations", "organization_id"),
+        (pro_domains.sites_router, "sites", "site_id"),
+        (pro_domains.zones_router, "zones", "zone_id"),
+        (pro_domains.policies_router, "policies", "policy_id"),
+        (pro_domains.calibration_profiles_router, "calibration-profiles", "profile_id"),
+    ):
+        methods = {("GET", "/"), ("GET", "/{" + resource + "}")}
+        if prefix == "sites":
+            methods |= {("GET", "/{site_id}/devices"), ("PUT", "/devices/{device_id}/assignment")}
+        include(router, prefix, methods, True)
     return app

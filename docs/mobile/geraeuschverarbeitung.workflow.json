@@ -2,7 +2,7 @@
   "schema_version": 2,
   "diagram_type": "workflow",
   "meta": {
-    "title": "OpenNoiseNet · Vom Mikrofonsignal zur Geräuschphase",
+    "title": "OpenNoiseNet · Zwei Zeitachsen für dieselben Geräusche",
     "quality_profile": "showcase",
     "legend": {
       "mode": "hidden"
@@ -15,19 +15,19 @@
     },
     {
       "id": "source",
-      "label": "Geräteanalyse · Mikrofon und YAMNet auch in R2; Phasenbildung neu"
+      "label": "Auf dem Telefon · gemeinsame Erkennung und lokale Historie"
     },
     {
       "id": "send",
-      "label": "Private Übertragung · nur bei gesonderter Zustimmung"
+      "label": "Auf dem Telefon · separate Auswertung für den privaten Upload"
     }
   ],
   "mainPath": [
     "mic",
     "yam",
     "hints",
-    "rule",
-    "block",
+    "gate",
+    "upload-rule",
     "queue",
     "api"
   ],
@@ -53,7 +53,7 @@
       "lane": "source",
       "col": 2,
       "type": "backend",
-      "label": "Quellenhinweise",
+      "label": "Modellfenster",
       "sublabel": "z. B. Sprache, Verkehr",
       "width": 154
     },
@@ -63,7 +63,7 @@
       "col": 0,
       "type": "backend",
       "label": "Gesamtpegel",
-      "sublabel": "RMS aller Geräusche"
+      "sublabel": "RMS der Szene"
     },
     {
       "id": "threshold",
@@ -87,18 +87,20 @@
       "lane": "source",
       "col": 3,
       "type": "backend",
-      "label": "Pause prüfen",
-      "sublabel": "je Quellenfamilie",
-      "tag": "Neue Zeitlogik"
+      "label": "Lokale Zeitregel",
+      "sublabel": "ab lokaler Freigabe",
+      "tag": "Neue Zeitlogik",
+      "width": 144
     },
     {
       "id": "block",
       "lane": "source",
       "col": 4,
       "type": "frontend",
-      "label": "Quellenphase",
-      "sublabel": "Spanne, aktiv, Pause",
-      "tag": "Neue Zeitlogik"
+      "label": "Lokaler Verlauf",
+      "sublabel": "verschlüsselt",
+      "tag": "Neue Zeitlogik",
+      "width": 140
     },
     {
       "id": "queue",
@@ -115,8 +117,26 @@
       "col": 5,
       "type": "database",
       "label": "Privater Server",
-      "sublabel": "speichern, dann bestätigen",
+      "sublabel": "bestätigt jede Revision",
       "width": 154
+    },
+    {
+      "id": "gate",
+      "lane": "send",
+      "col": 2,
+      "type": "security",
+      "label": "Uploadfreigabe",
+      "sublabel": "nur neue Fenster",
+      "width": 154
+    },
+    {
+      "id": "upload-rule",
+      "lane": "send",
+      "col": 3,
+      "type": "backend",
+      "label": "Upload-Zeitregel",
+      "sublabel": "eigene Vorgeschichte",
+      "width": 144
     }
   ],
   "edges": [
@@ -157,36 +177,43 @@
       "to": "block"
     },
     {
-      "from": "block",
-      "to": "queue",
-      "label": "Opt-in"
-    },
-    {
       "from": "queue",
       "to": "api",
       "label": "Revision"
+    },
+    {
+      "from": "hints",
+      "to": "gate"
+    },
+    {
+      "from": "gate",
+      "to": "upload-rule"
+    },
+    {
+      "from": "upload-rule",
+      "to": "queue"
     }
   ],
   "cards": [
     {
-      "dot": "violet",
-      "title": "Wann bleibt es eine Phase?",
+      "dot": "emerald",
+      "title": "Warum ein oder zwei Blöcke?",
       "items": [
-        "Sprache: Pause ≤ 90 s, lückenlos analysiert. Vor Wiederbeginn ≥ 20 % Sprachaktivität im Rückblick von bis zu 5 min. Sonst neuer Block."
+        "Sprache: höchstens 90 s analysierte Pause. Vor Wiederbeginn müssen mindestens 20 % des bisherigen Fensters (bis 5 min) aktiv sein."
       ]
     },
     {
-      "dot": "emerald",
-      "title": "Beispiel · Diktieren",
+      "dot": "cyan",
+      "title": "Was passiert bei späterer Freigabe?",
       "items": [
-        "40 s Sprache → 20 s Denkpause → 30 s Sprache: ein Block von 90 s, davon 70 s aktiv. Ohne Analyse in der Pause: zwei Blöcke."
+        "Der Upload zählt nur neue Analysefenster. So kann eine Pause die Uploadphase trennen, obwohl die lokale Historie den Block fortsetzt."
       ]
     },
     {
       "dot": "amber",
-      "title": "Was bedeutet die Quelle?",
+      "title": "Straße und Baustelle",
       "items": [
-        "Sprache ist ein Modellhinweis. Der Pegel gilt für die gesamte Szene. Inhalt, Sprecher und persönliche Belästigung bleiben offen."
+        "Verkehr am Straßenfenster und Werkzeuge im Hinterhof ergeben eigene Zeitreihen je Messort. Pegel gilt für die gesamte Szene."
       ]
     }
   ]

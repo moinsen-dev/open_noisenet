@@ -2,6 +2,10 @@
 
 ## Übergabe
 
+**06.11.2026 · Ablaufdiagramm mit zwei Freigabegrenzen.** Die [Projektzeichnung](docs/mobile/geraeuschverarbeitung.md) zeigt anhand konstruierter Zeiten einen lokalen und zwei für den Server gebildete Sprachblöcke. Die private Zeichnung verwendet die gesicherte Pixel-Anzeige und die bestätigten Serverintervalle des Diktattests. Der erste lokale Hinweis und die später beobachtete Uploadfreigabe sind unterschiedlich gekennzeichnet. Prädikate und Blockgrenzen beider Beispiele wurden mit dem unveränderten Dart-Zeitkern nachgerechnet. Verkehr an der Straßenseite und mögliche Werkzeugphasen im Hinterhof sind als getrennte Anwendungsfälle eingeordnet. Die private Grafik liegt im Testordner neben dem Bericht.
+
+## Vorherige Übergabe – Physischer Diktier- und Uploadtest
+
 **06.11.2026 · Neue Quellenphasen auf dem physischen Pixel 10a samt Upload geprüft.** Vorherige drei Testpakete und Host-/Serverdaten privat gesichert, sieben SQLite-Datenbanken strukturell geprüft. Separate Android-Debug-App aus `4bf58a4` mit beschränktem privatem HTTPS-Ziel. Lokaler Verlauf und reale Serverrevisionen zeigen verbundene Sprachabschnitte mit Pausen. Später freigegebener Upload berücksichtigt nur seine eigene Zeitabdeckung. Identität, Intervalldauern, Digest und Quittungszähler abgeglichen. Sensor regulär gestoppt, Phasenupload abgeschaltet und private Testdienste beendet. Persönliche Zeiten und Bildschirmfotos liegen ausschließlich im privaten Testordner. [Maßgeblicher Stand](docs/current-status.md).
 
 ## Vorherige Übergabe – Worktrees

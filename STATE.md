@@ -2,7 +2,7 @@
 
 ## Übergabe
 
-**06.11.2026 · Beide internen Store-Releases sind verfügbar.** Version 0.1.0 (3) ist bei Apple der Gruppe „OpenNoiseNet intern“ zugeordnet und hat den Status „Ready to Test“. Google Play hat die kostenlose App angelegt und führt Version 3 im internen Track als „Available to internal testers“. Udi hat beide Google-Erklärungen bestätigt und die erste Testergruppe auf das eigene Team in Deutschland begrenzt. Die Tester ergänzt das Team selbst. Die erste tatsächliche Installation über die Stores steht noch aus. [Projektstand](docs/current-status.md) · [Testanleitung](docs/mobile/store-beta.md).
+**06.11.2026 · Beide internen Store-Releases sind verfügbar.** Version 0.1.0 (3) ist bei Apple der Gruppe „OpenNoiseNet intern“ zugeordnet und hat den Status „Ready to Test“. Google Play hat die kostenlose App angelegt und führt Version 3 im internen Track als „Available to internal testers“. Udi hat beide Google-Erklärungen bestätigt und die erste Testergruppe auf das eigene Team in Deutschland begrenzt. Auf Udis Wunsch ist für beide Stores genau ein Konto eingetragen. Apple meldet „Invited“. Google Play hat die eigene Liste „OpenNoiseNet intern“ mit einem Mitglied für diesen Track gespeichert. Die erste tatsächliche Installation über die Stores steht noch aus. [Projektstand](docs/current-status.md) · [Testanleitung](docs/mobile/store-beta.md).
 
 ## Vorherige Übergabe – Ablaufdiagramm
 

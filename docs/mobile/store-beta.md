@@ -13,7 +13,7 @@ Der [Projektstand](../current-status.md) dokumentiert den tatsächlichen Verteil
 - **iOS** · In App Store Connect unter TestFlight die Gruppe **OpenNoiseNet intern** öffnen und die gewünschten internen Konten hinzufügen. Build **0.1.0 (3)** ist der Gruppe bereits zugeordnet. Die ausgewählten Personen öffnen die Einladung mit ihrem Apple-Konto in TestFlight.
 - **Android** · In der Play Console unter **Internal testing → Testers** die eigenen Testkonten per E-Mail-Liste auswählen und speichern. Die ausgewählten Personen öffnen den Beitrittslink aus diesem Reiter mit demselben Google-Konto, das sie im Play Store verwenden.
 
-Udi übernimmt die Testerpflege für beide Plattformen. Die direkten Teamlinks stehen im privaten Ideenkompass.
+Für die erste Runde hat Udi ein einziges Konto für beide Plattformen ausgewählt. Die direkten Teamlinks stehen im privaten Ideenkompass.
 
 ## Bauen und prüfen
 

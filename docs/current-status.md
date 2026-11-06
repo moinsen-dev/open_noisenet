@@ -1,13 +1,19 @@
 # OpenNoiseNet – aktueller Wiederaufnahmestand
 
-Stand: 2026-11-05. Auftrag: Das offene, gemeinschaftlich betriebene und datensparsame Lärmmesssystem selbstständig bis zu einem belastbaren Stand weiterentwickeln; die Wiederaufnahmephasen werden in Reihenfolge bearbeitet. Udi möchte außerdem das kommerzielle Potenzial der beobachteten Geräuscherkennung erkunden; eine Geschäftsmodell- oder Lizenzentscheidung ist damit nicht getroffen. Lokale Builds oder synthetische Tests ersetzen keine Geräte-, Datenschutz- oder Betriebsvalidierung.
+Stand: 2026-11-06. Auftrag: Das offene, gemeinschaftlich betriebene und datensparsame Lärmmesssystem selbstständig bis zu einem belastbaren Stand weiterentwickeln; die Wiederaufnahmephasen werden in Reihenfolge bearbeitet. Udi möchte außerdem das kommerzielle Potenzial der beobachteten Geräuscherkennung erkunden; eine Geschäftsmodell- oder Lizenzentscheidung ist damit nicht getroffen. Lokale Builds oder synthetische Tests ersetzen keine Geräte-, Datenschutz- oder Betriebsvalidierung.
 
-## Aktueller Auftrag: Backend-Wiederanlauf und Upload-Abgleich (05.11.2026)
+## Geräuschverarbeitung im unterbrochenen Lauf · 06.11.2026
+
+1. **Geprüft · R2 ist ein Teillauf.** Der Mac-Monitor endete vor der vorgesehenen Deadline. Die letzte beobachtete Messminute liegt vor der letzten Monitorprobe. Für die Nacht fehlt die Beobachtungsgrundlage. Udi berichtet von einem Neustart des Mac.
+2. **Erledigt · Private Grafik erstellt.** Der gesicherte Ereignisbeleg liefert Pegelblock und einen zeitlich begrenzten Modellhinweis. Die R2-App greift beim Abschluss auf einen begrenzten Verlauf abgeschlossener Quellenabschnitte zu. Die Grafik zeigt separat, wie der neue Kern im AMI-Referenzgespräch Aktivität und Pausen zu einer Quellenphase verbindet. Bild und personenbezogene Messdaten verbleiben privat im Feldtestordner.
+3. **→ Offen · Physischer Nachweis der neuen Quellenphasen.** Das Bild beruht auf vorhandenen Daten. Ein Gerätelauf mit der neuen Version und abschnittsweiser Speicherung steht aus.
+
+## Vorheriger Auftrag: Backend-Wiederanlauf und Upload-Abgleich (05.11.2026)
 
 1. **Erledigt – Ursache belegt:** Host-Speicher voll, OrbStack-Schreibfehler und VM-Stopp um 15:13 CET. Beim Wiedereinstieg rund 14 GiB frei; Docker/Backend waren bereits seit etwa 15:55 CET wieder verfügbar. Kein weiterer Neustart erforderlich oder ausgeführt.
 2. **Geprüft – Server und Daten:** Backend/PostgreSQL/Redis gesund, frische Heartbeats und steigende Erfassungs-/Inferenzzähler. PostgreSQL-Recovery, lesbarer privater Dump; vorhandene Bestätigung unverändert auf Server. Eigener synthetischer QA-Container gezielt entfernt; alle anderen Bestände erhalten.
 3. **Geprüft – kein Rückstand:** Ereignisqueue leer; keine unbestätigten lokalen Uploads während der Ausfallbeobachtungen, keine abweichenden Bestätigungen/Duplikate. Daher keine tatsächliche Nachlieferung nach diesem Ausfall belegbar. [Befund und Prüfgrenzen](operations/backend-recovery-2026-11-05.md).
-4. **→ Aktuell – R2 unverändert weiterlaufen lassen:** Ende 06.11.2026 12:12:01 CET. App, Sensor, Runner/Dateihashes und Testeinstellungen erhalten; keine beobachtete PID-Änderung oder innere Minutenlücke. Ausfall bleibt Teil des 24h-Ergebnisses. Neue Phasen erst danach getrennt physisch prüfen.
+4. **Damals laufend – R2 unverändert weiterlaufen lassen:** Ende 06.11.2026 12:12:01 CET. App, Sensor, Runner/Dateihashes und Testeinstellungen erhalten; keine beobachtete PID-Änderung oder innere Minutenlücke. Ausfall bleibt Teil des 24h-Ergebnisses. Neue Phasen erst danach getrennt physisch prüfen.
 
 ## Abgeschlossener Auftrag: Quellenphasen-Upload und natürliche Gespräche (05.11.2026)
 

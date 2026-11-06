@@ -2,6 +2,12 @@
 
 ## Übergabe
 
+**06.11.2026 morgens · Privates Bild zur Geräuschverarbeitung erstellt.** Der R2-Monitor endete am Vorabend vor dem geplanten Testende. Udi berichtet vom Herunter- und Hochfahren des Mac. Ein R2-Abschlussbericht liegt beim Wiedereinstieg nicht vor. Der Zustand des Telefons nach dem letzten Monitorstand bleibt offen.
+
+Die Grafik unterscheidet den gespeicherten Pegelblock, die zeitlich begrenzten Quellenhinweise und den separaten AMI-Test der neuen Quellenphasen. Der R2-Upload fragt den Quellenverlauf erst am Ereignisende ab. Abgeschlossene Abschnitte werden standardmäßig rund 30 Minuten vorgehalten. Bei langen Ereignissen kann der frühe Teil der Quellenhistorie im Upload fehlen. Der Befund stammt aus dem gesicherten Original-Upload, dem Monitor und dem Code des Feldtest-Builds. PNG und SVG liegen privat im R2-Ordner unter `algorithmusbild/`. Keine Geräte- oder Dienstaktion. Nächster offener Nachweis ist der physische Test der fortlaufenden Quellenphasen. Maßgebliche Übersicht in `docs/current-status.md`.
+
+## Vorherige Übergabe – Backend-Wiederanlauf
+
 **05.11.2026, etwa 16:18 CET: Docker-/Backend-Wiederanlauf geprüft, keine ausstehenden Ereignis-Uploads. Pixel-App und R2-Runner unverändert.**
 
 - Maßgeblich: `docs/current-status.md`; Befund/Prüfgrenzen in `docs/operations/backend-recovery-2026-11-05.md`. Ursache jetzt belegt: voller Host-Speicher erzeugte um 15:13 CET OrbStack-Schreibfehler (OS 28 / StorageFull) und VM-Stopp. Beim Wiedereinstieg liefen die vorhandenen drei Feldtest-Container bereits seit 15:55:34 CET wieder; erster gesunder Monitorstand 15:56:23 CET. Kein zusätzlicher Neustart, keine neue App-/Backend-Version oder Migration. Auslöser des früheren Wiederanlaufs unbestätigt.

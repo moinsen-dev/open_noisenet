@@ -2,6 +2,10 @@
 
 ## Übergabe
 
+**06.11.2026 · Physische Play-Beta und Diktierprobe geprüft.** Android bestätigt Build 0.1.0 (3) aus Google Play auf dem Pixel 10a. Die lokale Historie zeigte im markierten Diktierfenster eine Sprachphase mit drei Aktivitätsabschnitten und zwei überbrückten Pausen. Der Sensor ist regulär gestoppt, kein aktiver Mikrofonzugriff mehr. Kein Audio gespeichert, kein Backend einbezogen. Zeitwerte und Gerätebeleg liegen ausschließlich im privaten Pixel-Play-Testordner. Die öffentliche Store-Einreichung bleibt offen. [Maßgeblicher Stand und Prüfgrenzen](docs/current-status.md).
+
+## Vorherige Übergabe – DACH und AX41
+
 **06.11.2026 · DACH-Start und physische Store-Probe.** Die Länderwahl ist in beiden Stores gesetzt. Apple hat den regulären Review-Build 4 verarbeitet. Der AX41 liefert die statische Webseite, auf dem früheren API-Port läuft kein Backend. Der Pixel ist der Beta beigetreten. Die gesicherte alte Haupt-App ist entfernt. Google fordert beim Installieren via Play eine Bestätigung am Gerät. [Maßgeblicher Stand und nächster Nachweis](docs/current-status.md).
 
 ## Vorherige Übergabe – interne Store-Beta

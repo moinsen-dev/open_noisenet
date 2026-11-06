@@ -9,6 +9,12 @@ Stand: 2026-11-06. Auftrag: Das offene, gemeinschaftlich betriebene und datenspa
 3. **Erledigt · Architektur-Ablaufdiagramm.** [Datenwege, Zeitentscheidung und Diktierbeispiel](mobile/geraeuschverarbeitung.md). Der Dart-Kern liefert bei vollständig analysierter Denkpause einen Block, bei fehlender Analyse zwei. Die Architektur enthält keine Feldmesswerte.
 4. **→ Offen · Physischer Nachweis der neuen Quellenphasen.** Ein Gerätelauf mit der neuen Version und abschnittsweiser Speicherung steht aus.
 
+## Arbeitsverzeichnisse nach der Bereinigung · 06.11.2026
+
+1. **Geprüft:** Acht Git-Registrierungen erfasst. Das temporäre 16-KB-Verzeichnis fehlte bereits, vier ältere Checkouts enthielten jeweils eine eigene geänderte `.pumuckl`.
+2. **Gesichert und entfernt:** Tagebuch, erste Feldgrafik, Pixel-Episoden und Webseitenarbeit wurden mit ignorierten Dateien archiviert und gegen ihre Arbeitsverzeichnisse geprüft. Alle vier Pumuckl-Fassungen sind zusätzlich als Git-Commits gesichert. Das eigenständige Bundle wurde in ein leeres Repository eingelesen und die Inhalte wurden geprüft. Die vier Arbeitsverzeichnisse und der verwaiste Eintrag wurden aus Git abgemeldet. Alle ursprünglichen Branchspitzen sind erhalten.
+3. **Verbleiben:** `open_noisenet` für lokale App-Arbeit und Docker, `open_noisenet-phase-upload-20261105` für die Geräteprüfung und `open_noisenet-r2-bild-20261106` für Diagramm und Übergabe. PR #72 ist über seinen Branch weiter verfügbar. Die privaten Archive mit Wiederherstellungsanleitung liegen unter `~/Library/Application Support/OpenNoiseNet/Worktree-Sicherung-20261106-*/`.
+
 ## Vorheriger Auftrag: Backend-Wiederanlauf und Upload-Abgleich (05.11.2026)
 
 1. **Erledigt – Ursache belegt:** Host-Speicher voll, OrbStack-Schreibfehler und VM-Stopp um 15:13 CET. Beim Wiedereinstieg rund 14 GiB frei; Docker/Backend waren bereits seit etwa 15:55 CET wieder verfügbar. Kein weiterer Neustart erforderlich oder ausgeführt.

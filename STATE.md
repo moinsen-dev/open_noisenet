@@ -2,6 +2,10 @@
 
 ## Übergabe
 
+**06.11.2026 · Worktrees von acht Registrierungen auf drei reduziert.** Aktiv sind Hauptcheckout (lokale App-Arbeit und Docker), Phasenupload (PR #73 und nächster Gerätetest) sowie dieser Diagramm-Worktree. Die vier Checkouts für Tagebuch, erste Feldauswertung, Pixel-Episoden und Webseite sind privat archiviert und abgemeldet. Der fünfte Eintrag war eine verwaiste Registrierung ohne Verzeichnis. Alle ursprünglichen Branches sind erhalten. Die lokalen Pumuckl-Fassungen liegen zusätzlich als eigene Git-Commits unter `refs/archive/worktrees-20261106/`. Wiederherstellung über Manifest und Anleitung im privaten Worktree-Sicherungsordner unter Application Support/OpenNoiseNet. Verzeichnisinhalte abgeglichen und Git-Bundle in einem leeren Repository geprüft. Alte absolute Checkout-Pfade in historischen Notizen beziehen sich auf diese Archive. [Übersicht](docs/current-status.md).
+
+## Vorherige Übergabe – Architektur-Ablaufdiagramm
+
 **06.11.2026 · Architektur-Ablaufdiagramm.** [Technische Zeichnung und Diktierbeispiel](docs/mobile/geraeuschverarbeitung.md) trennen den installierten Pegelpfad R2 vom neuen Quellenphasenkern. Gegenprobe mit dem echten Dart-Kern: 90 s Block mit 70 s Aktivität bei analysierter Pause; ohne Analyse zwei Phasen (40 s und 30 s). Interaktive HTML-Ansicht lokal erzeugt und im Browser geprüft; editierbare Quelle und eigenständige SVG-Zeichnung im Projekt. Keine Geräteaktion. Der physische Test des neuen Builds bleibt offen; maßgebliche Übersicht in `docs/current-status.md`.
 
 ## Vorherige Übergabe – Private Feldauswertung

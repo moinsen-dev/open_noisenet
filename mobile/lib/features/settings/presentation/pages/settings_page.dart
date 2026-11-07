@@ -8,6 +8,8 @@ import 'package:go_router/go_router.dart';
 import 'package:path_provider/path_provider.dart';
 
 import '../widgets/audio_calibration_dialog.dart';
+import '../widgets/map_pilot_preview.dart';
+import '../../../../services/map_pilot/pilot_consent_controller.dart';
 
 import '../../../../features/app/presentation/bloc/app_bloc.dart';
 import '../../../../services/audio_capture_service.dart';
@@ -42,6 +44,8 @@ class _SettingsPageState extends State<SettingsPage> {
   final RecordingService _recordingService = RecordingService();
   final ApiClientService _apiClientService = GetIt.instance<ApiClientService>();
   final BackendSyncService _syncService = GetIt.instance<BackendSyncService>();
+  late final PilotConsentController _pilotController =
+      GetIt.instance<PilotConsentController>();
 
   // Database DAOs for data management
   final NoiseMeasurementDao _measurementDao = NoiseMeasurementDao();
@@ -458,6 +462,18 @@ class _SettingsPageState extends State<SettingsPage> {
     return Column(
       children: [
         ListTile(
+          leading: const Icon(Icons.map_outlined),
+          title: const Text('Freiwilliger Kartenpilot'),
+          subtitle: const Text('Informationen zum geplanten Pilot'),
+          onTap: () => showDialog<void>(
+            context: context,
+            builder: (_) => MapPilotPreview(
+              controller: _pilotController,
+              destination: _apiClientService.baseUrl,
+            ),
+          ),
+        ),
+        ListTile(
           leading: const Icon(Icons.privacy_tip),
           title: const Text('Privacy information'),
           onTap: () => _showPrivacyPolicy(context),
@@ -658,12 +674,17 @@ class _SettingsPageState extends State<SettingsPage> {
         ),
         actions: [
           TextButton(
-            onPressed: () async {
-              final ok = await launchUrl(Uri.parse('https://opennoisenet.moinsen.dev/app-privacy/'), mode: LaunchMode.externalApplication);
-              if (!ok && context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Datenschutz: https://opennoisenet.moinsen.dev/app-privacy/')));
-              }
-            }, child: const Text('Datenschutzerklärung öffnen')),
+              onPressed: () async {
+                final ok = await launchUrl(
+                    Uri.parse('https://opennoisenet.moinsen.dev/app-privacy/'),
+                    mode: LaunchMode.externalApplication);
+                if (!ok && context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                      content: Text(
+                          'Datenschutz: https://opennoisenet.moinsen.dev/app-privacy/')));
+                }
+              },
+              child: const Text('Datenschutzerklärung öffnen')),
           TextButton(
             onPressed: () => Navigator.pop(context),
             child: const Text('Close'),

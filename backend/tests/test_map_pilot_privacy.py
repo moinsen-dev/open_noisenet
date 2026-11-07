@@ -68,6 +68,31 @@ async def test_pilot_requires_authentication(client, monkeypatch):
     monkeypatch.setattr(settings, 'ENABLE_MAP_PILOT_INTAKE', True)
     assert (await client.post('/api/v1/map-pilot/consent', json={'notice_version':'pilot-draft-2026-11-07','accepted':True})).status_code == 401
     assert (await client.delete('/api/v1/map-pilot/consent')).status_code == 401
+    assert (await client.get('/api/v1/map-pilot/identity')).status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_pilot_identity_is_authenticated_and_not_cached(auth_client, db_session, monkeypatch):
+    from app.db.models.user import User
+    monkeypatch.setattr(settings, 'ENABLE_MAP_PILOT_INTAKE', True)
+    user = await db_session.scalar(select(User))
+    response = await auth_client.get('/api/v1/map-pilot/identity')
+    assert response.json() == {'account_id': str(user.id)}
+    assert response.headers['cache-control'] == 'no-store'
+
+
+@pytest.mark.asyncio
+async def test_old_generation_withdrawal_cannot_remove_new_consent(auth_client, monkeypatch):
+    monkeypatch.setattr(settings, 'ENABLE_MAP_PILOT_INTAKE', True)
+    path = '/api/v1/map-pilot'
+    body = {'notice_version':'pilot-draft-2026-11-07','accepted':True}
+    first = (await auth_client.post(path+'/consent', json=body)).json()['generation']
+    assert (await auth_client.request('DELETE', path+'/consent', json={'expected_generation':first})).status_code == 204
+    second = (await auth_client.post(path+'/consent', json=body)).json()['generation']
+    assert first != second
+    assert (await auth_client.request('DELETE', path+'/consent', json={'expected_generation':first})).status_code == 409
+    current = (await auth_client.get(path+'/consent')).json()
+    assert current['enabled'] is True and current['generation'] == second
 
 
 @pytest.mark.asyncio

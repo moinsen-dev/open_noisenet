@@ -3,6 +3,8 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:noisenet_mobile/services/api_client_service.dart';
+import 'package:noisenet_mobile/services/map_pilot/pilot_consent_controller.dart';
+import 'package:noisenet_mobile/services/map_pilot/pilot_withdrawal_retry.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:talker_flutter/talker_flutter.dart';
 
@@ -24,7 +26,12 @@ void main() {
     server.listen((request) async {
       calls++;
       expect(request.headers.value('Authorization'), 'Bearer synthetic-token');
-      if (request.method == 'POST') {
+      if (request.method == 'GET') {
+        expect(request.uri.path, '/api/v1/map-pilot/identity');
+        request.response.headers.contentType = ContentType.json;
+        request.response.write(
+            jsonEncode({'account_id': '00000000-0000-0000-0000-000000000002'}));
+      } else if (request.method == 'POST') {
         expect(jsonDecode(await utf8.decoder.bind(request).join()),
             {'notice_version': 'pilot-draft-2026-11-07', 'accepted': true});
         request.response.headers.contentType = ContentType.json;
@@ -39,6 +46,11 @@ void main() {
             unorderedEquals(['generation', 'day', 'cell_id', 'level_band']));
         request.response.statusCode = 204;
       } else if (request.method == 'DELETE') {
+        final body = await utf8.decoder.bind(request).join();
+        if (body.isNotEmpty) {
+          expect(jsonDecode(body),
+              {'expected_generation': '00000000-0000-0000-0000-000000000001'});
+        }
         request.response.statusCode = deletionStatus;
       }
       await request.response.close();
@@ -70,7 +82,19 @@ void main() {
     deletionStatus = 200;
     await expectLater(api.withdrawMapPilot(destination), throwsStateError);
     deletionStatus = 204;
-    await api.withdrawMapPilot(destination);
+    await api.withdrawMapPilot(destination,
+        expectedGeneration: '00000000-0000-0000-0000-000000000001');
     expect(calls, 4);
+    final controller =
+        PilotConsentController(await SharedPreferences.getInstance(), api);
+    await controller.enable(destination);
+    deletionStatus = 503;
+    expect(await controller.withdraw(), isFalse);
+    expect(controller.pendingWithdrawal, isTrue);
+    deletionStatus = 204;
+    final retry = PilotWithdrawalRetry(controller, () async => true);
+    await retry.attempt();
+    expect(controller.pendingWithdrawal, isFalse);
+    expect(calls, 10);
   });
 }

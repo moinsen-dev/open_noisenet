@@ -59,6 +59,11 @@ class ParticipantAttestation(BaseModel):
     personally_confirmed_distinct: Literal[True]
 
 
+class WithdrawalRequest(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    expected_generation: uuid.UUID
+
+
 class PublicAreaWeek(BaseModel):
     # An explicit output allowlist; never serialize contribution rows directly.
     model_config = ConfigDict(extra="forbid")
@@ -130,6 +135,13 @@ async def consent_status(db: DB, user: Annotated[User, Depends(require_user)], r
     return {"enabled": True, "generation": str(row.generation), "notice_version": row.notice_version}
 
 
+@router.get('/identity')
+async def pilot_identity(user: Annotated[User, Depends(require_user)], response: Response):
+    # The authenticated subject binds a pending withdrawal to its own account.
+    response.headers['Cache-Control'] = 'no-store'
+    return {'account_id': str(user.id)}
+
+
 @router.post("/consent", dependencies=[Depends(require_pilot_key)])
 async def opt_in(body: ConsentRequest, db: DB, user: Annotated[User, Depends(require_user)], response: Response):
     response.headers["Cache-Control"] = "no-store"
@@ -151,8 +163,10 @@ async def opt_in(body: ConsentRequest, db: DB, user: Annotated[User, Depends(req
 
 
 @router.delete("/consent", status_code=204)
-async def withdraw(db: DB, user: Annotated[User, Depends(require_user)]):
+async def withdraw(db: DB, user: Annotated[User, Depends(require_user)], body: WithdrawalRequest | None = None):
     row = await locked_consent(db, user.id)
+    if row and row.enabled and body and row.generation != body.expected_generation:
+        raise HTTPException(409, 'Pilot consent has changed')
     if row:
         # Serialize with any future snapshot sealing before deleting evidence.
         await suppress_pilot_publication(db)

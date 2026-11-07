@@ -26,7 +26,36 @@ class PilotConsentController {
     if (raw == null) return {};
     try {
       final decoded = jsonDecode(raw);
-      if (decoded is Map<String, dynamic>) return decoded;
+      if (decoded is Map<String, dynamic>) {
+        if (decoded.isEmpty) return decoded;
+        final enabled = decoded['enabled'];
+        final pending = decoded['pending'];
+        final destination = decoded['destination'];
+        final accountId = decoded['account_id'];
+        final generation = decoded['generation'];
+        const allowed = {
+          'enabled',
+          'pending',
+          'destination',
+          'account_id',
+          'generation'
+        };
+        final uuid = RegExp(
+            r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$');
+        if (decoded.keys.every(allowed.contains) &&
+            enabled is bool &&
+            pending is bool &&
+            enabled != pending &&
+            destination is String &&
+            destination.isNotEmpty &&
+            accountId is String &&
+            uuid.hasMatch(accountId) &&
+            (generation == null
+                ? !enabled
+                : generation is String && uuid.hasMatch(generation))) {
+          return decoded;
+        }
+      }
     } catch (_) {
       // Corrupt state is never treated as enabled.
     }
@@ -63,6 +92,21 @@ class PilotConsentController {
   }
 
   bool get pendingWithdrawal => _read()['pending'] == true;
+  bool get canRetryAutomatically {
+    final state = _read();
+    final generation = state['generation'];
+    return state['pending'] == true &&
+        generation is String &&
+        RegExp(r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$')
+            .hasMatch(generation) &&
+        state['account_id'] is String &&
+        state['destination'] is String;
+  }
+
+  bool get hasSavedConsentOrWithdrawal {
+    final state = _read();
+    return state['enabled'] == true || state['pending'] == true;
+  }
 
   bool permits(String destination, String generation) {
     final state = _read();
@@ -89,8 +133,19 @@ class PilotConsentController {
         if (current['destination'] == destination) return;
         throw StateError('Withdraw from the previous server first');
       }
-      await _save(
-          {'enabled': false, 'pending': true, 'destination': destination});
+      final accountId = await _api.mapPilotIdentity(destination);
+      if (epoch != _withdrawalEpoch ||
+          _api.credentialEpoch != accountEpoch ||
+          _api.baseUrl != destination ||
+          !_api.isAuthenticated) {
+        throw StateError('Account or consent changed');
+      }
+      await _save({
+        'enabled': false,
+        'pending': true,
+        'destination': destination,
+        'account_id': accountId
+      });
       final response = await _api.enableMapPilot(destination);
       if (epoch != _withdrawalEpoch ||
           _api.credentialEpoch != accountEpoch ||
@@ -108,6 +163,7 @@ class PilotConsentController {
         'enabled': true,
         'pending': false,
         'destination': destination,
+        'account_id': accountId,
         'generation': generation
       });
       if (epoch == _withdrawalEpoch &&
@@ -121,7 +177,7 @@ class PilotConsentController {
     });
   }
 
-  Future<bool> withdraw() {
+  Future<bool> withdraw({bool automatic = false}) {
     // Stop new transfers synchronously, before persistence or network awaits.
     _blocked = true;
     _sessionValidated = false;
@@ -130,15 +186,31 @@ class PilotConsentController {
       final current = _read();
       if (current.isEmpty) return true;
       final destination = current['destination'];
+      final accountId = current['account_id'];
+      final generation = current['generation'];
       if (destination is! String ||
           destination.isEmpty ||
+          accountId is! String ||
+          accountId.isEmpty ||
           current['corrupt'] == true) {
         throw StateError('Pilot withdrawal destination is unavailable');
       }
-      await _save(
-          {'enabled': false, 'pending': true, 'destination': destination});
+      final pending = <String, dynamic>{
+        'enabled': false,
+        'pending': true,
+        'destination': destination,
+        'account_id': accountId,
+        if (generation is String) 'generation': generation,
+      };
+      await _save(pending);
+      if (automatic && !canRetryAutomatically) return false;
       try {
-        await _api.withdrawMapPilot(destination);
+        final accountEpoch = _api.credentialEpoch;
+        final currentAccount = await _api.mapPilotIdentity(destination);
+        if (currentAccount != accountId || accountEpoch != _api.credentialEpoch)
+          return false;
+        await _api.withdrawMapPilot(destination,
+            expectedGeneration: generation is String ? generation : null);
       } catch (_) {
         return false;
       }

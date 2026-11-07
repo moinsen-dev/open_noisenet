@@ -510,6 +510,20 @@ class ApiClientService implements PhaseUploadTransport {
     return response.data ?? <String, dynamic>{};
   }
 
+  Future<String> mapPilotIdentity(String destination) async {
+    final epoch = _pilotEpoch(destination);
+    final response = await _dio.get<Map<String, dynamic>>('/map-pilot/identity',
+        options: Options(extra: {'noisenet_backend_epoch': epoch}));
+    _checkPilotResponse(destination, epoch);
+    final id = response.data?['account_id'];
+    if (id is! String ||
+        !RegExp(r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$')
+            .hasMatch(id)) {
+      throw StateError('Pilot account identity was not confirmed');
+    }
+    return id;
+  }
+
   Future<Map<String, dynamic>> enableMapPilot(String destination) async {
     final epoch = _pilotEpoch(destination);
     final response = await _dio.post<Map<String, dynamic>>('/map-pilot/consent',
@@ -523,9 +537,13 @@ class ApiClientService implements PhaseUploadTransport {
     return response.data!;
   }
 
-  Future<void> withdrawMapPilot(String destination) async {
+  Future<void> withdrawMapPilot(String destination,
+      {String? expectedGeneration}) async {
     final epoch = _pilotEpoch(destination);
     final response = await _dio.delete<void>('/map-pilot/consent',
+        data: expectedGeneration == null
+            ? null
+            : {'expected_generation': expectedGeneration},
         options: Options(extra: {'noisenet_backend_epoch': epoch}));
     _checkPilotResponse(destination, epoch);
     if (response.statusCode != 204) {

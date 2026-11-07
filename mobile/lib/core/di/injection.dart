@@ -11,6 +11,8 @@ import '../../services/sqlite_preferences_service.dart';
 import '../../services/preferences_migration_service.dart';
 import '../../services/audio_capture_service.dart';
 import '../../services/api_client_service.dart';
+import '../../services/map_pilot/pilot_consent_controller.dart';
+import '../../services/map_pilot/pilot_withdrawal_retry.dart';
 import '../../services/backend_sync_service.dart';
 import '../../services/noise_pattern_analyzer.dart';
 import '../../services/ai_analysis_service.dart';
@@ -42,7 +44,8 @@ Future<void> configureDependencies() async {
 
   dio.interceptors.add(InterceptorsWrapper(onRequest: (options, handler) {
     if (BackendDefaults.isLocalOnly(options.uri)) {
-      handler.reject(DioException(requestOptions: options, error: 'No backend configured'));
+      handler.reject(DioException(
+          requestOptions: options, error: 'No backend configured'));
       return;
     }
     handler.next(options);
@@ -93,9 +96,18 @@ Future<void> configureDependencies() async {
     logger: logger,
   );
   getIt.registerSingleton<ApiClientService>(apiClientService);
+  final pilotConsent =
+      PilotConsentController(sharedPreferences, apiClientService);
+  getIt.registerSingleton<PilotConsentController>(pilotConsent);
+  final pilotRetry = PilotWithdrawalRetry(pilotConsent,
+      () async => !await sqlitePreferencesService.getForceOfflineMode());
+  getIt.registerSingleton<PilotWithdrawalRetry>(pilotRetry,
+      dispose: (service) => service.dispose());
+  pilotRetry.start();
 
   final phaseUpload = SourcePhaseUploadService(
-    store: EncryptedPhaseUploadStore(), transport: apiClientService,
+    store: EncryptedPhaseUploadStore(),
+    transport: apiClientService,
     preferences: sharedPreferences,
     frames: getIt<OnDeviceSoundAnalysisService>().results,
     activity: getIt<OnDeviceSoundAnalysisService>().sourceActivity,

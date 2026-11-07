@@ -78,8 +78,15 @@ class ApiClientService implements PhaseUploadTransport {
       onRequest: (options, handler) {
         final phasePermit = options.extra['source_phase_permitted'];
         if (phasePermit is bool Function() && !phasePermit()) {
-          handler.reject(DioException(requestOptions: options,
+          handler.reject(DioException(
+              requestOptions: options,
               error: 'Source phase transfer was paused'));
+          return;
+        }
+        final pilotPermit = options.extra['map_pilot_permitted'];
+        if (pilotPermit is bool Function() && !pilotPermit()) {
+          handler.reject(DioException(
+              requestOptions: options, error: 'Map pilot transfer was paused'));
           return;
         }
         final configuredUri = Uri.tryParse(_baseUrl);
@@ -282,32 +289,36 @@ class ApiClientService implements PhaseUploadTransport {
     final options = await _deviceOptions(device);
     _checkPhaseDestination(destination, device);
     options.extra!['source_phase_permitted'] = permitted;
-    final response = await _dio.put<Map<String,dynamic>>(
-      '/source-phases/${Uri.encodeComponent(device)}/${payload['phase_id']}',
-      data: payload, options: options);
-    return response.data ?? <String,dynamic>{};
+    final response = await _dio.put<Map<String, dynamic>>(
+        '/source-phases/${Uri.encodeComponent(device)}/${payload['phase_id']}',
+        data: payload,
+        options: options);
+    return response.data ?? <String, dynamic>{};
   }
 
   @override
-  Future<Map<String, dynamic>> deleteSourcePhase(String destination, String device,
-      String phaseId, bool Function() permitted) async {
+  Future<Map<String, dynamic>> deleteSourcePhase(String destination,
+      String device, String phaseId, bool Function() permitted) async {
     _checkPhaseDestination(destination, device);
     final options = await _deviceOptions(device);
     _checkPhaseDestination(destination, device);
     options.extra!['source_phase_permitted'] = permitted;
-    final response = await _dio.delete<Map<String,dynamic>>(
-      '/source-phases/${Uri.encodeComponent(device)}/$phaseId', options: options);
-    return response.data ?? <String,dynamic>{};
+    final response = await _dio.delete<Map<String, dynamic>>(
+        '/source-phases/${Uri.encodeComponent(device)}/$phaseId',
+        options: options);
+    return response.data ?? <String, dynamic>{};
   }
 
-  Future<List<Map<String,dynamic>>> listSourcePhases({int offset = 0}) async {
+  Future<List<Map<String, dynamic>>> listSourcePhases({int offset = 0}) async {
     final device = _deviceId;
     if (device == null) return [];
-    final response = await _dio.get<Map<String,dynamic>>(
-      '/source-phases/${Uri.encodeComponent(device)}',
-      queryParameters: {'offset':offset,'limit':100}, options:await _deviceOptions(device));
+    final response = await _dio.get<Map<String, dynamic>>(
+        '/source-phases/${Uri.encodeComponent(device)}',
+        queryParameters: {'offset': offset, 'limit': 100},
+        options: await _deviceOptions(device));
     return (response.data!['items'] as List)
-        .map((v) => Map<String,dynamic>.from(v as Map)).toList();
+        .map((v) => Map<String, dynamic>.from(v as Map))
+        .toList();
   }
 
   Future<Options> _deviceOptions(String? deviceId,
@@ -414,9 +425,12 @@ class ApiClientService implements PhaseUploadTransport {
     try {
       final credentialDestination = _baseUrl;
       final credentialEpoch = _credentialEpoch;
-      final capability = await _dio.get<Map<String, dynamic>>('/auth/account-deletion/capability');
-      if (capability.data?['account_deletion'] != 1 || credentialEpoch != _credentialEpoch) {
-        throw StateError('This server must support account deletion before registration.');
+      final capability = await _dio
+          .get<Map<String, dynamic>>('/auth/account-deletion/capability');
+      if (capability.data?['account_deletion'] != 1 ||
+          credentialEpoch != _credentialEpoch) {
+        throw StateError(
+            'This server must support account deletion before registration.');
       }
       final request = RegisterRequest(
         email: email,
@@ -449,18 +463,102 @@ class ApiClientService implements PhaseUploadTransport {
     }
   }
 
-  Future<void> deleteOwnAccount(String password, {required String destination}) async {
+  Future<void> deleteOwnAccount(String password,
+      {required String destination}) async {
     final epoch = _credentialEpoch;
     if (_baseUrl != destination || !isAuthenticated) {
       throw StateError('Account or server changed');
     }
     final response = await _dio.post<void>('/auth/account-deletion',
         data: {'password': password},
-        options: Options(extra: {'noisenet_backend_epoch': epoch, 'noisenet_refresh_attempted': true}));
-    if (response.statusCode != 204 || epoch != _credentialEpoch || destination != _baseUrl) {
+        options: Options(extra: {
+          'noisenet_backend_epoch': epoch,
+          'noisenet_refresh_attempted': true
+        }));
+    if (response.statusCode != 204 ||
+        epoch != _credentialEpoch ||
+        destination != _baseUrl) {
       throw StateError('Account deletion was not confirmed');
     }
     await setBaseUrl(BackendDefaults.localOnly);
+  }
+
+  int _pilotEpoch(String destination) {
+    if (destination != _baseUrl || !isAuthenticated) {
+      throw StateError('Account or server changed');
+    }
+    return _credentialEpoch;
+  }
+
+  void _checkPilotResponse(String destination, int epoch) {
+    if (destination != _baseUrl ||
+        epoch != _credentialEpoch ||
+        !isAuthenticated) {
+      throw StateError('Account or server changed');
+    }
+  }
+
+  /// Protocol foundation only. No pilot setting or automatic upload uses it yet.
+  Future<Map<String, dynamic>> mapPilotConsent(String destination) async {
+    final epoch = _pilotEpoch(destination);
+    final response = await _dio.get<Map<String, dynamic>>('/map-pilot/consent',
+        options: Options(extra: {'noisenet_backend_epoch': epoch}));
+    _checkPilotResponse(destination, epoch);
+    return response.data ?? <String, dynamic>{};
+  }
+
+  Future<Map<String, dynamic>> enableMapPilot(String destination) async {
+    final epoch = _pilotEpoch(destination);
+    final response = await _dio.post<Map<String, dynamic>>('/map-pilot/consent',
+        data: {'notice_version': 'pilot-draft-2026-11-07', 'accepted': true},
+        options: Options(extra: {'noisenet_backend_epoch': epoch}));
+    _checkPilotResponse(destination, epoch);
+    if (response.data?['enabled'] != true ||
+        response.data?['generation'] is! String) {
+      throw StateError('Pilot consent was not confirmed');
+    }
+    return response.data!;
+  }
+
+  Future<void> withdrawMapPilot(String destination) async {
+    final epoch = _pilotEpoch(destination);
+    final response = await _dio.delete<void>('/map-pilot/consent',
+        options: Options(extra: {'noisenet_backend_epoch': epoch}));
+    _checkPilotResponse(destination, epoch);
+    if (response.statusCode != 204) {
+      throw StateError('Pilot withdrawal was not confirmed');
+    }
+  }
+
+  Future<void> uploadMapPilotContribution(String destination,
+      Map<String, dynamic> contribution, bool Function() permitted) async {
+    final epoch = _pilotEpoch(destination);
+    const fields = {'generation', 'day', 'cell_id', 'level_band'};
+    final generation = contribution['generation'];
+    final day = contribution['day'];
+    if (contribution.length != fields.length ||
+        !contribution.keys.toSet().containsAll(fields) ||
+        generation is! String ||
+        !RegExp(r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$')
+            .hasMatch(generation) ||
+        day is! String ||
+        !RegExp(r'^\d{4}-\d{2}-\d{2}$').hasMatch(day) ||
+        DateTime.tryParse(day)?.toIso8601String().substring(0, 10) != day ||
+        contribution['cell_id'] != 'hamburg-eimsbuettel' ||
+        !const {'low', 'medium', 'high'}.contains(contribution['level_band'])) {
+      throw ArgumentError('Invalid map pilot contribution');
+    }
+    if (!permitted()) throw StateError('Map pilot transfer was paused');
+    final response = await _dio.put<void>('/map-pilot/contribution',
+        data: contribution,
+        options: Options(extra: {
+          'noisenet_backend_epoch': epoch,
+          'map_pilot_permitted': permitted,
+        }));
+    _checkPilotResponse(destination, epoch);
+    if (response.statusCode != 204) {
+      throw StateError('Pilot contribution was not confirmed');
+    }
   }
 
   Future<void> logout() async {
@@ -1108,7 +1206,9 @@ class ApiClientService implements PhaseUploadTransport {
     final destination = (candidateUrl ?? _baseUrl).trim();
     try {
       if (BackendDefaults.isLocalOnly(_validatedBackendUrl(destination))) {
-        return ConnectionTestResult(success: false, latencyMs: null,
+        return ConnectionTestResult(
+            success: false,
+            latencyMs: null,
             error: 'On this device only. Configure a HTTPS backend to connect.',
             baseUrl: destination);
       }

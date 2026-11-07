@@ -9,14 +9,16 @@ from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Response
 from pydantic import BaseModel, ConfigDict, Field, field_validator
-from sqlalchemy import delete, func, select
+from sqlalchemy import delete, exists, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.deps import require_user, require_superuser
 from app.core.config import settings
-from app.db.models.map_pilot import MapPilotConsent, MapPilotContribution, MapPilotRetentionRun
+from app.db.models.map_pilot import (MapPilotConsent, MapPilotContribution, MapPilotRetentionRun,
+                                     MapPilotPublicationGuard, MapPilotPublishedWeek, MapPilotVerifiedParticipant)
 from app.db.models.user import User
 from app.db.session import get_session
 from app.services.map_pilot_cipher import PilotCipherUnavailable, ensure_key_available, encrypt_payload, decrypt_payload
+from app.services.map_pilot_publication import suppress_pilot_publication
 
 def require_isolated_pilot():
     if not settings.ENABLE_MAP_PILOT_INTAKE or settings.ENABLE_LEGACY_PUBLIC_MAP:
@@ -50,6 +52,13 @@ class Contribution(BaseModel):
     level_band: Literal["low", "medium", "high"]
 
 
+class ParticipantAttestation(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    user_id: uuid.UUID
+    # The operator must perform the separately documented personal check.
+    personally_confirmed_distinct: Literal[True]
+
+
 class PublicAreaWeek(BaseModel):
     # An explicit output allowlist; never serialize contribution rows directly.
     model_config = ConfigDict(extra="forbid")
@@ -65,17 +74,51 @@ class PublicAreaWeek(BaseModel):
         return value
 
 
-def public_snapshot() -> list[PublicAreaWeek]:
-    # Intentionally no real data source until identity, quality, withdrawal,
-    # immutable publication and difference attacks have been addressed.
-    # Tests can supply synthetic snapshots through FastAPI dependency overrides.
-    return []
+async def public_snapshot(db: DB) -> list[PublicAreaWeek]:
+    # Two independent gates: default-off configuration and a locked DB guard.
+    # There is no route to enable the guard or write snapshots. Operational and
+    # quality gates must be verified before either can be enabled for real data.
+    if not settings.ENABLE_MAP_PILOT_PUBLICATION:
+        return []
+    guard_open = exists(select(MapPilotPublicationGuard.id).where(
+        MapPilotPublicationGuard.name == 'pilot', MapPilotPublicationGuard.enabled.is_(True)))
+    rows = (await db.scalars(select(MapPilotPublishedWeek).where(
+        MapPilotPublishedWeek.suppressed.is_(False), guard_open
+    ).order_by(MapPilotPublishedWeek.week_start))).all()
+    now = datetime.now(UTC)
+    result = []
+    for row in rows:
+        ready = datetime.combine(row.week_start + timedelta(days=9), datetime.min.time(), tzinfo=UTC)
+        if now < ready:
+            continue
+        try:
+            result.append(PublicAreaWeek(area='hamburg-eimsbuettel', week_start=row.week_start, band=row.band))
+        except ValueError:
+            raise HTTPException(503, 'Pilot publication unavailable') from None
+    return result
 
 
 async def locked_consent(db, user_id):
     # Lock the parent even on the first opt-in, serializing opt-in/revoke/upload.
     await db.execute(select(User.id).where(User.id == user_id).with_for_update())
     return await db.scalar(select(MapPilotConsent).where(MapPilotConsent.user_id == user_id).with_for_update())
+
+
+@router.post('/admin/attest-participant', status_code=204)
+async def attest_participant(body: ParticipantAttestation, db: DB,
+                             operator: Annotated[User, Depends(require_superuser)]):
+    # An administrator's statement is an operational control, not proof that
+    # separate accounts belong to separate people. Never auto-attest accounts.
+    del operator
+    row = await locked_consent(db, body.user_id)
+    if not row or not row.enabled:
+        raise HTTPException(409, 'Active pilot consent required')
+    verified = await db.scalar(select(MapPilotVerifiedParticipant).where(
+        MapPilotVerifiedParticipant.user_id == body.user_id))
+    if verified is None:
+        db.add(MapPilotVerifiedParticipant(user_id=body.user_id, verified_at=datetime.now(UTC)))
+    await db.commit()
+    return Response(status_code=204, headers={'Cache-Control': 'no-store'})
 
 
 @router.get("/consent")
@@ -107,9 +150,12 @@ async def opt_in(body: ConsentRequest, db: DB, user: Annotated[User, Depends(req
 async def withdraw(db: DB, user: Annotated[User, Depends(require_user)]):
     row = await locked_consent(db, user.id)
     if row:
+        # Serialize with any future snapshot sealing before deleting evidence.
+        await suppress_pilot_publication(db)
         row.enabled = False
         row.generation = uuid.uuid4()  # invalidate delayed requests, including after opt-in again
     await db.execute(delete(MapPilotContribution).where(MapPilotContribution.user_id == user.id))
+    await db.execute(delete(MapPilotVerifiedParticipant).where(MapPilotVerifiedParticipant.user_id == user.id))
     await db.commit()
     return Response(status_code=204, headers={"Cache-Control": "no-store"})
 

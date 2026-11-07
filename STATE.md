@@ -2,7 +2,7 @@
 
 ## Übergabe
 
-**07.11.2026 · Kartenpilot Punkt 2 weiter umgesetzt, nicht abgeschlossen.** Amtlicher Stadtteil-Umriss ohne externen Kartenanbieter und Ausgabe mit engem Feldschema implementiert. Wochenschwelle und API/UI mit vier und fünf synthetischen Personen lokal durchgängig im Browser geprüft; reale Snapshot-Quelle bleibt geschlossen. Frontend Typecheck/Lint/Build und vier Tests, Backend 229 bestanden/4 übersprungen. → Weiter Punkt 2: geprüfte reale Snapshotquelle, Identitäts-/Messqualitäts- und Widerrufsschutz; anschließend Punkte 3–10 der [Checkliste](docs/kartenpilot-checkliste.md). Kein Deployment und keine echten Beiträge.
+**07.11.2026 · Kartenpilot: Datenbank-Sperre und App-Protokoll vorbereitet.** Punkt 2 weiterhin aktuell: bestätigte Konten und Kandidatenberechnung intern; Veröffentlichung standardmäßig doppelt gesperrt, Wochen unveränderlich, Widerruf/Kontolöschung unterdrücken alle Wochen transaktional. Isolierte PostgreSQL-Migration, beide Wettlaufrichtungen und Schutz vor verlustbehaftetem Downgrade geprüft. App-HTTP-Protokoll ohne UI oder automatische Übertragung vorbereitet, Flutter-Analyse und lokaler HTTP-Test bestanden. → Punkt 2: echte Messqualitätsdefinition, sichere Verknüpfung von Kandidat und Siegelung sowie Rückschlussprüfung; danach App-Ablauf und Punkte 3–10. Keine Produktionsmigration, kein echter Pilot. Details in [Checkliste](docs/kartenpilot-checkliste.md).
 
 ## Vorherige Übergabe – Endliche Checkliste
 

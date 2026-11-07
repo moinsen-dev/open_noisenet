@@ -28,3 +28,25 @@ class MapPilotRetentionRun(Base):
     """Health heartbeat with no participant identifiers or measurement data."""
     __tablename__ = "map_pilot_retention_runs"
     completed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
+class MapPilotPublicationGuard(Base):
+    """Single serialization point. Disabled if absent or after a withdrawal."""
+    __tablename__ = "map_pilot_publication_guard"
+    name: Mapped[str] = mapped_column(String(16), unique=True, nullable=False)
+    enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+
+
+class MapPilotPublishedWeek(Base):
+    """A fixed aggregate only. No participants, devices, coordinates or counts."""
+    __tablename__ = "map_pilot_published_weeks"
+    week_start: Mapped[date] = mapped_column(Date, unique=True, nullable=False)
+    band: Mapped[str] = mapped_column(String(6), nullable=False)
+    suppressed: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+
+
+class MapPilotVerifiedParticipant(Base):
+    """Operator attestation, not an identity document or proof of uniqueness."""
+    __tablename__ = "map_pilot_verified_participants"
+    user_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), ForeignKey('users.id', ondelete='CASCADE'), unique=True, nullable=False)
+    verified_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)

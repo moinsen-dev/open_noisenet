@@ -71,6 +71,8 @@ class Settings(BaseSettings):
 
     # Experimental pilot remains closed unless explicitly enabled in an isolated environment.
     ENABLE_MAP_PILOT_INTAKE: bool = False
+    # Never enable until identity, measurement, withdrawal and operating gates pass.
+    ENABLE_MAP_PILOT_PUBLICATION: bool = False
     ENABLE_MAP_PILOT_RETENTION: bool = False
     MAP_PILOT_ALLOWED_CELLS: list[str] = []
     MAP_PILOT_ENCRYPTION_KEY: SecretStr = SecretStr("")

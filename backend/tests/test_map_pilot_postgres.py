@@ -78,6 +78,7 @@ async def test_scheduled_retention_commits_in_postgres(monkeypatch):
         monkeypatch.setattr(settings, key, value)
     try:
         async with factory() as setup:
+            previous_runs = len((await setup.scalars(select(MapPilotRetentionRun))).all())
             setup.add(User(id=uid, email=f'{uid}@example.org', hashed_password='synthetic', full_name='Synthetic', is_active=True, is_superuser=False, is_verified=False))
             await setup.flush()
             for age in (31, 30):
@@ -89,7 +90,7 @@ async def test_scheduled_retention_commits_in_postgres(monkeypatch):
         async with factory() as check:
             remaining = (await check.scalars(select(MapPilotContribution).where(MapPilotContribution.user_id == uid))).all()
             assert len(remaining) == 1 and remaining[0].day == datetime.now(UTC).date()-timedelta(days=30)
-            assert len((await check.scalars(select(MapPilotRetentionRun))).all()) == 1
+            assert len((await check.scalars(select(MapPilotRetentionRun))).all()) == previous_runs + 1
     finally:
         async with factory() as cleanup:
             await cleanup.execute(delete(MapPilotContribution).where(MapPilotContribution.user_id == uid))

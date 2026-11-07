@@ -12,11 +12,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.deps import require_user
 from app.core.device_auth import retirement_fingerprint
 from app.db.models.device import DeviceApiKey, RevokedDeviceKey
-from app.db.models.map_pilot import MapPilotConsent, MapPilotContribution
+from app.db.models.map_pilot import MapPilotConsent, MapPilotContribution, MapPilotVerifiedParticipant
 from app.core.rate_limit import login_rate_limiter
 from app.core.security import verify_password
 from app.db.models import Case, CaseEpisodeLink, Device, Episode, ExportJob, Organization, OrganizationMembership, User
 from app.db.session import get_session
+from app.services.map_pilot_publication import suppress_pilot_publication
 
 router = APIRouter()
 DB = Annotated[AsyncSession, Depends(get_session, scope="function")]
@@ -31,6 +32,8 @@ async def erase(db, user_id, password):
     user = await db.scalar(select(User).where(User.id == user_id).with_for_update())
     if not user or not user.is_active or not verify_password(password, user.hashed_password):
         raise HTTPException(403, "Account or password incorrect")
+    if await db.scalar(select(MapPilotConsent.id).where(MapPilotConsent.user_id == user.id)):
+        await suppress_pilot_publication(db)
     devices = select(Device.id).where(Device.owner_id == user.id)
     episodes = select(Episode.id).where(Episode.device_id.in_(devices))
     cases = select(CaseEpisodeLink.case_id).where(CaseEpisodeLink.episode_id.in_(episodes))
@@ -63,6 +66,7 @@ async def erase(db, user_id, password):
     await db.execute(update(Organization).where(Organization.created_by_id == user.id).values(created_by_id=None))
     await db.execute(delete(MapPilotContribution).where(MapPilotContribution.user_id == user.id))
     await db.execute(delete(MapPilotConsent).where(MapPilotConsent.user_id == user.id))
+    await db.execute(delete(MapPilotVerifiedParticipant).where(MapPilotVerifiedParticipant.user_id == user.id))
     await db.delete(user)
     await db.flush()
 

@@ -74,9 +74,16 @@ async def test_database_backed_publication_requires_both_gates_and_stops_on_with
     result = await auth_client.get(path+'/public')
     assert result.json()['areas'] == [{'area':'hamburg-eimsbuettel', 'week_start':'2020-01-06', 'band':'medium'}]
     assert result.headers['cache-control'] == 'no-store'
+    for params in ({'area': 'other'}, {'week_start': '2020-01-07'}, {'min_lat': '53.5'}, {'device': 'synthetic-person'}):
+        repeated = await auth_client.get(path+'/public', params=params)
+        assert repeated.json() == result.json()  # No user-defined windows or areas.
+        assert repeated.headers['cache-control'] == 'no-store'
     assert (await auth_client.post(path+'/consent', json={'notice_version':'pilot-draft-2026-11-07', 'accepted': True})).status_code == 200
     assert (await auth_client.delete(path+'/consent')).status_code == 204
     assert (await auth_client.get(path+'/public')).json() == {'areas': [], 'status': 'not_available'}
+    after = await auth_client.get(path+'/public', params={'week_start': '2020-01-06'})
+    assert after.json() == {'areas': [], 'status': 'not_available'}
+    assert after.headers['cache-control'] == 'no-store'
 
 
 @pytest.mark.asyncio

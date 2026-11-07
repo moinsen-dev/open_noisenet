@@ -16,7 +16,7 @@ from app.db.models.pro_domain import (
 from app.db.models.user import User
 from app.db.models.source_phase import SourcePhase
 from app.db.models.map_pilot import (MapPilotConsent, MapPilotContribution, MapPilotRetentionRun,
-                                     MapPilotPublicationGuard, MapPilotPublishedWeek, MapPilotVerifiedParticipant)
+                                     MapPilotPublicationGuard, MapPilotPublishedWeek, MapPilotVerifiedParticipant, MapPilotKeyState)
 
 __all__ = [
     "CalibrationProfile",

@@ -36,6 +36,9 @@ async def db_session() -> AsyncGenerator[AsyncSession, None]:
         await conn.run_sync(Base.metadata.create_all)
     session_factory = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
     async with session_factory() as session:
+        from app.db.models.map_pilot import MapPilotKeyState
+        session.add(MapPilotKeyState(name='pilot', key_check=None))
+        await session.commit()
         yield session
         await session.rollback()
     async with engine.begin() as conn:

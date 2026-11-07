@@ -17,7 +17,7 @@ from app.db.models.map_pilot import (MapPilotConsent, MapPilotContribution, MapP
                                      MapPilotPublicationGuard, MapPilotPublishedWeek, MapPilotVerifiedParticipant)
 from app.db.models.user import User
 from app.db.session import get_session
-from app.services.map_pilot_cipher import PilotCipherUnavailable, ensure_key_available, encrypt_payload, decrypt_payload
+from app.services.map_pilot_cipher import PilotCipherUnavailable, ensure_key_available, ensure_database_key, encrypt_payload, decrypt_payload
 from app.services.map_pilot_publication import suppress_pilot_publication
 
 def require_isolated_pilot():
@@ -134,6 +134,10 @@ async def consent_status(db: DB, user: Annotated[User, Depends(require_user)], r
 async def opt_in(body: ConsentRequest, db: DB, user: Annotated[User, Depends(require_user)], response: Response):
     response.headers["Cache-Control"] = "no-store"
     row = await locked_consent(db, user.id)
+    try:
+        await ensure_database_key(db)
+    except PilotCipherUnavailable:
+        raise HTTPException(503, 'Pilot storage unavailable') from None
     if row and row.enabled:
         return {"enabled": True, "generation": str(row.generation), "notice_version": row.notice_version}
     now = datetime.now(UTC)
@@ -165,6 +169,10 @@ async def contribute(body: Contribution, db: DB, user: Annotated[User, Depends(r
     row = await locked_consent(db, user.id)
     if not row or not row.enabled or row.generation != body.generation:
         raise HTTPException(403, "Pilot consent is absent or outdated")
+    try:
+        await ensure_database_key(db)
+    except PilotCipherUnavailable:
+        raise HTTPException(503, 'Pilot storage unavailable') from None
     if body.cell_id not in settings.MAP_PILOT_ALLOWED_CELLS:
         raise HTTPException(422, "Unknown pilot area")
     today = datetime.now(UTC).date()

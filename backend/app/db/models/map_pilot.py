@@ -50,3 +50,10 @@ class MapPilotVerifiedParticipant(Base):
     __tablename__ = "map_pilot_verified_participants"
     user_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), ForeignKey('users.id', ondelete='CASCADE'), unique=True, nullable=False)
     verified_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
+class MapPilotKeyState(Base):
+    """Key check only; the 256-bit key itself remains outside the database."""
+    __tablename__ = 'map_pilot_key_state'
+    name: Mapped[str] = mapped_column(String(16), unique=True, nullable=False)
+    key_check: Mapped[bytes | None] = mapped_column(LargeBinary, nullable=True)

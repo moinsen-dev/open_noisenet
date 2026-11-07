@@ -71,6 +71,87 @@ async def test_pilot_requires_authentication(client, monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_changed_key_cannot_create_a_mixed_key_database_and_withdraw_still_works(auth_client, db_session, monkeypatch):
+    import base64
+    from pydantic import SecretStr
+    monkeypatch.setattr(settings, 'ENABLE_MAP_PILOT_INTAKE', True)
+    monkeypatch.setattr(settings, 'MAP_PILOT_ALLOWED_CELLS', ['test-area'])
+    path = '/api/v1/map-pilot'
+    consent = await auth_client.post(path+'/consent', json={'notice_version':'pilot-draft-2026-11-07','accepted':True})
+    row = await db_session.scalar(select(MapPilotConsent))
+    row.consented_at = datetime.now(UTC) - timedelta(days=4)
+    await db_session.commit()
+    body = {'generation':consent.json()['generation'], 'day':(datetime.now(UTC).date()-timedelta(days=2)).isoformat(), 'cell_id':'test-area', 'level_band':'low'}
+    assert (await auth_client.put(path+'/contribution', json=body)).status_code == 204
+    monkeypatch.setattr(settings, 'MAP_PILOT_ENCRYPTION_KEY', SecretStr(base64.b64encode(b'x'*32).decode()))
+    body['day'] = (datetime.now(UTC).date()-timedelta(days=1)).isoformat()
+    assert (await auth_client.put(path+'/contribution', json=body)).status_code == 503
+    assert len((await db_session.scalars(select(MapPilotContribution))).all()) == 1
+    assert (await auth_client.delete(path+'/consent')).status_code == 204
+    assert (await db_session.scalars(select(MapPilotContribution))).all() == []
+
+
+@pytest.mark.asyncio
+async def test_key_rotation_keeps_data_readable_and_failure_rolls_back(auth_client, db_session, monkeypatch):
+    import base64
+    from pydantic import SecretStr
+    from app.services.map_pilot_cipher import rotate_database_key, decrypt_payload, PilotCipherUnavailable
+    monkeypatch.setattr(settings, 'ENABLE_MAP_PILOT_INTAKE', True)
+    monkeypatch.setattr(settings, 'MAP_PILOT_ALLOWED_CELLS', ['test-area'])
+    path = '/api/v1/map-pilot'
+    consent = await auth_client.post(path+'/consent', json={'notice_version':'pilot-draft-2026-11-07','accepted':True})
+    row = await db_session.scalar(select(MapPilotConsent))
+    row.consented_at = datetime.now(UTC) - timedelta(days=4)
+    await db_session.commit()
+    body = {'generation':consent.json()['generation'], 'day':(datetime.now(UTC).date()-timedelta(days=2)).isoformat(), 'cell_id':'test-area', 'level_band':'low'}
+    assert (await auth_client.put(path+'/contribution', json=body)).status_code == 204
+    stored = await db_session.scalar(select(MapPilotContribution))
+    old_ciphertext = stored.payload_ciphertext
+    await rotate_database_key(db_session, b'n'*32)
+    await db_session.commit()
+    assert stored.payload_ciphertext != old_ciphertext
+    with pytest.raises(PilotCipherUnavailable):
+        decrypt_payload(stored.user_id, stored.day, stored.payload_nonce, stored.payload_ciphertext)
+    monkeypatch.setattr(settings, 'MAP_PILOT_ENCRYPTION_KEY', SecretStr(base64.b64encode(b'n'*32).decode()))
+    assert decrypt_payload(stored.user_id, stored.day, stored.payload_nonce, stored.payload_ciphertext)['level_band'] == 'low'
+    assert (await auth_client.put(path+'/contribution', json=body)).status_code == 204
+    with pytest.raises(PilotCipherUnavailable):
+        await rotate_database_key(db_session, b'bad')
+    await db_session.rollback()
+    assert (await auth_client.put(path+'/contribution', json=body)).status_code == 204
+    body2 = {**body, 'day':(datetime.now(UTC).date()-timedelta(days=1)).isoformat()}
+    assert (await auth_client.put(path+'/contribution', json=body2)).status_code == 204
+    rows = list((await db_session.scalars(select(MapPilotContribution).order_by(MapPilotContribution.day))).all())
+    original = rows[0].payload_ciphertext
+    rows[1].payload_ciphertext = b'corrupted'
+    await db_session.commit()
+    with pytest.raises(PilotCipherUnavailable):
+        await rotate_database_key(db_session, b'z'*32)
+    await db_session.rollback()
+    rows = list((await db_session.scalars(select(MapPilotContribution).order_by(MapPilotContribution.day))).all())
+    assert rows[0].payload_ciphertext == original
+    assert decrypt_payload(rows[0].user_id, rows[0].day, rows[0].payload_nonce, rows[0].payload_ciphertext)['level_band'] == 'low'
+
+
+@pytest.mark.asyncio
+async def test_unmarked_existing_payload_blocks_initializing_new_key(auth_client, db_session, monkeypatch):
+    from app.db.models.map_pilot import MapPilotKeyState
+    from app.services.map_pilot_cipher import ensure_database_key, PilotCipherUnavailable
+    monkeypatch.setattr(settings, 'ENABLE_MAP_PILOT_INTAKE', True)
+    consent = await auth_client.post('/api/v1/map-pilot/consent', json={'notice_version':'pilot-draft-2026-11-07','accepted':True})
+    assert consent.status_code == 200
+    user = await db_session.scalar(select(MapPilotConsent))
+    db_session.add(MapPilotContribution(user_id=user.user_id, day=datetime.now(UTC).date()-timedelta(days=1), payload_nonce=b'synthetic', payload_ciphertext=b'synthetic'))
+    state = await db_session.scalar(select(MapPilotKeyState))
+    state.key_check = None
+    await db_session.commit()
+    with pytest.raises(PilotCipherUnavailable):
+        await ensure_database_key(db_session)
+    await db_session.rollback()
+    assert (await db_session.scalar(select(MapPilotKeyState))).key_check is None
+
+
+@pytest.mark.asyncio
 async def test_legacy_public_device_and_event_do_not_bypass_closed_map(client, db_session):
     from app.db.models.device import Device
     from app.db.models.event import Event

@@ -422,3 +422,7 @@ Expected local ports:
 **Kartenpilot Punkt 2, Ergänzung 07.11.2026:** Amtlicher Eimsbüttel-Umriss und begrenzter API-/UI-Vertrag, abgeschlossene Wochen mit synthetischen Daten im lokalen Browser bei vier und fünf Testpersonen geprüft. Backend 229 bestanden/4 übersprungen; Frontend vier Tests und Build/Analyse bestanden. Reale Datenquelle bleibt geschlossen; Punkt 2 und Punkte 3–10 sind weiterhin offen. [Checkliste und Einzelheiten](kartenpilot-checkliste.md).
 
 **Kartenpilot 07.11.2026, weitere Umsetzung:** Datenbankbasierte geschlossene Veröffentlichungssteuerung, manuelle Teilnehmerbestätigung und Widerrufsunterdrückung isoliert implementiert; App-HTTP-Grundlage ohne UI oder automatischen Versand vorbereitet. PostgreSQL-Wettlauf und Migration geprüft. Akustische Klassen, echte Freigabe, App-Abläufe und Punkte 2–10 bleiben offen. [Checkliste](kartenpilot-checkliste.md).
+
+**Kartenpilot, 07.11.2026:** Synthetische Kandidat-/Siegelungstransaktion und Pilot-Schlüsselkontinuität samt Rotation vorbereitet und isoliert getestet. Kein produktiver Siegelungsweg; reale Messqualität und Punkte 2–10 bleiben offen. [Checkliste](kartenpilot-checkliste.md).
+
+**Kartenpilot, ergänzende Erprobung 07.11.2026:** Externer Löschlauf-Probeprozess, verschlüsselter synthetischer PostgreSQL-Backup-/Restore-Drill und erste Rückschluss-Negativfälle getestet. Kein tatsächliches Monitoring, keine erzwungene Betriebsquarantäne; Checkliste bleibt offen. [Checkliste](kartenpilot-checkliste.md).

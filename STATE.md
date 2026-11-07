@@ -2,7 +2,7 @@
 
 ## Übergabe
 
-**07.11.2026 · Kartenpilot: Datenbank-Sperre und App-Protokoll vorbereitet.** Punkt 2 weiterhin aktuell: bestätigte Konten und Kandidatenberechnung intern; Veröffentlichung standardmäßig doppelt gesperrt, Wochen unveränderlich, Widerruf/Kontolöschung unterdrücken alle Wochen transaktional. Isolierte PostgreSQL-Migration, beide Wettlaufrichtungen und Schutz vor verlustbehaftetem Downgrade geprüft. App-HTTP-Protokoll ohne UI oder automatische Übertragung vorbereitet, Flutter-Analyse und lokaler HTTP-Test bestanden. → Punkt 2: echte Messqualitätsdefinition, sichere Verknüpfung von Kandidat und Siegelung sowie Rückschlussprüfung; danach App-Ablauf und Punkte 3–10. Keine Produktionsmigration, kein echter Pilot. Details in [Checkliste](docs/kartenpilot-checkliste.md).
+**07.11.2026 · Pilot: transaktionaler Testpfad und Schlüsselkontinuität.** Punkt 2 bleibt aktuell: Kandidatberechnung und Siegelung laufen synthetisch unter gemeinsamer Widerrufssperre; echter Qualitätsnachweis und produktiver Siegelungsprozess fehlen. Schlüsselmarker verhindert gemischte Verschlüsselung; Umschlüsselung und Fehler-Rollback mit synthetischen Daten geprüft, Migration und fünf PostgreSQL-Tests bestanden. Externe Löschlauf-Prüfsonde, verschlüsselter PostgreSQL-Backup-/Restore-Drill und erste API-Negativfälle synthetisch getestet; kein Monitoring oder erzwungene Betriebsquarantäne eingerichtet. Bestehende unmarkierte Beiträge werden nicht automatisch migriert. → Punkt 2 realitätsnahen Qualitätsnachweis und Rückschlussprüfung abschließen; danach App-Ablauf und Punkte 3–10. Keine Produktionsmigration oder öffentliche Freigabe. [Checkliste](docs/kartenpilot-checkliste.md).
 
 ## Vorherige Übergabe – Endliche Checkliste
 

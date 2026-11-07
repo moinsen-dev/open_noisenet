@@ -8,10 +8,12 @@ from pydantic import SecretStr
 from sqlalchemy import delete, select
 
 from app.core.config import settings
-from app.db.models.map_pilot import MapPilotConsent, MapPilotContribution, MapPilotVerifiedParticipant
+from app.db.models.map_pilot import (MapPilotConsent, MapPilotContribution, MapPilotVerifiedParticipant,
+                                     MapPilotPublicationGuard, MapPilotPublishedWeek)
 from app.db.models.user import User
 from app.services.map_pilot_candidate import calculate_private_candidate
 from app.services.map_pilot_cipher import PilotCipherUnavailable, encrypt_payload
+from app.services.map_pilot_publication import seal_eligible_week, suppress_pilot_publication
 
 
 @pytest.mark.asyncio
@@ -30,6 +32,19 @@ async def test_only_new_opted_in_and_attested_people_contribute(db_session, monk
     await db_session.commit()
     result = await calculate_private_candidate(db_session, week, now)
     assert result == [{'area':'hamburg-eimsbuettel', 'week_start':'2026-10-26', 'band':'medium'}]
+    db_session.add(MapPilotPublicationGuard(name='pilot', enabled=True))
+    await db_session.flush()
+    assert not await seal_eligible_week(db_session, week, now)  # Real quality gate does not exist.
+    assert not await seal_eligible_week(db_session, week, now, quality_approved=True)  # No real publication path.
+    monkeypatch.setattr(settings, 'ENVIRONMENT', 'testing')
+    assert await seal_eligible_week(db_session, week, now, quality_approved=True)  # Synthetic test only.
+    snapshot = await db_session.scalar(select(MapPilotPublishedWeek))
+    assert snapshot.band == 'medium' and not snapshot.suppressed
+    assert not await seal_eligible_week(db_session, week, now, quality_approved=True)
+    await suppress_pilot_publication(db_session)
+    await db_session.flush()
+    await db_session.refresh(snapshot)
+    assert snapshot.suppressed
     await db_session.execute(delete(MapPilotVerifiedParticipant).where(MapPilotVerifiedParticipant.user_id == ids[0]))
     assert await calculate_private_candidate(db_session, week, now) == []
     db_session.add(MapPilotVerifiedParticipant(user_id=ids[0], verified_at=datetime(2026, 10, 27, tzinfo=UTC)))

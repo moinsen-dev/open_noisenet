@@ -2,6 +2,10 @@
 
 ## Übergabe
 
+**07.11.2026 · iOS und Android öffentlich; Website mit beiden Storelinks live.** Apple-Produktseiten in DE/AT/CH erreichbar, Google-Produktionskanal 0.1.0 (6) in DACH aktiv. Fünf vorbereitete iOS-Motive gegen Release-Dokumentation, unveränderten App-Code und Binärzeichenketten des eingereichten IPA 0.1.0 (5) abgeglichen; keine Abweichung in belegten Funktionen, aber Debug-Simulatorbilder und kein Vergleich mit einer installierten Store-App. Kein Upload zu Apple. Website live aktualisiert, Desktop und mobil gesichtet; Build, Lint, Typecheck und 3 Tests bestanden. HTC-Kalibrierung im Backlog. [Maßgeblicher Stand](docs/current-status.md).
+
+## Vorherige Übergabe – iOS-Storebilder
+
 **07.11.2026 · Fünf iOS-Storebilder vorbereitet; App-Store-Auslieferung öffentlich noch nicht bestätigt.** Apples E-Mail meldet „ready for distribution“; öffentlicher deutscher Link zeigte um 11:48 Uhr MEZ weiterhin „Seite nicht gefunden“. Fünf echte iOS-Debug-Simulatoransichten mit ausschließlich synthetischen Daten wurden als JPEG 1320 × 2868 gestaltet: Phasen, Dauer/Pausen, Quellen, Tagebuch, Exportdialog. Simulator gestoppt; weder Store-App noch private Gerätedaten berührt. Der Exportdialog wurde angezeigt, Dateispeicherung nicht erneut geprüft. Vor Apple-Einreichung mit dem dann vorgesehenen iOS-Release abgleichen; laufende Version sperrt Screenshotänderungen. Nächster Schritt nach Auslieferung: öffentliche DACH-Seiten und Apple-Link zur Website prüfen. [Vorschau](docs/mobile/store-assets/2026-11-07/app-store/de-DE/preview.html) · [Maßgeblicher Stand](docs/current-status.md).
 
 ## Vorherige Übergabe – iOS-Freigabe

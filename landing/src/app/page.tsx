@@ -22,6 +22,7 @@ export default function Home() {
             <p className="onn-intro">Wir entwickeln OpenNoiseNet, damit Menschen erkennen können: <strong>Was war laut, wie lange – und wann war endlich Ruhe?</strong></p>
             <div className="onn-actions">
               <a className="onn-button" href="https://play.google.com/store/apps/details?id=dev.moinsen.noisenet_mobile&gl=DE&hl=de">Android-App bei Google Play <ArrowRight size={18} /></a>
+              <a className="onn-button" href="https://apps.apple.com/de/app/opennoisenet/id6831511809">iPhone-App im App Store <ArrowRight size={18} /></a>
               <a className="onn-button" href="#mitmachen">Das Projekt unterstützen <ArrowRight size={18} /></a>
               <Link className="onn-text-link" href="/story">Warum ich das baue <ArrowRight size={16} /></Link>
             </div>
@@ -80,9 +81,10 @@ export default function Home() {
             </div>
             <div id="stand" className="onn-status">
               <div><span className="onn-status-dot" /> <strong>Entwicklungsstand · November 2026</strong></div>
-              <p>Die Android-App ist in Deutschland, Österreich und der Schweiz bei Google Play verfügbar. Sie bietet lokale Geräuschhistorie, ein persönliches Lärmtagebuch und einen Export. Kalibrierung, zuverlässiger Dauerbetrieb und Datenschutzprüfungen bleiben wichtige offene Aufgaben.</p>
+              <p>OpenNoiseNet ist für Android und iPhone in Deutschland, Österreich und der Schweiz erhältlich. Die App bietet lokale Geräuschhistorie, ein persönliches Lärmtagebuch und einen Export. Kalibrierung, zuverlässiger Dauerbetrieb und Datenschutzprüfungen bleiben wichtige offene Aufgaben.</p>
               <p className="onn-small">Die Smartphone-Pegel sind geräteabhängige Schätzwerte, keine validierten dB(A)-Messungen. Erkannte Geräuscharten sind Hinweise. Die App ersetzt weder eine fachliche Begutachtung noch eine medizinische oder rechtliche Bewertung.</p>
               <a className="onn-text-link" href="https://play.google.com/store/apps/details?id=dev.moinsen.noisenet_mobile&gl=DE&hl=de">Android-App bei Google Play öffnen <ArrowRight size={16} /></a><br />
+              <a className="onn-text-link" href="https://apps.apple.com/de/app/opennoisenet/id6831511809">iPhone-App im App Store öffnen <ArrowRight size={16} /></a><br />
               <a className="onn-text-link" href={`${repository}/issues`}>Entwicklung und offene Aufgaben ansehen <ArrowRight size={16} /></a>
             </div>
           </div>

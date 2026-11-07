@@ -1,3 +1,4 @@
+import 'backend_defaults.dart';
 import 'package:flutter/foundation.dart';
 
 abstract class AppConfig {
@@ -71,10 +72,10 @@ class DevelopmentConfig extends AppConfig {
 
 class ProductionConfig extends AppConfig {
   @override
-  String get apiBaseUrl => 'https://api.opennoisenet.org/api/v1';
+  String get apiBaseUrl => BackendDefaults.localOnly;
 
   @override
-  String get websocketUrl => 'wss://api.opennoisenet.org/ws';
+  String get websocketUrl => 'wss://offline.invalid/ws';
 
   @override
   bool get enableOnDeviceAI => true;

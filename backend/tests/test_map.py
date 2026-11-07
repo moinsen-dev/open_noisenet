@@ -363,3 +363,9 @@ async def test_heatmap_empty_when_no_events(
     assert data["points"] == []
     assert data["min_intensity"] is None
     assert data["max_intensity"] is None
+
+
+@pytest.fixture(autouse=True)
+def legacy_map_for_legacy_tests(monkeypatch):
+    from app.core.config import settings
+    monkeypatch.setattr(settings, "ENABLE_LEGACY_PUBLIC_MAP", True)

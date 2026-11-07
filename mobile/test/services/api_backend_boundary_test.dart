@@ -2,7 +2,9 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:noisenet_mobile/core/config/backend_defaults.dart';
 import 'package:noisenet_mobile/services/api_client_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:talker_flutter/talker_flutter.dart';
@@ -10,6 +12,70 @@ import 'package:talker_flutter/talker_flutter.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   setUpAll(() => HttpOverrides.global = null);
+
+  test(
+      'local-only destination never reaches the transport or sends credentials',
+      () async {
+    SharedPreferences.setMockInitialValues({
+      'api_base_url': BackendDefaults.localOnly,
+      'access_token': 'private-token',
+    });
+    final api = ApiClientService(
+        prefs: await SharedPreferences.getInstance(), logger: Talker());
+    await expectLater(
+        api.healthCheck(),
+        throwsA(isA<DioException>().having(
+            (e) => e.error,
+            'intercepted before transport',
+            'Request is outside the configured secure backend')));
+    final probe = await api.testConnectionDetailed(
+        candidateUrl: BackendDefaults.localOnly);
+    expect(probe.success, isFalse);
+    expect(probe.error, contains('On this device only'));
+  });
+
+  test(
+      'deletion switches to local mode only after the current server confirms 204',
+      () async {
+    final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+    addTearDown(() => server.close(force: true));
+    final destination = 'http://127.0.0.1:${server.port}/api/v1';
+    SharedPreferences.setMockInitialValues(
+        {'api_base_url': destination, 'access_token': 'synthetic-token'});
+    final prefs = await SharedPreferences.getInstance();
+    final api = ApiClientService(prefs: prefs, logger: Talker());
+    var result = 403;
+    var calls = 0;
+    server.listen((request) async {
+      calls++;
+      expect(request.method, 'POST');
+      expect(request.uri.path, '/api/v1/auth/account-deletion');
+      expect(request.headers.value('Authorization'), 'Bearer synthetic-token');
+      expect(jsonDecode(await utf8.decoder.bind(request).join()),
+          {'password': 'example'});
+      request.response.statusCode = result;
+      await request.response.close();
+    });
+    await expectLater(
+        api.deleteOwnAccount('example', destination: '$destination/other'),
+        throwsStateError);
+    expect(calls, 0);
+    for (final code in [403, 200]) {
+      result = code;
+      await expectLater(
+          api.deleteOwnAccount('example', destination: destination),
+          throwsA(anything));
+      expect(api.baseUrl, destination);
+      expect(api.isAuthenticated, isTrue);
+    }
+    result = 204;
+    await api.deleteOwnAccount('example', destination: destination);
+    expect(calls, 3);
+    expect(api.baseUrl, BackendDefaults.localOnly);
+    expect(prefs.getString('api_base_url'), BackendDefaults.localOnly);
+    expect(api.isAuthenticated, isFalse);
+    expect(prefs.containsKey('access_token'), isFalse);
+  });
 
   test('probing another backend does not change it or leak a bearer token',
       () async {

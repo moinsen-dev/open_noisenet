@@ -8,6 +8,18 @@ from kombu import Queue
 
 from app.core.config import settings
 
+def pilot_retention_schedule(config):
+    # Synthetic-pilot-only opt-in; legacy publication and disabled workers fail closed.
+    if (config.ENABLE_MAP_PILOT_RETENTION and config.ENABLE_MAP_PILOT_INTAKE
+            and config.ENABLE_BACKGROUND_TASKS and not config.ENABLE_LEGACY_PUBLIC_MAP):
+        return {"map-pilot-retention": {
+            "task": "app.workers.maintenance_tasks.map_pilot_retention",
+            "schedule": 3600.0,
+            "options": {"queue": "maintenance"},
+        }}
+    return {}
+
+
 # Create Celery instance
 celery_app = Celery(
     "noisenet_worker",
@@ -53,6 +65,7 @@ celery_app.conf.update(
         },
         # Low priority tasks
         "app.workers.maintenance_tasks.cleanup_old_data": {"queue": "maintenance"},
+        "app.workers.maintenance_tasks.map_pilot_retention": {"queue": "maintenance"},
         "app.workers.maintenance_tasks.generate_daily_reports": {
             "queue": "maintenance"
         },
@@ -86,7 +99,7 @@ celery_app.conf.update(
     ),
     # Existing periodic jobs were unregistered or returned invented results.
     # Do not run them until their implementations and worker execution are verified.
-    beat_schedule={},
+    beat_schedule=pilot_retention_schedule(settings),
     # Result backend settings
     result_expires=3600,  # Results expire after 1 hour
     result_backend_transport_options={

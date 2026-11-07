@@ -15,3 +15,6 @@ model artifact. YAMNet's TensorFlow Model Garden source is Apache-2.0 licensed.
 
 The model is used only as an on-device feature/category encoder. OpenNoiseNet
 does not upload waveform samples or run speech recognition.
+
+The shipped model metadata itself declares Apache License 2.0. The license
+text is included here as LICENSE-YAMNet.txt and in the app license list.

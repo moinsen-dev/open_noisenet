@@ -163,3 +163,9 @@ async def test_commit_failure_has_no_ack(client, db_session, monkeypatch):
         )
     await db_session.rollback()
     assert (await db_session.execute(select(SourcePhase))).scalars().all() == []
+
+
+@pytest.fixture(autouse=True)
+def legacy_map_for_legacy_tests(monkeypatch):
+    from app.core.config import settings
+    monkeypatch.setattr(settings, "ENABLE_LEGACY_PUBLIC_MAP", True)

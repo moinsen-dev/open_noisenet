@@ -4,7 +4,7 @@ Application configuration settings.
 
 from typing import Annotated, Any, Dict, List, Optional
 
-from pydantic import AliasChoices, Field, field_validator
+from pydantic import AliasChoices, Field, SecretStr, field_validator
 from pydantic_settings import BaseSettings, NoDecode
 
 
@@ -68,6 +68,15 @@ class Settings(BaseSettings):
     # Rate limiting
     API_RATE_LIMIT_PER_MINUTE: int = Field(default=60)
     DEVICE_EVENT_RATE_LIMIT_PER_HOUR: int = Field(default=1000)
+
+    # Experimental pilot remains closed unless explicitly enabled in an isolated environment.
+    ENABLE_MAP_PILOT_INTAKE: bool = False
+    # Never enable until identity, measurement, withdrawal and operating gates pass.
+    ENABLE_MAP_PILOT_PUBLICATION: bool = False
+    ENABLE_MAP_PILOT_RETENTION: bool = False
+    MAP_PILOT_ALLOWED_CELLS: list[str] = []
+    MAP_PILOT_ENCRYPTION_KEY: SecretStr = SecretStr("")
+    ENABLE_LEGACY_PUBLIC_MAP: bool = False
 
     # Geospatial settings
     DEFAULT_MAP_CENTER_LAT: float = Field(default=52.520008)

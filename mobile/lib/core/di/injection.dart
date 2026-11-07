@@ -1,3 +1,4 @@
+import '../config/backend_defaults.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -10,6 +11,9 @@ import '../../services/sqlite_preferences_service.dart';
 import '../../services/preferences_migration_service.dart';
 import '../../services/audio_capture_service.dart';
 import '../../services/api_client_service.dart';
+import '../../services/map_pilot/pilot_consent_controller.dart';
+import '../../features/noise_diary/data/diary_repository.dart';
+import '../../services/map_pilot/pilot_withdrawal_retry.dart';
 import '../../services/backend_sync_service.dart';
 import '../../services/noise_pattern_analyzer.dart';
 import '../../services/ai_analysis_service.dart';
@@ -30,7 +34,7 @@ Future<void> configureDependencies() async {
   final dio = Dio();
   dio.options = BaseOptions(
     baseUrl: const String.fromEnvironment('API_BASE_URL',
-        defaultValue: 'http://localhost:8100/api/v1'),
+        defaultValue: BackendDefaults.current),
     connectTimeout: const Duration(seconds: 5),
     receiveTimeout: const Duration(seconds: 3),
     headers: {
@@ -38,6 +42,15 @@ Future<void> configureDependencies() async {
       'Accept': 'application/json',
     },
   );
+
+  dio.interceptors.add(InterceptorsWrapper(onRequest: (options, handler) {
+    if (BackendDefaults.isLocalOnly(options.uri)) {
+      handler.reject(DioException(
+          requestOptions: options, error: 'No backend configured'));
+      return;
+    }
+    handler.next(options);
+  }));
 
   // Add logging interceptor in debug mode
   if (const bool.fromEnvironment('DEBUG', defaultValue: false)) {
@@ -84,9 +97,19 @@ Future<void> configureDependencies() async {
     logger: logger,
   );
   getIt.registerSingleton<ApiClientService>(apiClientService);
+  final pilotConsent = PilotConsentController(
+      sharedPreferences, apiClientService,
+      clearOutbox: LocalDiaryRepository().clearPilotContributions);
+  getIt.registerSingleton<PilotConsentController>(pilotConsent);
+  final pilotRetry = PilotWithdrawalRetry(pilotConsent,
+      () async => !await sqlitePreferencesService.getForceOfflineMode());
+  getIt.registerSingleton<PilotWithdrawalRetry>(pilotRetry,
+      dispose: (service) => service.dispose());
+  pilotRetry.start();
 
   final phaseUpload = SourcePhaseUploadService(
-    store: EncryptedPhaseUploadStore(), transport: apiClientService,
+    store: EncryptedPhaseUploadStore(),
+    transport: apiClientService,
     preferences: sharedPreferences,
     frames: getIt<OnDeviceSoundAnalysisService>().results,
     activity: getIt<OnDeviceSoundAnalysisService>().sourceActivity,

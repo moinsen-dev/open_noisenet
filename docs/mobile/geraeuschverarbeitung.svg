@@ -1,0 +1,85 @@
+<?xml version='1.0' encoding='utf-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1120" height="946" viewBox="0 0 1120 946" role="img" aria-labelledby="title desc">
+  <title id="title">OpenNoiseNet · Warum aus einer lokalen Sprachphase zwei Uploadphasen werden</title>
+  <desc id="desc">Gleiche Zeitskala für lokale und übertragene Sprachfenster. Die spätere Uploadfreigabe verkürzt die für die Pausenregel verfügbare Vorgeschichte.</desc>
+  <style>text{font-family:Arial,Helvetica,sans-serif}svg{background:white}</style>
+  <rect x="0" y="0" width="1120" height="946" rx="0" fill="#fff" stroke="none" stroke-width="1.5" />
+  <text x="36" y="42" font-size="29" fill="#172b34" font-weight="700" text-anchor="start">Wie OpenNoiseNet eine Geräuschphase bildet</text>
+  <text x="36" y="73" font-size="17" fill="#405862" font-weight="400" text-anchor="start">Diktieren mit Denkpausen · konstruiertes Rechenbeispiel</text>
+  <rect x="36" y="98" width="242" height="78" rx="8" fill="#eef2f4" stroke="#c2cdd2" stroke-width="1.5" />
+  <text x="52" y="128" font-size="19" fill="#172b34" font-weight="700" text-anchor="start">Mikrofon → YAMNet</text>
+  <text x="52" y="155" font-size="15" fill="#405862" font-weight="400" text-anchor="start">Analysefenster auf dem Gerät</text>
+  <line x1="278" y1="137" x2="301" y2="137" stroke="#405862" stroke-width="2" />
+  <line x1="301" y1="118" x2="301" y2="162" stroke="#405862" stroke-width="2" />
+  <line x1="301" y1="117" x2="327" y2="117" stroke="#405862" stroke-width="2" />
+  <polygon points="327,117 320,113 320,121" fill="#405862" />
+  <rect x="329" y="98" width="755" height="38" rx="5" fill="#e5f2ef" stroke="none" stroke-width="1.5" />
+  <text x="343" y="123" font-size="17" fill="#08645e" font-weight="700" text-anchor="start">Historie freigegeben → Phasen lokal bilden und verschlüsselt speichern</text>
+  <line x1="301" y1="164" x2="327" y2="164" stroke="#405862" stroke-width="2" />
+  <polygon points="327,164 320,160 320,168" fill="#405862" />
+  <rect x="329" y="145" width="755" height="38" rx="5" fill="#fcf0e3" stroke="none" stroke-width="1.5" />
+  <text x="343" y="170" font-size="17" fill="#984213" font-weight="700" text-anchor="start">Upload separat freigegeben → Phasen neu bilden → Warteschlange → Server</text>
+  <text x="36" y="214" font-size="16" fill="#405862" font-weight="400" text-anchor="start">Parallel misst die App den Gesamtpegel der Szene. Die Quellenphasen verwenden die Modellhinweise.</text>
+  <line x1="36" y1="235" x2="1084" y2="235" stroke="#bfccce" stroke-width="1" />
+  <text x="36" y="270" font-size="23" fill="#172b34" font-weight="700" text-anchor="start">Dieselben Sprachabschnitte auf zwei Zeitachsen</text>
+  <text x="36" y="298" font-size="16" fill="#405862" font-weight="400" text-anchor="start">Farbfläche = erkannte Sprache     ·     Umriss = zusammenhängender Block einschließlich der Pausen</text>
+  <line x1="239.80769230769232" y1="359" x2="239.80769230769232" y2="499" stroke="#d9e2e1" stroke-width="1" stroke-dasharray="3 4" />
+  <text x="239.80769230769232" y="520" font-size="14" fill="#405862" font-weight="400" text-anchor="middle">0 s</text>
+  <line x1="371.03846153846155" y1="359" x2="371.03846153846155" y2="499" stroke="#d9e2e1" stroke-width="1" stroke-dasharray="3 4" />
+  <text x="371.03846153846155" y="520" font-size="14" fill="#405862" font-weight="400" text-anchor="middle">20 s</text>
+  <line x1="502.2692307692308" y1="359" x2="502.2692307692308" y2="499" stroke="#d9e2e1" stroke-width="1" stroke-dasharray="3 4" />
+  <text x="502.2692307692308" y="520" font-size="14" fill="#405862" font-weight="400" text-anchor="middle">40 s</text>
+  <line x1="633.5" y1="359" x2="633.5" y2="499" stroke="#d9e2e1" stroke-width="1" stroke-dasharray="3 4" />
+  <text x="633.5" y="520" font-size="14" fill="#405862" font-weight="400" text-anchor="middle">60 s</text>
+  <line x1="764.7307692307693" y1="359" x2="764.7307692307693" y2="499" stroke="#d9e2e1" stroke-width="1" stroke-dasharray="3 4" />
+  <text x="764.7307692307693" y="520" font-size="14" fill="#405862" font-weight="400" text-anchor="middle">80 s</text>
+  <line x1="895.9615384615385" y1="359" x2="895.9615384615385" y2="499" stroke="#d9e2e1" stroke-width="1" stroke-dasharray="3 4" />
+  <text x="895.9615384615385" y="520" font-size="14" fill="#405862" font-weight="400" text-anchor="middle">100 s</text>
+  <line x1="1027.1923076923076" y1="359" x2="1027.1923076923076" y2="499" stroke="#d9e2e1" stroke-width="1" stroke-dasharray="3 4" />
+  <text x="1027.1923076923076" y="520" font-size="14" fill="#405862" font-weight="400" text-anchor="middle">120 s</text>
+  <text x="562.7615384615385" y="338" font-size="16" fill="#984213" font-weight="700" text-anchor="start">Uploadfreigabe  48 s</text>
+  <line x1="554.7615384615385" y1="347" x2="554.7615384615385" y2="491" stroke="#984213" stroke-width="2" stroke-dasharray="5 4" />
+  <text x="36" y="381" font-size="19" fill="#08645e" font-weight="700" text-anchor="start">Lokale Historie</text>
+  <text x="36" y="404" font-size="16" fill="#405862" font-weight="400" text-anchor="start">1 Sprachblock</text>
+  <text x="36" y="456" font-size="19" fill="#984213" font-weight="700" text-anchor="start">Privater Server</text>
+  <text x="36" y="479" font-size="16" fill="#405862" font-weight="400" text-anchor="start">2 Sprachblöcke</text>
+  <rect x="239.80769230769232" y="369" width="800.5076923076922" height="27" rx="4" fill="#dceeea" stroke="#08645e" stroke-width="1.5" />
+  <rect x="239.80769230769232" y="374" width="131.23076923076923" height="17" rx="2" fill="#08645e" stroke="none" stroke-width="1.5" />
+  <rect x="403.8461538461538" y="374" width="85.30000000000001" height="17" rx="2" fill="#08645e" stroke="none" stroke-width="1.5" />
+  <rect x="567.8846153846154" y="374" width="32.807692307692264" height="17" rx="2" fill="#08645e" stroke="none" stroke-width="1.5" />
+  <rect x="863.1538461538462" y="374" width="65.61538461538453" height="17" rx="2" fill="#08645e" stroke="none" stroke-width="1.5" />
+  <rect x="961.5769230769231" y="374" width="78.73846153846148" height="17" rx="2" fill="#08645e" stroke="none" stroke-width="1.5" />
+  <rect x="567.8846153846154" y="444" width="32.807692307692264" height="27" rx="4" fill="#f9e6d4" stroke="#984213" stroke-width="1.5" />
+  <rect x="567.8846153846154" y="449" width="32.807692307692264" height="17" rx="2" fill="#984213" stroke="none" stroke-width="1.5" />
+  <rect x="863.1538461538462" y="444" width="177.16153846153838" height="27" rx="4" fill="#f9e6d4" stroke="#984213" stroke-width="1.5" />
+  <rect x="863.1538461538462" y="449" width="65.61538461538453" height="17" rx="2" fill="#984213" stroke="none" stroke-width="1.5" />
+  <rect x="961.5769230769231" y="449" width="78.73846153846148" height="17" rx="2" fill="#984213" stroke="none" stroke-width="1.5" />
+  <rect x="237.80769230769232" y="402" width="245" height="22" rx="0" fill="#fff" stroke="none" stroke-width="1.5" />
+  <text x="239.80769230769232" y="420" font-size="15" fill="#08645e" font-weight="400" text-anchor="start">Lokaler Start 0 s</text>
+  <line x1="600.6923076923076" y1="360" x2="863.1538461538462" y2="360" stroke="#405862" stroke-width="1" />
+  <line x1="600.6923076923076" y1="356" x2="600.6923076923076" y2="364" stroke="#405862" stroke-width="1" />
+  <line x1="863.1538461538462" y1="356" x2="863.1538461538462" y2="364" stroke="#405862" stroke-width="1" />
+  <text x="731.9230769230769" y="355" font-size="14" fill="#405862" font-weight="400" text-anchor="middle">40 s ohne Sprachhinweis</text>
+  <text x="863.1538461538462" y="489" font-size="15" fill="#984213" font-weight="700" text-anchor="start">Block 2 · 27 s</text>
+  <text x="567.8846153846154" y="489" font-size="15" fill="#984213" font-weight="700" text-anchor="start">Block 1 · 5 s</text>
+  <text x="36" y="552" font-size="15" fill="#405862" font-weight="400" text-anchor="start">Beide Spuren wurden durchgehend analysiert. Im Upload zählen nur vollständige neue Analysefenster ab Freigabe.</text>
+  <rect x="36" y="573" width="1048" height="133" rx="8" fill="#f5f7f6" stroke="#d6e0dc" stroke-width="1.5" />
+  <text x="53" y="602" font-size="21" fill="#172b34" font-weight="700" text-anchor="start">Was entscheidet nach 40 Sekunden Pause?</text>
+  <text x="53" y="630" font-size="17" fill="#08645e" font-weight="700" text-anchor="start">Lokal</text>
+  <text x="168" y="630" font-size="16" fill="#172b34" font-weight="400" text-anchor="start">Frühere Sprachabschnitte zählen mit. Beim Wiederbeginn sind mindestens 20 % aktiv → ein Block.</text>
+  <text x="53" y="658" font-size="17" fill="#984213" font-weight="700" text-anchor="start">Upload</text>
+  <text x="168" y="658" font-size="16" fill="#172b34" font-weight="400" text-anchor="start">5 s aktiv ÷ 45 s bisherige Spanne = 11,1 %. Unter 20 % → zweiter Block.</text>
+  <text x="53" y="686" font-size="15" fill="#405862" font-weight="400" text-anchor="start">Die Sprachregel erlaubt bis zu 90 s analysierte Pause. Eine Lücke in der Analyse trennt die Phase.</text>
+  <text x="36" y="746" font-size="23" fill="#172b34" font-weight="700" text-anchor="start">Wo diese Auswertung helfen soll</text>
+  <rect x="36" y="766" width="513" height="120" rx="8" fill="#f5f8f9" stroke="#d4dfe1" stroke-width="1.5" />
+  <text x="51" y="794" font-size="19" fill="#172b34" font-weight="700" text-anchor="start">Straßenseite · Fenster</text>
+  <text x="51" y="820" font-size="16" fill="#172b34" font-weight="400" text-anchor="start">Ein stationäres Smartphone am Straßenfenster</text>
+  <text x="51" y="843" font-size="16" fill="#172b34" font-weight="400" text-anchor="start">kann wiederkehrende Verkehrsphasen zeigen.</text>
+  <text x="51" y="866" font-size="16" fill="#172b34" font-weight="400" text-anchor="start">Die Zeitachse gehört zu diesem Messort.</text>
+  <rect x="571" y="766" width="513" height="120" rx="8" fill="#f5f8f9" stroke="#d4dfe1" stroke-width="1.5" />
+  <text x="586" y="794" font-size="19" fill="#172b34" font-weight="700" text-anchor="start">Hofseite · Baustelle</text>
+  <text x="586" y="820" font-size="16" fill="#172b34" font-weight="400" text-anchor="start">Wann treten Hinweise auf Werkzeuggeräusche auf?</text>
+  <text x="586" y="843" font-size="16" fill="#172b34" font-weight="400" text-anchor="start">Überlappen sie mit einem markierten Ruhezeitfenster?</text>
+  <text x="586" y="866" font-size="16" fill="#172b34" font-weight="400" text-anchor="start">Die Zeitachse gehört zu diesem zweiten Messort.</text>
+  <text x="36" y="919" font-size="16" fill="#405862" font-weight="400" text-anchor="start">Je Quellenfamilie gelten eigene Pausenregeln, je Messort eine eigene Historie. Quellen bleiben Modellhinweise.</text>
+</svg>

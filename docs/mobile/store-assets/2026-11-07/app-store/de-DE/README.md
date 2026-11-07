@@ -1,0 +1,14 @@
+# iOS-Storemotive – 7. November 2026
+
+[Fünf Bilder und Vorschau](preview.html). JPEG, 1320 × 2868 Pixel; echte Ansichten aus dem Flutter-Debug-Build auf einem neu angelegten iPhone-17-Pro-Max-Simulator mit iOS 26.5. Keine App-Store-Installation und kein geprüfter Release-Build. Vor Einreichung muss der Stand der nächsten iOS-Version mit den Ansichten abgeglichen werden.
+
+Die Daten wurden ausschließlich für diesen Simulator konstruiert: 19 Minuten Straßenverkehr mit Pausen, 18 Minuten Werkzeuggeräusche, acht Minuten Sprachaktivität, 70 Minutenwerte und zwei Tagebucheinträge. Modellhinweise sind synthetische Eingaben, keine Inferenz realer Geräusche. Die regulären App-Datenzugriffe erstellen und gruppieren die Einträge. Der Exportdialog zeigt zwei CSV-Einträge und den Hinweis zur unverschlüsselten Weitergabe; eine Speicherung wurde in dieser Sitzung nicht geprüft. Keine privaten Messdaten verwendet.
+
+Der Datenlader `mobile/tool/store_seed_ios_main.dart` verlangt Debugmodus, iOS, explizites Dart-Define und prüft die Hardwarekennung des Simulators; er verweigert bestehende Einträge und physische Geräte. `scripts/build-ios-store-canvases.py` baut aus unveränderten Originalscreenshots die HTML-Layouts; die JPEGs wurden im Browser gerendert. Rohdateien: `../../raw/ios/`. Die Screenshotfolge zeigt Phasen, Dauer/Pausen, Quellenhinweise, Tagebuch und Export. Die iOS-Oberfläche ist textreich; in zwei Screens ist durch den Scrollzustand am oberen Rand vorhandener Inhalt angeschnitten. Bilder und Beschreibung sind nicht bei Apple eingereicht.
+
+## Abgleich mit veröffentlichtem iOS-Stand · 7. November 2026
+
+Apple-Produktseiten sind in DE/AT/CH öffentlich erreichbar. Der archivierte, zur Prüfung hochgeladene Kandidat `OpenNoiseNet-0.1.0-5-review.ipa` meldet 0.1.0 (5), Bundle `dev.moinsen.noisenetMobile`, SHA-256 `3f6a602635a8dfc535d69375c63148c0329b3ac7be6c0f2f2fa3d292349f1661`. Seine App-Binärdatei enthält die relevanten UI-Bezeichnungen: Geräuschphasen, Geräuschverlauf, Pegelabschnitte, Geräuscharten, Lärmtagebuch und Exportprüfung mit Speicherortwahl. Zwischen dokumentiertem Produktionsstand `62f8c4a` und Screenshot-Commit `0fb005a` sind `mobile/lib`, App-Assets, Flutter-Abhängigkeiten und `mobile/ios/Runner` unverändert. Das ist ein technischer Abgleich und keine pixelgenaue Verifikation einer installierten Store-App. Die fünf Bilder zeigen synthetische Daten.
+
+
+**07.11.2026:** Die fünf Dateien sind im deutschen Apple-Entwurf 0.1.1 verarbeitet und stehen nach geprüftem Neuladen in der Reihenfolge Phasen, Dauer, Quellen, Tagebuch, Export vor den zwei vorhandenen Screenshots. Die mittlere Dynamic-Island-Größe übernimmt dieselbe Folge automatisch. Die Bilder sind noch nicht eingereicht oder veröffentlicht. Ein lokaler 0.1.1-Build 7 liegt vor; er wurde noch nicht auf einem Gerät mit den Screenshots abgeglichen.

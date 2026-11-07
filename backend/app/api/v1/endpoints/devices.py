@@ -10,10 +10,11 @@ from sqlalchemy import or_, select
 from sqlalchemy.orm import selectinload
 
 from app.core.deps import get_current_user
-from app.core.device_auth import can_access_device, device_key_hash, require_device_key, visible_device_ids
+from app.core.config import settings
+from app.core.device_auth import can_access_device, device_key_hash, retirement_fingerprint, require_device_key, visible_device_ids
 from app.db.models.user import User
 from app.db.session import get_session
-from app.db.models.device import Device, DeviceApiKey
+from app.db.models.device import Device, DeviceApiKey, RevokedDeviceKey
 from app.schemas.device import DeviceRegister, DeviceUpdate, DeviceResponse, HeartbeatRequest
 
 router = APIRouter()
@@ -36,6 +37,9 @@ async def register_device(
     """Register a new device or update existing one."""
     
     key_hash = device_key_hash(device_key)
+    if await db.scalar(select(RevokedDeviceKey.id).where(
+            RevokedDeviceKey.fingerprint == retirement_fingerprint(key_hash))):
+        raise HTTPException(status_code=403, detail="Device credential has been retired")
     stmt = select(Device).where(Device.device_id == device_data.device_id)
     result = await db.execute(stmt)
     existing_device = result.scalar_one_or_none()
@@ -86,7 +90,7 @@ async def get_device(
         raise HTTPException(status_code=404, detail="Device not found")
     if await can_access_device(db, device, current_user, device_key):
         return DeviceResponse.model_validate(device)
-    if not device.is_public:
+    if not (settings.ENABLE_LEGACY_PUBLIC_MAP and device.is_public):
         raise HTTPException(status_code=404, detail="Device not found")
     return _public_device_response(device)
 
@@ -201,7 +205,7 @@ async def device_timeline(
     if not dev:
         raise HTTPException(status_code=404, detail="Device not found")
     authorized = await can_access_device(db, dev, current_user, device_key)
-    if not dev.is_public and not authorized:
+    if not authorized and not (settings.ENABLE_LEGACY_PUBLIC_MAP and dev.is_public):
         raise HTTPException(status_code=404, detail="Device not found")
 
     # Default to today

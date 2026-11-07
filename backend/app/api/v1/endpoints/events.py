@@ -11,6 +11,7 @@ from sqlalchemy import and_, or_, select, func
 from sqlalchemy.orm import selectinload
 
 from app.core.deps import get_current_user, require_superuser
+from app.core.config import settings
 from app.core.device_auth import can_access_device, require_device_key, visible_device_ids
 from app.db.session import get_session
 from app.db.models.event import Event, EventStatus
@@ -48,7 +49,8 @@ def _visible_events(user, device_key):
 
 def _public_event(event):
     return bool(
-        event.device.is_public
+        settings.ENABLE_LEGACY_PUBLIC_MAP
+        and event.device.is_public
         and event.location_lat is not None
         and event.location_lng is not None
     )

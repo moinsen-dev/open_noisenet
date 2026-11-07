@@ -14,6 +14,11 @@ from app.db.models.device import Device, DeviceApiKey
 _KEY_PATTERN = re.compile(r"^[A-Za-z0-9_-]{43}$")
 
 
+def retirement_fingerprint(key_hash: str) -> str:
+    # The original device key has 256 bits of entropy.
+    return hashlib.sha256(("retired-opennoisenet:" + key_hash).encode("ascii")).hexdigest()
+
+
 def device_key_hash(key: Optional[str]) -> str:
     if not key or not _KEY_PATTERN.fullmatch(key):
         raise HTTPException(status_code=401, detail="Valid device key required")
@@ -48,7 +53,8 @@ async def can_access_device(db: AsyncSession, device: Device, user, key: Optiona
 
 def visible_device_ids(user, key: Optional[str], *, include_public: bool = True):
     """Devices visible through public publication, user ownership or a device key."""
-    conditions = [Device.is_public.is_(True)] if include_public else []
+    from app.core.config import settings
+    conditions = [Device.is_public.is_(True)] if include_public and settings.ENABLE_LEGACY_PUBLIC_MAP else []
     if user:
         conditions.append(Device.owner_id == user.id)
     if key and _KEY_PATTERN.fullmatch(key):

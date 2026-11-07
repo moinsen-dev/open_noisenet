@@ -18,9 +18,9 @@ class LoginRateLimiter:
         self._attempts.clear()
 
     async def __call__(self, request: Request) -> None:
-        client_ip = request.headers.get("x-forwarded-for")
-        if not client_ip and request.client:
-            client_ip = request.client.host
+        # The ASGI server may normalize a trusted proxy hop. A client-supplied
+        # forwarding header is never an independent throttling identity.
+        client_ip = request.client.host if request.client else None
         if not client_ip:
             client_ip = "unknown"
 

@@ -55,43 +55,47 @@ class _AuthPageState extends State<AuthPage>
       appBar: const SharedAppBar(
         pageTitle: 'Authentication',
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            // Status card
-            _buildStatusCard(),
-            const SizedBox(height: 24),
-
-            // Tab bar
-            Container(
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: TabBar(
-                controller: _tabController,
-                tabs: const [
-                  Tab(text: 'Login'),
-                  Tab(text: 'Register'),
-                ],
-              ),
-            ),
-            const SizedBox(height: 16),
-
-            // Tab views
-            Expanded(
-              child: TabBarView(
-                controller: _tabController,
+      body: _apiClientService.isAuthenticated
+          ? ListView(
+              padding: const EdgeInsets.all(16), children: [_buildStatusCard()])
+          : Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
                 children: [
-                  _buildLoginTab(),
-                  _buildRegisterTab(),
+                  // Status card
+                  _buildStatusCard(),
+                  const SizedBox(height: 24),
+
+                  // Tab bar
+                  Container(
+                    decoration: BoxDecoration(
+                      color:
+                          Theme.of(context).colorScheme.surfaceContainerHighest,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: TabBar(
+                      controller: _tabController,
+                      tabs: const [
+                        Tab(text: 'Login'),
+                        Tab(text: 'Register'),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Tab views
+                  Expanded(
+                    child: TabBarView(
+                      controller: _tabController,
+                      children: [
+                        _buildLoginTab(),
+                        _buildRegisterTab(),
+                      ],
+                    ),
+                  ),
                 ],
               ),
             ),
-          ],
-        ),
-      ),
     );
   }
 
@@ -138,9 +142,13 @@ class _AuthPageState extends State<AuthPage>
               ),
             ],
             if (isAuthenticated) ...[
+              TextButton.icon(
+                  icon: const Icon(Icons.delete_outline),
+                  label: const Text('Serverkonto löschen'),
+                  onPressed: _isLoading ? null : _confirmDeletion),
               const SizedBox(height: 12),
               ElevatedButton.icon(
-                onPressed: _handleLogout,
+                onPressed: _isLoading ? null : _handleLogout,
                 icon: const Icon(Icons.logout, size: 16),
                 label: const Text('Logout'),
                 style: ElevatedButton.styleFrom(
@@ -491,6 +499,31 @@ class _AuthPageState extends State<AuthPage>
     }
   }
 
+  Future<void> _confirmDeletion() async {
+    final destination = _apiClientService.baseUrl;
+    final password = await showDialog<String>(
+        context: context,
+        builder: (_) => _DeleteAccountDialog(server: destination));
+    if (password == null || !mounted) return;
+    setState(() => _isLoading = true);
+    var message =
+        'Löschung nicht bestätigt. Prüfe Passwort und Serververbindung. Bei älteren Servern wende dich an deren Betreiber.';
+    try {
+      await _apiClientService.deleteOwnAccount(password,
+          destination: destination);
+      message =
+          'Der Server hat dein Konto gelöscht. Die App arbeitet jetzt lokal.';
+    } catch (_) {
+      // An offline or rejected request must not appear as a successful deletion.
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(message)));
+      }
+    }
+  }
+
   Future<void> _handleLogout() async {
     setState(() {
       _isLoading = true;
@@ -526,4 +559,48 @@ class _AuthPageState extends State<AuthPage>
       }
     }
   }
+}
+
+class _DeleteAccountDialog extends StatefulWidget {
+  final String server;
+  const _DeleteAccountDialog({required this.server});
+  @override
+  State<_DeleteAccountDialog> createState() => _DeleteAccountDialogState();
+}
+
+class _DeleteAccountDialogState extends State<_DeleteAccountDialog> {
+  final password = TextEditingController();
+  @override
+  void dispose() {
+    password.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => AlertDialog(
+        title: const Text('Serverkonto endgültig löschen?'),
+        content: SingleChildScrollView(
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Text(
+              'Auf ${widget.server} werden dein Konto, deine zugeordneten Geräte, Ereignisse und Phasen gelöscht. Dein lokales Tagebuch und gemeinsam genutzte Organisationen bleiben erhalten.'),
+          TextField(
+              controller: password,
+              obscureText: true,
+              autocorrect: false,
+              enableSuggestions: false,
+              onChanged: (_) => setState(() {}),
+              decoration:
+                  const InputDecoration(labelText: 'Aktuelles Passwort')),
+        ])),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Abbrechen')),
+          FilledButton(
+              onPressed: password.text.isEmpty
+                  ? null
+                  : () => Navigator.pop(context, password.text),
+              child: const Text('Endgültig löschen')),
+        ],
+      );
 }

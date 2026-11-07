@@ -1,6 +1,8 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart'
+    show LicenseEntryWithLineBreaks, LicenseRegistry;
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -16,6 +18,10 @@ import 'services/ios_background_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  LicenseRegistry.addLicense(() async* {
+    yield LicenseEntryWithLineBreaks(['Google YAMNet audio classifier'],
+        await rootBundle.loadString('assets/models/LICENSE-YAMNet.txt'));
+  });
 
   // Initialize logging framework
   AppLogger.initialize(enableInRelease: false);

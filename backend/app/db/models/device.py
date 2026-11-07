@@ -80,3 +80,8 @@ class DeviceApiKey(Base):
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     last_used: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     expires_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+
+class RevokedDeviceKey(Base):
+    """Non-reversible revocation marker; no account, device ID or measurement."""
+    __tablename__ = "revoked_device_keys"
+    fingerprint: Mapped[str] = mapped_column(String(64), unique=True, nullable=False)

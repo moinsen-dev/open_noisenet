@@ -133,6 +133,13 @@ CREATE TABLE device_api_keys (
     expires_at TIMESTAMP WITH TIME ZONE
 );
 
+CREATE TABLE revoked_device_keys (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    fingerprint VARCHAR(64) NOT NULL UNIQUE
+);
+
 -- System configuration table
 CREATE TABLE system_config (
     id SERIAL PRIMARY KEY,
@@ -165,7 +172,7 @@ CREATE TABLE organizations (
     plan_tier VARCHAR(32) NOT NULL DEFAULT 'pro_site',
     status VARCHAR(32) NOT NULL DEFAULT 'pilot',
     billing_state VARCHAR(32) NOT NULL DEFAULT 'trial',
-    created_by_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    created_by_id UUID REFERENCES users(id) ON DELETE SET NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );

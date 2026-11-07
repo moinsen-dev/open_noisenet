@@ -1,12 +1,15 @@
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:get_it/get_it.dart';
 import 'package:go_router/go_router.dart';
 import 'package:path_provider/path_provider.dart';
 
 import '../widgets/audio_calibration_dialog.dart';
+import '../widgets/map_pilot_preview.dart';
+import '../../../../services/map_pilot/pilot_consent_controller.dart';
 
 import '../../../../features/app/presentation/bloc/app_bloc.dart';
 import '../../../../services/audio_capture_service.dart';
@@ -17,6 +20,7 @@ import '../../../../services/sqlite_preferences_service.dart';
 import '../../../../services/api_client_service.dart';
 import '../../../../services/backend_sync_service.dart';
 import '../../../../services/network_utils.dart';
+import '../../../../core/config/backend_defaults.dart';
 import '../../../../core/database/dao/noise_measurement_dao.dart';
 import '../../../../core/database/dao/daily_statistics_dao.dart';
 import '../../../../core/database/dao/audio_recording_dao.dart';
@@ -40,6 +44,8 @@ class _SettingsPageState extends State<SettingsPage> {
   final RecordingService _recordingService = RecordingService();
   final ApiClientService _apiClientService = GetIt.instance<ApiClientService>();
   final BackendSyncService _syncService = GetIt.instance<BackendSyncService>();
+  late final PilotConsentController _pilotController =
+      GetIt.instance<PilotConsentController>();
 
   // Database DAOs for data management
   final NoiseMeasurementDao _measurementDao = NoiseMeasurementDao();
@@ -297,7 +303,9 @@ class _SettingsPageState extends State<SettingsPage> {
         ListTile(
           leading: const Icon(Icons.cloud_sync),
           title: const Text('Backend Integration'),
-          subtitle: Text('Backend: ${_apiClientService.baseUrl}'),
+          subtitle: Text(_apiClientService.baseUrl == BackendDefaults.localOnly
+              ? 'On this device only'
+              : 'Backend: ${_apiClientService.baseUrl}'),
           onTap: () => _showSyncDialog(context),
         ),
         FutureBuilder<bool>(
@@ -453,6 +461,18 @@ class _SettingsPageState extends State<SettingsPage> {
   Widget _buildPrivacySection(BuildContext context) {
     return Column(
       children: [
+        ListTile(
+          leading: const Icon(Icons.map_outlined),
+          title: const Text('Freiwilliger Kartenpilot'),
+          subtitle: const Text('Informationen zum geplanten Pilot'),
+          onTap: () => showDialog<void>(
+            context: context,
+            builder: (_) => MapPilotPreview(
+              controller: _pilotController,
+              destination: _apiClientService.baseUrl,
+            ),
+          ),
+        ),
         ListTile(
           leading: const Icon(Icons.privacy_tip),
           title: const Text('Privacy information'),
@@ -647,16 +667,24 @@ class _SettingsPageState extends State<SettingsPage> {
         title: const Text('Privacy information'),
         content: const SingleChildScrollView(
           child: Text(
-            'Microphone data is processed on this device to estimate sound levels and sources. '
-            'Optional recordings can contain sensitive sound.\n\n'
-            '• Location permission is optional. Public sharing requires a separate choice.\n'
-            '• Identifiers, times and coordinates are not necessarily anonymous.\n'
-            '• Clearing local data does not necessarily delete data already sent to a server.\n\n'
-            'The server operator must explain its processing and retention. '
-            'A complete privacy review and automatic server-side deletion remain open.',
+            'Die App schätzt Pegel und Geräuscharten auf diesem Gerät. Es werden keine neuen Tonaufnahmen oder Transkripte gespeichert. Standort und Server sind optional. '
+            'Lokale Historie und Tagebuch sind verschlüsselt; ein Export ist lesbar. Für Daten auf einem eigenen Server ist dessen Betreiber zuständig. '
+            'Ein Serverkonto kannst du unter Account Authentication löschen.',
           ),
         ),
         actions: [
+          TextButton(
+              onPressed: () async {
+                final ok = await launchUrl(
+                    Uri.parse('https://opennoisenet.moinsen.dev/app-privacy/'),
+                    mode: LaunchMode.externalApplication);
+                if (!ok && context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                      content: Text(
+                          'Datenschutz: https://opennoisenet.moinsen.dev/app-privacy/')));
+                }
+              },
+              child: const Text('Datenschutzerklärung öffnen')),
           TextButton(
             onPressed: () => Navigator.pop(context),
             child: const Text('Close'),
@@ -980,7 +1008,8 @@ class _SettingsPageState extends State<SettingsPage> {
       await _preferencesService.setCalibrationOffset(0.0);
 
       // Reset backend URL to default
-      await _preferencesService.setBackendUrl('http://localhost:8100/api/v1');
+      await _apiClientService.setBaseUrl(ApiClientService.defaultBaseUrl);
+      await _preferencesService.setBackendUrl(ApiClientService.defaultBaseUrl);
 
       // Reset auto-submission
       await _preferencesService.setAutoSubmissionEnabled(false);

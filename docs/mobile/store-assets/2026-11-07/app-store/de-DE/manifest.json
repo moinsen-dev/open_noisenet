@@ -1,0 +1,27 @@
+[
+  {
+    "file": "01-phases.jpg",
+    "sha256": "255e88c5bea1f80d78c0cf8cb288204801ba4dd6f9dad4d5cd43df01b9917dfc",
+    "raw_sha256": "73ce2ebda34b3880980781070e345ad28fbe0c874acd3a8ba2bd76d95209c384"
+  },
+  {
+    "file": "02-duration.jpg",
+    "sha256": "35d8776463fa15e22647b79550734ce4e788600a39a8bf767153193d1a187fcc",
+    "raw_sha256": "fa8a34f8b681a18152393dfdba554fbbe060add112c8d50aee5cab1d5d6e1591"
+  },
+  {
+    "file": "03-sources.jpg",
+    "sha256": "9d1ba4f35a2ae3ea792179444012bf4801da5fc9770a2c56a00567b60d70ffa0",
+    "raw_sha256": "0706e227b0f66f346093585d386ea17a1e72de064570c6983a2bdcf35edca486"
+  },
+  {
+    "file": "04-diary.jpg",
+    "sha256": "fa0a430e38cfa5f73431b6dd7df5a0ee41caaaab385d88f7cd053076cc3590a0",
+    "raw_sha256": "251716fc17dafab38d78bbe96faa03d18cb9baf4c67ebec9758fece31a2274b3"
+  },
+  {
+    "file": "05-export.jpg",
+    "sha256": "c3e721d28f6e5f054349cb97edf524c40472aff310c01eaeeba779fb05128caa",
+    "raw_sha256": "412018f80a51b5cb950e9c6286c5e9a2e0dac99ad181d0580ca9e5ea958b2e3d"
+  }
+]

@@ -392,8 +392,8 @@ class _OnboardingPageState extends State<OnboardingPage> {
           const SizedBox(height: 20),
           _buildFeatureItem(
             Icons.location_on,
-            'Create Noise Maps',
-            'With your permission, location data can place measurements on a community map.',
+            'Community Map in Development',
+            'A privacy-protecting community map is planned. It is not available yet.',
             colorScheme,
             theme,
           ),
@@ -521,7 +521,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        'Standard monitoring keeps audio only in a short-lived memory buffer for local classification. It uploads levels, categories, and times — never speech or raw audio. Saving audio is a separate opt-in setting.',
+                        'Sound is analyzed on this device. No new audio recordings are saved. To share measurements or source hints, configure your own HTTPS backend and enable the corresponding upload.',
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: colorScheme.onSurface.withValues(alpha: 0.7),
                         ),
@@ -580,7 +580,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
           ),
           const SizedBox(height: 16),
           Text(
-            'Location can help show noise measurements on a map. You can continue without sharing it.',
+            'Location can support future map features. The public map is not available yet, and you can continue without sharing location.',
             style: theme.textTheme.bodyLarge?.copyWith(
               color: colorScheme.onSurface.withValues(alpha: 0.8),
             ),
@@ -616,7 +616,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
                 ),
                 const SizedBox(height: 12),
                 Text(
-                  'Without location, your measurements can still be recorded and uploaded privately. They cannot be placed on the map.',
+                  'Without location, your measurements can still be recorded and uploaded privately. The public map is not available yet.',
                   style: theme.textTheme.bodyMedium?.copyWith(
                     color: colorScheme.onSurface.withValues(alpha: 0.7),
                   ),

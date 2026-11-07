@@ -1,3 +1,4 @@
+import '../core/config/backend_defaults.dart';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 
@@ -48,9 +49,9 @@ class NetworkUtils {
 
   /// Get the appropriate backend URL for the current platform and environment
   Future<String> getRecommendedBackendUrl({int port = 8100}) async {
-    // For release builds, always use production URL
+    // Store builds stay local until a tester explicitly selects a backend.
     if (kReleaseMode) {
-      return 'https://api.open-noisenet.org/api/v1';
+      return BackendDefaults.localOnly;
     }
 
     // For debug/development builds, detect appropriate URL
@@ -208,6 +209,7 @@ class NetworkUtils {
   Future<bool> testConnection(String url, {Duration timeout = const Duration(seconds: 5)}) async {
     try {
       final uri = Uri.parse(url);
+      if (BackendDefaults.isLocalOnly(uri) || (kReleaseMode && uri.scheme != 'https')) return false;
       final client = HttpClient();
       client.connectionTimeout = timeout;
       
@@ -223,6 +225,8 @@ class NetworkUtils {
 
   /// Get common backend URL presets for development
   List<BackendPreset> getCommonPresets() {
+    final local = BackendPreset(name: 'On this device only', description: 'No backend connection', url: BackendDefaults.localOnly, isAutoDetect: false);
+    if (kReleaseMode) return [local];
     return [
       BackendPreset(
         name: 'Local Development (Auto-detect)',
@@ -248,12 +252,7 @@ class NetworkUtils {
         url: 'http://192.168.1.100:8100/api/v1',
         isAutoDetect: false,
       ),
-      BackendPreset(
-        name: 'Production',
-        description: 'Production server',
-        url: 'https://api.open-noisenet.org/api/v1',
-        isAutoDetect: false,
-      ),
+      local,
     ];
   }
 }

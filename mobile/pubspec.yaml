@@ -2,7 +2,7 @@ name: noisenet_mobile
 description: OpenNoiseNet mobile application for environmental noise monitoring with on-device AI processing.
 publish_to: "none"
 
-version: 0.1.0+2
+version: 0.1.0+6
 
 environment:
   sdk: ">=3.1.0 <4.0.0"
@@ -56,6 +56,7 @@ dependencies:
   flutter_secure_storage: ^11.2.0
   crypto: ^3.0.8
   cryptography: ^2.9.0
+  url_launcher: ^6.3.2
   file_picker: ^13.3.2
 
 dev_dependencies:

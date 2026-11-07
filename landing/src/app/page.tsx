@@ -21,10 +21,12 @@ export default function Home() {
             <p className="onn-lead">Der Verkehr vor dem Fenster. Die Baustelle nebenan. Die nächste laute Nacht. Wer darunter leidet, braucht eine Möglichkeit, die eigene Erfahrung verständlich zu machen.</p>
             <p className="onn-intro">Wir entwickeln OpenNoiseNet, damit Menschen erkennen können: <strong>Was war laut, wie lange – und wann war endlich Ruhe?</strong></p>
             <div className="onn-actions">
+              <a className="onn-button" href="https://play.google.com/store/apps/details?id=dev.moinsen.noisenet_mobile&gl=DE&hl=de">Android-App bei Google Play <ArrowRight size={18} /></a>
+              <a className="onn-button" href="https://apps.apple.com/de/app/opennoisenet/id6831511809">iPhone-App im App Store <ArrowRight size={18} /></a>
               <a className="onn-button" href="#mitmachen">Das Projekt unterstützen <ArrowRight size={18} /></a>
               <Link className="onn-text-link" href="/story">Warum ich das baue <ArrowRight size={16} /></Link>
             </div>
-            <p className="onn-small">Open Source · Aus Hamburg · In Entwicklung</p>
+            <p className="onn-small">Open Source · Aus Hamburg · Für iPhone und Android</p>
           </div>
           <figure className="onn-timeline">
             <div className="onn-timeline-top"><span className="onn-label">Ein Morgen wird verständlich</span><AudioLines size={26} aria-hidden="true" /></div>
@@ -72,15 +74,18 @@ export default function Home() {
         <section id="idee" className="onn-band">
           <div className="onn-shell onn-section">
             <p className="onn-eyebrow">Die Idee</p><h2>Aus Geräuschen wird<br />eine lesbare Geschichte.</h2>
+            <p className="onn-section-intro">Unsere Vision ist eine weltweite Karte, auf der Menschen gemeinsam wiederkehrenden Lärm sichtbar machen können. Wer mitmacht, soll selbst entscheiden, ob und welche Daten geteilt werden. Die öffentliche Karte ist noch nicht verfügbar.</p>
             <div className="onn-three onn-principles">
-              <article><AudioLines aria-hidden="true" /><h3>Zusammenhänge sehen</h3><p>Ein Smartphone soll Geräuschphasen mit Dauer, geschätztem Pegel und möglichen Ursachen erfassen. Ruhige Phasen und fehlende Daten müssen unterscheidbar bleiben.</p></article>
+              <article><AudioLines aria-hidden="true" /><h3>Zusammenhänge sehen</h3><p>Die App zeigt Geräuschphasen mit Dauer, geschätzten Pegeln und möglichen Ursachen. Ruhige Phasen und fehlende Daten müssen unterscheidbar bleiben.</p></article>
               <article><ShieldCheck aria-hidden="true" /><h3>Die Privatsphäre achten</h3><p>Unser Ansatz: Geräusche auf dem Gerät auswerten und abgeleitete Werte nutzen. Private Tagebucheinträge gehören nicht automatisch auf eine öffentliche Karte.</p></article>
               <article><Github aria-hidden="true" /><h3>Gemeinsam verbessern</h3><p>Der Quellcode ist offen. Menschen sollen die Methoden prüfen, Fehler finden und das Werkzeug für ihre eigenen Fragen weiterentwickeln können.</p></article>
             </div>
             <div id="stand" className="onn-status">
               <div><span className="onn-status-dot" /> <strong>Entwicklungsstand · November 2026</strong></div>
-              <p>Die Geräuscherkennung wird auf Smartphones erprobt. An privater Geräuschhistorie, Lärmtagebuch und Export wird gearbeitet. Kalibrierung, zuverlässiger Dauerbetrieb und Datenschutzprüfungen bleiben wichtige offene Aufgaben.</p>
-              <p className="onn-small">Die Smartphone-Pegel sind Schätzwerte, keine validierten dB(A)-Messungen. Erkannte Geräuscharten sind Hinweise. Die App ersetzt weder eine fachliche Begutachtung noch eine medizinische oder rechtliche Bewertung. Ein allgemeiner App-Download wird noch nicht angeboten.</p>
+              <p>OpenNoiseNet ist für Android und iPhone in Deutschland, Österreich und der Schweiz erhältlich. Die App bietet lokale Geräuschhistorie, ein persönliches Lärmtagebuch und einen Export. Kalibrierung, zuverlässiger Dauerbetrieb und Datenschutzprüfungen bleiben wichtige offene Aufgaben.</p>
+              <p className="onn-small">Die Smartphone-Pegel sind geräteabhängige Schätzwerte, keine validierten dB(A)-Messungen. Erkannte Geräuscharten sind Hinweise. Die App ersetzt weder eine fachliche Begutachtung noch eine medizinische oder rechtliche Bewertung.</p>
+              <a className="onn-text-link" href="https://play.google.com/store/apps/details?id=dev.moinsen.noisenet_mobile&gl=DE&hl=de">Android-App bei Google Play öffnen <ArrowRight size={16} /></a><br />
+              <a className="onn-text-link" href="https://apps.apple.com/de/app/opennoisenet/id6831511809">iPhone-App im App Store öffnen <ArrowRight size={16} /></a><br />
               <a className="onn-text-link" href={`${repository}/issues`}>Entwicklung und offene Aufgaben ansehen <ArrowRight size={16} /></a>
             </div>
           </div>

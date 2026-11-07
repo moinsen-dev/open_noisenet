@@ -2,6 +2,10 @@
 
 ## Übergabe
 
+**07.11.2026 · iOS genehmigt und DACH-Veröffentlichung ausgelöst.** Apple zeigt iOS 0.1.0 (5) „Bereit für Vertrieb“; öffentliche deutsche App-Seite unmittelbar danach noch nicht gefunden. Apple nennt bis zu 24 Stunden Auslieferungszeit. TestFlight: Build 3 in interner Gruppe, eine Einladung und Installation; Build 5 nicht dieser Gruppe zugeordnet. Deutscher Werbetext auf Geräuschphasen aktualisiert. Die zwei bisherigen iPhone-Bilder und Beschreibung sind in dieser Version gesperrt; umfassendere Storefront benötigt spätere Version mit echten iOS-Screenshots. Nach öffentlicher Sichtbarkeit Länder, Storeseite und Apple-Link auf Website prüfen. HTC-10-Kalibrierung bleibt im Backlog. [Maßgeblicher Stand](docs/current-status.md).
+
+## Vorherige Übergabe – Android und Kalibrierung
+
 **07.11.2026 · Android öffentlich und Website aktualisiert; Apple-Anmeldung erforderlich.** Deutsche Play-Seite bietet Installation und zeigt neuen Titel, Kurz-/Langtext sowie fünf Bilder. Website https://opennoisenet.moinsen.dev/ zeigt Android-Download und Entwicklungsgrenzen; Release-HTML und RSC-Datei aktualisiert, Vorgängerdateien vor Ort gesichert, Typecheck/Lint/Build und 3 Tests bestanden. iOS-Link zur App-ID 6831511809 zeigt in Deutschland „Seite nicht gefunden“. App Store Connect verlangt neue Anmeldung; genauer Review-/TestFlight-Status und Verbesserung der iOS-Storefront nach Anmeldung fortsetzen. Udi wurde um Login gebeten. Nutzerbeobachtung HTC 10 ca. 20 niedriger als iPhone 12 als unbestätigter Kalibrierfall im Backlog; kein pauschaler Offset. [Maßgeblicher Stand](docs/current-status.md).
 
 ## Vorherige Übergabe – Play-Einreichung

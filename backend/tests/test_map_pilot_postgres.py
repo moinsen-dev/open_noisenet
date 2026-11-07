@@ -87,10 +87,12 @@ async def test_scheduled_retention_commits_in_postgres(monkeypatch):
         task = celery_app.tasks['app.workers.maintenance_tasks.map_pilot_retention']
         outcome = await asyncio.to_thread(lambda: task.apply(throw=True).get())
         assert outcome == {'status': 'committed', 'deleted': 1}
+        second = await asyncio.to_thread(lambda: task.apply(throw=True).get())
+        assert second == {'status': 'committed', 'deleted': 0}
         async with factory() as check:
             remaining = (await check.scalars(select(MapPilotContribution).where(MapPilotContribution.user_id == uid))).all()
             assert len(remaining) == 1 and remaining[0].day == datetime.now(UTC).date()-timedelta(days=30)
-            assert len((await check.scalars(select(MapPilotRetentionRun))).all()) == previous_runs + 1
+            assert len((await check.scalars(select(MapPilotRetentionRun))).all()) == previous_runs + 2
     finally:
         async with factory() as cleanup:
             await cleanup.execute(delete(MapPilotContribution).where(MapPilotContribution.user_id == uid))

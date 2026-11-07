@@ -44,7 +44,6 @@ def test_task_reports_only_completed_work(monkeypatch):
 @pytest.mark.asyncio
 async def test_database_failure_rolls_back_without_success_heartbeat(monkeypatch):
     from unittest.mock import MagicMock
-    from app.db import session as session_module
     from app.services import map_pilot_retention as retention
     db = MagicMock()
     db.rollback = AsyncMock()
@@ -52,10 +51,9 @@ async def test_database_failure_rolls_back_without_success_heartbeat(monkeypatch
     manager = MagicMock()
     manager.__aenter__ = AsyncMock(return_value=db)
     manager.__aexit__ = AsyncMock(return_value=False)
-    monkeypatch.setattr(session_module, 'AsyncSessionLocal', lambda: manager)
     monkeypatch.setattr(retention, 'erase_contributions_before_retention_cutoff', AsyncMock(side_effect=RuntimeError('synthetic failure')))
     with pytest.raises(RuntimeError, match='synthetic failure'):
-        await maintenance_tasks._run_pilot_retention()
+        await maintenance_tasks._run_pilot_retention(session_factory=lambda: manager)
     db.rollback.assert_awaited_once()
     db.commit.assert_not_awaited()
     db.add.assert_not_called()

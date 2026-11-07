@@ -37,24 +37,36 @@ def optimize_database():
     return _unavailable("Database optimization")
 
 
-async def _run_pilot_retention():
+async def _run_pilot_retention(session_factory=None):
     from datetime import UTC, datetime, timedelta
     from sqlalchemy import delete
     from app.db.models.map_pilot import MapPilotRetentionRun
-    from app.db.session import AsyncSessionLocal
+    from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
+    from sqlalchemy.pool import NullPool
+    from app.core.config import settings
     from app.services.map_pilot_retention import erase_contributions_before_retention_cutoff
 
-    async with AsyncSessionLocal() as db:
-        try:
-            count = await erase_contributions_before_retention_cutoff(db, today=datetime.now(UTC).date())
-            now = datetime.now(UTC)
-            await db.execute(delete(MapPilotRetentionRun).where(MapPilotRetentionRun.completed_at < now - timedelta(days=7)))
-            db.add(MapPilotRetentionRun(completed_at=now))
-            await db.commit()
-            return count
-        except Exception:
-            await db.rollback()
-            raise
+    # Celery invokes asyncio.run on each task. A pooled asyncpg connection from
+    # the previous run belongs to a closed event loop and must never be reused.
+    engine = None
+    if session_factory is None:
+        engine = create_async_engine(settings.DATABASE_URL, poolclass=NullPool)
+        session_factory = async_sessionmaker(engine, expire_on_commit=False)
+    try:
+        async with session_factory() as db:
+            try:
+                count = await erase_contributions_before_retention_cutoff(db, today=datetime.now(UTC).date())
+                now = datetime.now(UTC)
+                await db.execute(delete(MapPilotRetentionRun).where(MapPilotRetentionRun.completed_at < now - timedelta(days=7)))
+                db.add(MapPilotRetentionRun(completed_at=now))
+                await db.commit()
+                return count
+            except Exception:
+                await db.rollback()
+                raise
+    finally:
+        if engine is not None:
+            await engine.dispose()
 
 
 @celery_app.task(name="app.workers.maintenance_tasks.map_pilot_retention", ignore_result=False)

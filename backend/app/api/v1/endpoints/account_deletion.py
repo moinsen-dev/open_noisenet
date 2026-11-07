@@ -12,6 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.deps import require_user
 from app.core.device_auth import retirement_fingerprint
 from app.db.models.device import DeviceApiKey, RevokedDeviceKey
+from app.db.models.map_pilot import MapPilotConsent, MapPilotContribution
 from app.core.rate_limit import login_rate_limiter
 from app.core.security import verify_password
 from app.db.models import Case, CaseEpisodeLink, Device, Episode, ExportJob, Organization, OrganizationMembership, User
@@ -60,6 +61,8 @@ async def erase(db, user_id, password):
         OrganizationMembership.user_id != user.id))
     await db.execute(delete(Organization).where(Organization.created_by_id == user.id, ~others))
     await db.execute(update(Organization).where(Organization.created_by_id == user.id).values(created_by_id=None))
+    await db.execute(delete(MapPilotContribution).where(MapPilotContribution.user_id == user.id))
+    await db.execute(delete(MapPilotConsent).where(MapPilotConsent.user_id == user.id))
     await db.delete(user)
     await db.flush()
 

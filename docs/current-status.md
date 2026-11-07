@@ -1,5 +1,12 @@
 # OpenNoiseNet – aktueller Wiederaufnahmestand
 
+## iOS 0.1.1 und Kartenpilot-Implementierung · 07.11.2026
+
+1. **Erledigt – Apple-Upload und Entwurf.** Xcode meldet Upload von 0.1.1 (7), Apple hat verarbeitet; Standardverschlüsselung außerhalb der Apple-OS-Funktionen und keine Frankreich-Verteilung für DACH angegeben. Build 7 dem 0.1.1-Entwurf und der bestehenden internen TestFlight-Gruppe zugeordnet; deutsche und englische Versionshinweise gespeichert. Nicht zur Prüfung eingereicht. Der isolierte Reviewdienst beantwortet `/health` mit HTTP 200; die synthetische Apple-Anmeldung und Kontolöschung sind für diese Einreichung noch nicht erneut geprüft.
+2. **→ Offen – physisches iPhone.** iPhone 16 Pro Max per lokalem Netzwerk verbunden; bisher 0.1.0 (3) installiert. Udi wurde um TestFlight-Update auf 0.1.1 (7) gebeten. Danach Installation, Start und relevante Ansichten prüfen, ohne vorhandene Daten zurückzusetzen.
+3. **Teilweise umgesetzt und synthetisch getestet – Datenschutzpipeline.** Alte öffentliche Einzelpunkt- und Geräte-/Ereignispfade standardmäßig gesperrt; gesonderter Pilot-Testpfad standardmäßig aus, Zustimmung und Widerruf mit Schutz gegen verspätete Uploads, Kontolöschung und keine öffentliche Projektion. [Konzept und tatsächliche Grenzen](privacy-map-pilot-2026-11-07.md). Vollständiger Backendlauf: 200 bestanden, 2 übersprungen. Migration auf isoliertem PostgreSQL 16 bis `53ce6edb0321` bestanden. Noch kein datenschutzgeprüfter Pilot: App-Zustimmung, lokale Voraggregation, geprüfte Zellen, Aufbewahrung, Rückschluss-/Restore-Schutz und sichere öffentliche Projektion fehlen. Nichts deployt oder mit echten Pilotdaten betrieben.
+
+
 ## iOS 0.1.1 und Datenschutzkonzept Kartenpilot · 07.11.2026
 
 1. **Erledigt – iOS-Bildfolge.** Deutscher App-Store-Connect-Entwurf 0.1.1 nach Neuladen kontrolliert: fünf Motive Phasen, Dauer, Quellen, Tagebuch und Export zuerst, danach zwei alte Bilder. Große Dynamic-Island-Größe führt sieben Bilder; die mittlere übernimmt dieselbe Folge. Nicht eingereicht oder öffentlich.

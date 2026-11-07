@@ -382,3 +382,9 @@ async def test_pagination_offset_limit(client: AsyncClient, db_session: AsyncSes
     assert page1.status_code == 200
     assert len(page1.json()["events"]) >= 1
     assert page1.json()["total"] >= 5
+
+
+@pytest.fixture(autouse=True)
+def legacy_map_for_legacy_tests(monkeypatch):
+    from app.core.config import settings
+    monkeypatch.setattr(settings, "ENABLE_LEGACY_PUBLIC_MAP", True)

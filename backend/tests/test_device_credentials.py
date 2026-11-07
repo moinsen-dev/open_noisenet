@@ -102,3 +102,9 @@ async def test_other_org_admin_cannot_reassign_private_device(client):
     assert attempt.status_code == 404
     device = await client.get('/api/v1/devices/do-not-steal', headers=owner_headers)
     assert device.json()['site_id'] is None
+
+
+@pytest.fixture(autouse=True)
+def legacy_map_for_legacy_tests(monkeypatch):
+    from app.core.config import settings
+    monkeypatch.setattr(settings, "ENABLE_LEGACY_PUBLIC_MAP", True)

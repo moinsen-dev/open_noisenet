@@ -69,6 +69,10 @@ class Settings(BaseSettings):
     API_RATE_LIMIT_PER_MINUTE: int = Field(default=60)
     DEVICE_EVENT_RATE_LIMIT_PER_HOUR: int = Field(default=1000)
 
+    # Experimental pilot remains closed unless explicitly enabled in an isolated environment.
+    ENABLE_MAP_PILOT_INTAKE: bool = False
+    ENABLE_LEGACY_PUBLIC_MAP: bool = False
+
     # Geospatial settings
     DEFAULT_MAP_CENTER_LAT: float = Field(default=52.520008)
     DEFAULT_MAP_CENTER_LNG: float = Field(default=13.404954)

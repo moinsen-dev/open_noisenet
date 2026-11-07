@@ -1,6 +1,6 @@
 # Datenschutzkonzept: erster Pilot der öffentlichen Lärmkarte
 
-Stand 7. November 2026 · **Entwurf, nicht umgesetzt und keine Freigabe zum Betrieb.** Ziel ist eine öffentliche Übersicht wiederkehrender akustischer Belastungen, ohne den Wohnort oder Tagesablauf einzelner Teilnehmender offenzulegen. Das Konzept ist vor dem Einsatz rechtlich und technisch zu überprüfen; der Pilot ist lokal begrenzt, auch wenn die Vision weltweit ist.
+Stand 7. November 2026 · **Teilweise als abgeschotteter Prototyp umgesetzt; keine Freigabe zum Betrieb.** Ziel ist eine öffentliche Übersicht wiederkehrender akustischer Belastungen, ohne den Wohnort oder Tagesablauf einzelner Teilnehmender offenzulegen. Das Konzept ist vor dem Einsatz rechtlich und technisch zu überprüfen; der Pilot ist lokal begrenzt, auch wenn die Vision weltweit ist.
 
 ## 1. Ausgangslage und harte Grenze
 
@@ -44,3 +44,10 @@ Pseudonymisierung und Aggregation sind nicht gleich Anonymisierung. Solange Iden
 - [DSGVO, Verordnung (EU) 2016/679, insbesondere Art. 5–7, 13–17, 25, 28, 32 und 35–36](https://eur-lex.europa.eu/eli/reg/2016/679/oj)
 - [EDSA: Anonymisierung und Pseudonymisierung](https://www.edpb.europa.eu/topics/ai-and-technology/anonymisation-pseudonymisation_en)
 - [EDSA, Leitlinien 02/2026 zur Anonymisierung, Konsultationsversion](https://www.edpb.europa.eu/documents/guideline/guidelines-022026-on-anonymisation_en)
+
+## Umsetzungsstand nach erster Sicherheitsstufe · 7. November 2026
+
+- In diesem Branch sind alte öffentliche Einzelpunkt-Endpunkte und die zugehörige öffentliche Sichtbarkeit von Geräten und Ereignissen standardmäßig deaktiviert (`ENABLE_LEGACY_PUBLIC_MAP=false`). Das ändert die bisherige öffentliche API und erfordert bei einem späteren Deployment ausdrückliche Migrationskommunikation. Keine Infrastruktur wurde verändert.
+- Ein getrennter Testpfad `/api/v1/map-pilot` ist standardmäßig deaktiviert (`ENABLE_MAP_PILOT_INTAKE=false`) und verweigert selbst im Testbetrieb die Aktivierung bei eingeschalteter alter öffentlicher Karte. Authentifizierte Zustimmung ist versionsgebunden; für einen abgeschlossenen Folgetag akzeptiert der Prototyp einen Beitrag pro Konto, keine weiteren Felder. Widerruf löscht die aktiven Beiträge und wechselt die Generation, sodass verspätete Uploads auch nach erneuter Zustimmung abgewiesen werden. Kontolöschung entfernt Zustimmung und Beiträge. Diese Endpunkte sind nur für synthetische Entwicklungstests vorgesehen.
+- Der öffentliche Pilot-Ausgang bleibt **immer leer**, auch bei fünf Konten. Die Anzahl von Konten beweist keine Unabhängigkeit; ein Schutz gegen Differenzangriffe und eine sichere, widerrufbare Projektion fehlen weiterhin. Es existiert noch keine validierte Definition der Zellindizes; Eingabefelder allein verhindern die Codierung präziser Daten nicht. Es gibt noch keine App-Freigabeoberfläche, lokale Aggregation, verschlüsselte Datenhaltung, automatische Löschfristen, Backup-Löschjournal oder CDN-Invalidierung. **Nicht mit realen Beiträgen aktivieren oder öffentlich betreiben.**
+- Synthetische API-Tests prüfen Deaktivierung, alternative Geräte-/Ereigniswege, Zustimmung, ungültige Zusatzfelder, Wiederholungen, Widerruf, verspätete Uploads, Kontolöschung und leere Projektion bei fünf Konten. Migration in einer separaten leeren PostgreSQL-16-Instanz bis Revision `53ce6edb0321` ausgeführt. Vollständige Angriffs-, Nebenläufigkeits-, Wiederherstellungs- und echte Geräte-/End-to-End-Prüfung stehen aus.

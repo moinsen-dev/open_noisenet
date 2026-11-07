@@ -3,7 +3,8 @@
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, HTTPException
+from app.core.config import settings
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -19,7 +20,12 @@ from app.schemas.map import (
     MapStats,
 )
 
-router = APIRouter()
+def require_legacy_map():
+    if not settings.ENABLE_LEGACY_PUBLIC_MAP:
+        raise HTTPException(404, "Not found")
+
+
+router = APIRouter(dependencies=[Depends(require_legacy_map)])
 
 
 @router.get("/events", response_model=GeoJSONResponse)

@@ -11,6 +11,7 @@ from app.api.v1.endpoints import (
     devices,
     events,
     map,
+    map_pilot,
     pro_domains,
     pro_incidents,
     snippets,
@@ -19,6 +20,9 @@ from app.api.v1.endpoints import (
 
 api_router = APIRouter()
 api_router.include_router(source_phases.router, prefix="/source-phases", tags=["private-source-phases"])
+
+# Experimental intake only; no public pilot data is exposed.
+api_router.include_router(map_pilot.router, prefix="/map-pilot", tags=["map-pilot"])
 
 # Include all endpoint routers
 api_router.include_router(account_deletion.router, prefix="/auth", tags=["account-deletion"])

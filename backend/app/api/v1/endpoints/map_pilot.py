@@ -16,10 +16,18 @@ from app.core.config import settings
 from app.db.models.map_pilot import MapPilotConsent, MapPilotContribution, MapPilotRetentionRun
 from app.db.models.user import User
 from app.db.session import get_session
+from app.services.map_pilot_cipher import PilotCipherUnavailable, ensure_key_available, encrypt_payload, decrypt_payload
 
 def require_isolated_pilot():
     if not settings.ENABLE_MAP_PILOT_INTAKE or settings.ENABLE_LEGACY_PUBLIC_MAP:
         raise HTTPException(404, "Not found")
+
+
+def require_pilot_key():
+    try:
+        ensure_key_available()
+    except PilotCipherUnavailable:
+        raise HTTPException(503, "Pilot storage unavailable") from None
 
 
 router = APIRouter(dependencies=[Depends(require_isolated_pilot)])
@@ -57,7 +65,7 @@ async def consent_status(db: DB, user: Annotated[User, Depends(require_user)], r
     return {"enabled": True, "generation": str(row.generation), "notice_version": row.notice_version}
 
 
-@router.post("/consent")
+@router.post("/consent", dependencies=[Depends(require_pilot_key)])
 async def opt_in(body: ConsentRequest, db: DB, user: Annotated[User, Depends(require_user)], response: Response):
     response.headers["Cache-Control"] = "no-store"
     row = await locked_consent(db, user.id)
@@ -84,7 +92,7 @@ async def withdraw(db: DB, user: Annotated[User, Depends(require_user)]):
     return Response(status_code=204, headers={"Cache-Control": "no-store"})
 
 
-@router.put("/contribution", status_code=204)
+@router.put("/contribution", status_code=204, dependencies=[Depends(require_pilot_key)])
 async def contribute(body: Contribution, db: DB, user: Annotated[User, Depends(require_user)]):
     row = await locked_consent(db, user.id)
     if not row or not row.enabled or row.generation != body.generation:
@@ -95,11 +103,16 @@ async def contribute(body: Contribution, db: DB, user: Annotated[User, Depends(r
     if body.day >= today or body.day < today - timedelta(days=30) or body.day <= row.consented_at.date():
         raise HTTPException(422, "Only completed days after consent and within 30 days are accepted")
     prior = await db.scalar(select(MapPilotContribution).where(MapPilotContribution.user_id == user.id, MapPilotContribution.day == body.day))
-    if prior:
-        if (prior.cell_id, prior.level_band) != (body.cell_id, body.level_band):
-            raise HTTPException(409, "Contribution already recorded for this day")
-    else:
-        db.add(MapPilotContribution(user_id=user.id, day=body.day, cell_id=body.cell_id, level_band=body.level_band))
+    try:
+        if prior:
+            current = decrypt_payload(user.id, body.day, prior.payload_nonce, prior.payload_ciphertext)
+            if current != {"cell_id": body.cell_id, "level_band": body.level_band}:
+                raise HTTPException(409, "Contribution already recorded for this day")
+        else:
+            nonce, ciphertext = encrypt_payload(user.id, body.day, body.cell_id, body.level_band)
+            db.add(MapPilotContribution(user_id=user.id, day=body.day, payload_nonce=nonce, payload_ciphertext=ciphertext))
+    except PilotCipherUnavailable:
+        raise HTTPException(503, "Pilot storage unavailable") from None
     await db.commit()
     return Response(status_code=204, headers={"Cache-Control": "no-store"})
 

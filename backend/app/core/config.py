@@ -4,7 +4,7 @@ Application configuration settings.
 
 from typing import Annotated, Any, Dict, List, Optional
 
-from pydantic import AliasChoices, Field, field_validator
+from pydantic import AliasChoices, Field, SecretStr, field_validator
 from pydantic_settings import BaseSettings, NoDecode
 
 
@@ -73,6 +73,7 @@ class Settings(BaseSettings):
     ENABLE_MAP_PILOT_INTAKE: bool = False
     ENABLE_MAP_PILOT_RETENTION: bool = False
     MAP_PILOT_ALLOWED_CELLS: list[str] = []
+    MAP_PILOT_ENCRYPTION_KEY: SecretStr = SecretStr("")
     ENABLE_LEGACY_PUBLIC_MAP: bool = False
 
     # Geospatial settings

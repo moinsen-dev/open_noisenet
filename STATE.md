@@ -2,6 +2,10 @@
 
 ## Übergabe
 
+**07.11.2026 · iOS 0.1.1 (7) eingereicht; Pilot-Restore und Payload-Verschlüsselung getestet.** Apple bestätigt „Warten auf Prüfung“, eingereicht 13:50 Uhr Europe/Berlin; automatische Veröffentlichung ist nicht eingestellt. Ein Sanitationsbaustein entfernt bei isolierter Restore-Probe Pilotbeiträge, Zustimmungen und Löschlaufmarker; echter synthetischer PostgreSQL-Dump/Restore und Ablehnung alter Uploads geprüft. Gebietskennung und Pegelklasse werden mit AES-256-GCM und externem Schlüssel verschlüsselt, Nutzer/Tag bleiben sichtbar; Migration `08c37d61faaa` und Datenerhalt bei verweigerter Migration geprüft. 209 Backendtests bestanden, 4 übersprungen; 2 PostgreSQL-Tests gesondert bestanden. Keine Bereitstellung; Schlüsselbetrieb/-rotation, sichere Wiederherstellung, App-Anbindung und öffentliche Projektion offen. [Maßgeblicher Stand](docs/current-status.md).
+
+## Vorherige Übergabe – Aufbewahrung und Reviewzugang
+
 **07.11.2026 · Aufbewahrungsworker und Apple-Reviewzugang.** Isolierter Pilot-Löschworker mit optionalem stündlichem Beat und nur für Superuser sichtbarem Gesundheitsstatus implementiert; echte PostgreSQL-16-Löschung mit atomarem Erfolgsmarker und Migration `4eb3f01961c1` synthetisch geprüft. Standardmäßig deaktiviert; weder deployt noch extern überwacht, Backup-Löschjournal und sichere öffentliche Projektion offen. Apple 0.1.1 (7) bleibt Entwurf; synthetischer Reviewlogin über app-typischen HTTPS-Client erfolgreich, aktuelles Apple-Formular mit funktionierendem Zugang per Änderungserkennung abgeglichen. Standard-Python-Client wurde von Cloudflare 1010 blockiert. Keine Apple-Einreichung. [Maßgeblicher Stand](docs/current-status.md).
 
 ## Vorherige Übergabe – iPhone und Pilotabsicherung

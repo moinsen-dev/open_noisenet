@@ -6,6 +6,13 @@ from app.core.config import settings
 from app.db.models.map_pilot import MapPilotConsent, MapPilotContribution
 
 
+@pytest.fixture(autouse=True)
+def synthetic_pilot_key(monkeypatch):
+    from pydantic import SecretStr
+    import base64
+    monkeypatch.setattr(settings, "MAP_PILOT_ENCRYPTION_KEY", SecretStr(base64.b64encode(b"s"*32).decode()))
+
+
 @pytest.mark.asyncio
 async def test_closed_by_default_and_legacy_routes_closed(client):
     assert not settings.ENABLE_MAP_PILOT_INTAKE
@@ -36,6 +43,14 @@ async def test_opt_in_upload_revoke_reconsent_and_stale_queue(auth_client, db_se
     assert (await auth_client.put(path+'/contribution', json={**body, 'latitude':53.5})).status_code == 422
     assert (await auth_client.put(path+'/contribution', json={**body, 'cell_id':'custom-location'})).status_code == 422
     assert (await auth_client.put(path+'/contribution', json=body)).status_code == 204
+    stored = await db_session.scalar(select(MapPilotContribution))
+    assert b'test-area' not in stored.payload_ciphertext and b'medium' not in stored.payload_ciphertext
+    original = stored.payload_ciphertext
+    stored.payload_ciphertext = original[:-1] + bytes([original[-1] ^ 1])
+    await db_session.commit()
+    assert (await auth_client.put(path+'/contribution', json=body)).status_code == 503
+    stored.payload_ciphertext = original
+    await db_session.commit()
     assert (await auth_client.put(path+'/contribution', json=body)).status_code == 204
     assert (await auth_client.put(path+'/contribution', json={**body, 'cell_id':'other-area'})).status_code == 409
     assert (await auth_client.get(path+'/public')).json() == {'areas': [], 'status':'not_available'}
@@ -107,7 +122,7 @@ async def test_five_accounts_still_do_not_prove_independent_participants(client,
         user = User(id=uuid4(), email=f'fake{i}@example.org', full_name='synthetic', hashed_password='none', is_active=True, is_superuser=False, is_verified=False)
         db_session.add(user)
         await db_session.flush()
-        db_session.add(MapPilotContribution(user_id=user.id, day=datetime.now(UTC).date()-timedelta(days=1), cell_id="test-area", level_band='high'))
+        db_session.add(MapPilotContribution(user_id=user.id, day=datetime.now(UTC).date()-timedelta(days=1), payload_nonce=b"synthetic", payload_ciphertext=b"synthetic"))
     await db_session.commit()
     r = await client.get('/api/v1/map-pilot/public')
     assert r.status_code == 200 and r.json() == {'areas': [], 'status':'not_available'}
@@ -125,7 +140,7 @@ async def test_retention_purges_only_expired_contributions_and_requires_commit(d
     db_session.add(user)
     await db_session.flush()
     for age in (31, 30, 1):
-        db_session.add(MapPilotContribution(user_id=user.id, day=today-timedelta(days=age), cell_id='test-area', level_band='low'))
+        db_session.add(MapPilotContribution(user_id=user.id, day=today-timedelta(days=age), payload_nonce=b'synthetic', payload_ciphertext=b'synthetic'))
     await db_session.commit()
     assert await erase_contributions_before_retention_cutoff(db_session, today=today) == 1
     await db_session.rollback()
@@ -163,3 +178,23 @@ async def test_retention_health_is_private_and_reports_missing_stale_ok(auth_cli
     assert (await auth_client.get(path)).json()['status'] == 'clock_error'
     monkeypatch.setattr(settings, 'ENABLE_MAP_PILOT_RETENTION', False)
     assert (await auth_client.get(path)).json() == {'status': 'disabled'}
+
+
+@pytest.mark.asyncio
+async def test_pilot_refuses_writes_but_allows_withdrawal_when_key_missing(auth_client, db_session, monkeypatch):
+    from pydantic import SecretStr
+    monkeypatch.setattr(settings, 'ENABLE_MAP_PILOT_INTAKE', True)
+    monkeypatch.setattr(settings, 'MAP_PILOT_ALLOWED_CELLS', ['test-area'])
+    path = '/api/v1/map-pilot'
+    grant = await auth_client.post(path+'/consent', json={'notice_version':'pilot-draft-2026-11-07','accepted':True})
+    consent = await db_session.scalar(select(MapPilotConsent))
+    consent.consented_at = datetime.now(UTC) - timedelta(days=3)
+    await db_session.commit()
+    body = {'generation':grant.json()['generation'], 'day':(datetime.now(UTC).date()-timedelta(days=1)).isoformat(), 'cell_id':'test-area', 'level_band':'low'}
+    assert (await auth_client.put(path+'/contribution', json=body)).status_code == 204
+    monkeypatch.setattr(settings, 'MAP_PILOT_ENCRYPTION_KEY', SecretStr(''))
+    assert (await auth_client.post(path+'/consent', json={'notice_version':'pilot-draft-2026-11-07','accepted':True})).status_code == 503
+    assert (await auth_client.put(path+'/contribution', json=body)).status_code == 503
+    assert (await auth_client.delete(path+'/consent')).status_code == 204
+    assert (await db_session.scalars(select(MapPilotContribution))).all() == []
+    assert (await auth_client.get(path+'/public')).json() == {'areas': [], 'status':'not_available'}

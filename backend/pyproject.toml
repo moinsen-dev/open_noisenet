@@ -33,6 +33,7 @@ dependencies = [
     "psycopg2-binary>=2.9.0",
     # Authentication & Security
     "pyjwt[crypto]>=2.10.1",
+    "cryptography>=46.0.0",
     "passlib[bcrypt]>=1.7.4",
     "python-multipart>=0.0.6",
     # Background tasks

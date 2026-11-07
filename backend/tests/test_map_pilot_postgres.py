@@ -22,6 +22,9 @@ async def test_withdraw_serializes_with_queued_upload_on_postgres(monkeypatch):
     factory = async_sessionmaker(engine, expire_on_commit=False)
     uid, generation = uuid.uuid4(), uuid.uuid4()
     monkeypatch.setattr(settings, 'MAP_PILOT_ALLOWED_CELLS', ['test-area'])
+    from pydantic import SecretStr
+    import base64
+    monkeypatch.setattr(settings, 'MAP_PILOT_ENCRYPTION_KEY', SecretStr(base64.b64encode(b"s"*32).decode()))
     try:
         async with factory() as setup:
             user = User(id=uid, email=f'{uid}@example.org', hashed_password='synthetic', full_name='Synthetic', is_active=True, is_superuser=False, is_verified=False)
@@ -78,7 +81,7 @@ async def test_scheduled_retention_commits_in_postgres(monkeypatch):
             setup.add(User(id=uid, email=f'{uid}@example.org', hashed_password='synthetic', full_name='Synthetic', is_active=True, is_superuser=False, is_verified=False))
             await setup.flush()
             for age in (31, 30):
-                setup.add(MapPilotContribution(user_id=uid, day=datetime.now(UTC).date()-timedelta(days=age), cell_id='test-area', level_band='low'))
+                setup.add(MapPilotContribution(user_id=uid, day=datetime.now(UTC).date()-timedelta(days=age), payload_nonce=b'synthetic', payload_ciphertext=b'synthetic'))
             await setup.commit()
         task = celery_app.tasks['app.workers.maintenance_tasks.map_pilot_retention']
         outcome = await asyncio.to_thread(lambda: task.apply(throw=True).get())

@@ -2,6 +2,10 @@
 
 ## Übergabe
 
+**07.11.2026 · Pilotdatenblatt festgelegt, Punkt 2 aktuell.** Udi beauftragt Abarbeitung aller zehn Punkte bis zum nachgewiesenen Abschluss. Punkt 1 in [Checkliste](docs/kartenpilot-checkliste.md): Hamburg-Eimsbüttel inklusive Kippingstraße, 28 Tage, feste UTC-Kalenderwochen, mindestens fünf getrennt bestätigte Personen als zu prüfender Parameter, keine Einzelstandorte oder Audio, keinerlei reale Freigabe unterstellt. Reale Kartengeometrie, Messqualität, organisatorische Bestätigung, Recht und Betrieb sind in späteren Punkten nachzuweisen. Punkt 2 teilweise: bisherige Einzelpunktansicht lokal durch geschlossene Ansicht ersetzt; synthetischer Schwellen-/Zeittest ohne API-Anbindung. Frontend Typecheck, Lint, Build und 3 Tests sowie 23 gezielte Backendtests und insgesamt 216 Backendtests bestanden (4 übersprungen). → Punkt 2: tatsächliche sichere Projektion samt Rückschluss- und Widerrufsschutz, Messqualität und Kartenansicht weiter umsetzen; öffentliche API bleibt leer, keine echten Teilnehmerdaten oder Veröffentlichung.
+
+## Vorherige Übergabe – Endliche Checkliste
+
 **07.11.2026 · Endliche Kartenpilot-Checkliste erstellt.** Udi möchte eine konkrete Liste mit klaren Abnahmekriterien statt wiederholter allgemeiner Datenschutzaufträge. [Maßgebliche Checkliste](docs/kartenpilot-checkliste.md): zehn geordnete Schritte vom begrenzten Hamburger Pilotumfang bis zur Gesamtprobe und Betriebsentscheidung; → Punkt 1 als nächster ausführbarer Schritt. Bestehende Prototypen ausdrücklich nicht als fertiger Pilot gewertet. Keine Implementierung oder Veröffentlichung in diesem Planungsauftrag. [Projektstand](docs/current-status.md).
 
 ## Vorherige Übergabe – iOS-Einreichung und Datenschutz

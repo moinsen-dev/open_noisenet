@@ -2,7 +2,7 @@
 
 ## Verbindliche Checkliste für den begrenzten Kartenpilot · 07.11.2026
 
-**→ Aktuell: Punkt 1 von 10 – Pilotgebiet, Datenfelder und Abnahmekriterien festlegen.** Die [Kartenpilot-Checkliste](kartenpilot-checkliste.md) ist der maßgebliche Tracker: zehn Schritte bis zu einem begrenzten öffentlichen Hamburger Pilot oder einem dokumentierten „nicht startbereit“. Vorhandene Testbausteine sind als teilweise gekennzeichnet; echte Teilnehmerdaten und öffentliche Freigabe bleiben bis zu den Kriterien gesperrt. Der Nutzer hat in diesem Schritt eine konkrete, endliche Checkliste verlangt; keine neuen Implementierungen oder Veröffentlichungen daraus stillschweigend begonnen.
+**→ Aktuell: Punkt 2 von 10 – sichere öffentliche Zusammenfassungen entwickeln und prüfen.** Punkt 1 ist als Pilotdatenblatt für Hamburg-Eimsbüttel, 28 Tage und feste Kalenderwochen dokumentiert; reale Geometrie, Messqualität, Personenunabhängigkeit und Betrieb bleiben vor Echtdatenbetrieb nachzuweisen. Die [Kartenpilot-Checkliste](kartenpilot-checkliste.md) ist der maßgebliche Tracker: zehn Schritte bis zu einem begrenzten öffentlichen Hamburger Pilot oder einem dokumentierten „nicht startbereit“. Vorhandene Testbausteine sind als teilweise gekennzeichnet; echte Teilnehmerdaten und öffentliche Freigabe bleiben bis zu den Kriterien gesperrt. Udi hat die Abarbeitung aller Punkte beauftragt; Punkt 10 ist erst bei den dort ausdrücklich genannten echten Nachweisen erfüllt.
 
 
 ## iOS-Einreichung und Restore-Schutz · 07.11.2026
@@ -416,3 +416,5 @@ Expected local ports:
 - Dashboard: `http://localhost:3100`
 - Grafana: `http://localhost:3101` (admin/admin)
 - Prometheus: `http://localhost:9190`
+
+**Kartenpilot, Punkt 2 – Zwischenstand 07.11.2026:** Alte Einzelpunktansicht lokal durch geschlossene Pilotansicht ohne externe Kacheln ersetzt; nicht angebundene synthetische Wochenschwellenprüfung ergänzt. Frontend Typecheck, Lint, Build und drei Tests sowie 23 gezielte Backendtests und insgesamt 216 Backendtests bestanden (4 übersprungen). API veröffentlicht weiter nichts; reale Projektion, Identitätsprüfung, Rückschluss-/Widerrufsschutz und Messklassen fehlen. Details: [maßgebliche Checkliste](kartenpilot-checkliste.md).

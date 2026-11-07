@@ -2,7 +2,7 @@
 
 ## Übergabe
 
-**07.11.2026 · Pilotdatenblatt festgelegt, Punkt 2 aktuell.** Udi beauftragt Abarbeitung aller zehn Punkte bis zum nachgewiesenen Abschluss. Punkt 1 in [Checkliste](docs/kartenpilot-checkliste.md): Hamburg-Eimsbüttel inklusive Kippingstraße, 28 Tage, feste UTC-Kalenderwochen, mindestens fünf getrennt bestätigte Personen als zu prüfender Parameter, keine Einzelstandorte oder Audio, keinerlei reale Freigabe unterstellt. Reale Kartengeometrie, Messqualität, organisatorische Bestätigung, Recht und Betrieb sind in späteren Punkten nachzuweisen. Punkt 2 teilweise: bisherige Einzelpunktansicht lokal durch geschlossene Ansicht ersetzt; synthetischer Schwellen-/Zeittest ohne API-Anbindung. Frontend Typecheck, Lint, Build und 3 Tests sowie 23 gezielte Backendtests und insgesamt 216 Backendtests bestanden (4 übersprungen). → Punkt 2: tatsächliche sichere Projektion samt Rückschluss- und Widerrufsschutz, Messqualität und Kartenansicht weiter umsetzen; öffentliche API bleibt leer, keine echten Teilnehmerdaten oder Veröffentlichung.
+**07.11.2026 · Kartenpilot Punkt 2 weiter umgesetzt, nicht abgeschlossen.** Amtlicher Stadtteil-Umriss ohne externen Kartenanbieter und Ausgabe mit engem Feldschema implementiert. Wochenschwelle und API/UI mit vier und fünf synthetischen Personen lokal durchgängig im Browser geprüft; reale Snapshot-Quelle bleibt geschlossen. Frontend Typecheck/Lint/Build und vier Tests, Backend 229 bestanden/4 übersprungen. → Weiter Punkt 2: geprüfte reale Snapshotquelle, Identitäts-/Messqualitäts- und Widerrufsschutz; anschließend Punkte 3–10 der [Checkliste](docs/kartenpilot-checkliste.md). Kein Deployment und keine echten Beiträge.
 
 ## Vorherige Übergabe – Endliche Checkliste
 

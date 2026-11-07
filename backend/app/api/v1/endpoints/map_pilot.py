@@ -8,7 +8,7 @@ from datetime import UTC, date, datetime, timedelta
 from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Response
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.deps import require_user, require_superuser
@@ -48,6 +48,28 @@ class Contribution(BaseModel):
     # Only server-allowlisted identifiers; no arbitrary coordinate channel.
     cell_id: str = Field(strict=True, min_length=1, max_length=32, pattern=r"^[a-z0-9_-]+$")
     level_band: Literal["low", "medium", "high"]
+
+
+class PublicAreaWeek(BaseModel):
+    # An explicit output allowlist; never serialize contribution rows directly.
+    model_config = ConfigDict(extra="forbid")
+    area: Literal["hamburg-eimsbuettel"]
+    week_start: date
+    band: Literal["low", "medium", "high"]
+
+    @field_validator("week_start")
+    @classmethod
+    def require_monday(cls, value: date) -> date:
+        if value.weekday() != 0:
+            raise ValueError("Expected a UTC calendar week")
+        return value
+
+
+def public_snapshot() -> list[PublicAreaWeek]:
+    # Intentionally no real data source until identity, quality, withdrawal,
+    # immutable publication and difference attacks have been addressed.
+    # Tests can supply synthetic snapshots through FastAPI dependency overrides.
+    return []
 
 
 async def locked_consent(db, user_id):
@@ -118,10 +140,10 @@ async def contribute(body: Contribution, db: DB, user: Annotated[User, Depends(r
 
 
 @router.get("/public")
-async def public_projection(response: Response):
-    # Fail closed even at k>=5; accounts and devices do not prove independent people.
+async def public_projection(response: Response, areas: Annotated[list[PublicAreaWeek], Depends(public_snapshot)]):
+    # Fail closed by default even at k>=5; accounts do not prove distinct people.
     response.headers["Cache-Control"] = "no-store"
-    return {"areas": [], "status": "not_available"}
+    return {"areas": [area.model_dump(mode="json") for area in areas], "status": "available" if areas else "not_available"}
 
 
 @router.get("/admin/retention-health")

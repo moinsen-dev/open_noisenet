@@ -29,6 +29,19 @@ def test_weekly_projection_weights_people_not_days_and_is_delayed():
     }]
 
 
+def test_many_days_and_repeated_records_cannot_replace_a_fifth_person():
+    records = [
+        PrototypeContribution(f"test-{person}", WEEK + timedelta(days=day), "high")
+        for person in range(4)
+        for day in range(7)
+    ]
+    assert prototype_projection(records * 10, WEEK, READY) == []
+    # Records in neighbouring fixed weeks cannot lift the current week over
+    # the threshold, even if they belong to different synthetic identities.
+    records.extend(PrototypeContribution(f"other-{i}", WEEK + timedelta(days=7), "high") for i in range(20))
+    assert prototype_projection(records, WEEK, READY) == []
+
+
 def test_ties_and_conflicting_days_do_not_create_a_value():
     records = [PrototypeContribution(f"test-{i}", WEEK, "low" if i < 2 else "high") for i in range(4)]
     records.append(PrototypeContribution("test-4", WEEK, "medium"))

@@ -2,6 +2,10 @@
 
 ## Übergabe
 
+**07.11.2026 · Android öffentlich und Website aktualisiert; Apple-Anmeldung erforderlich.** Deutsche Play-Seite bietet Installation und zeigt neuen Titel, Kurz-/Langtext sowie fünf Bilder. Website https://opennoisenet.moinsen.dev/ zeigt Android-Download und Entwicklungsgrenzen; Release-HTML und RSC-Datei aktualisiert, Vorgängerdateien vor Ort gesichert, Typecheck/Lint/Build und 3 Tests bestanden. iOS-Link zur App-ID 6831511809 zeigt in Deutschland „Seite nicht gefunden“. App Store Connect verlangt neue Anmeldung; genauer Review-/TestFlight-Status und Verbesserung der iOS-Storefront nach Anmeldung fortsetzen. Udi wurde um Login gebeten. Nutzerbeobachtung HTC 10 ca. 20 niedriger als iPhone 12 als unbestätigter Kalibrierfall im Backlog; kein pauschaler Offset. [Maßgeblicher Stand](docs/current-status.md).
+
+## Vorherige Übergabe – Play-Einreichung
+
 **07.11.2026, erneut geprüft um 10:56 Uhr Europe/Berlin · Deutsche Store-Seite zur Veröffentlichung eingereicht; Google prüft noch.** Udi hat den vorbereiteten Stand freigegeben. Einreichung **3**, 10:48 Uhr Europe/Berlin: vier Änderungen für de-DE (Titel, Kurztext, Langtext, fünf Phone-Screenshots). Quick Checks abgeschlossen, Status „In review“. Fünf mit KI gestaltete Grafiken in Googles Asset-Abfrage gekennzeichnet; originale App-Ansichten bleiben dokumentiert. Automatische Veröffentlichung nach Genehmigung ist aktiv („Managed publishing off“). Öffentlich auch bei der erneuten Prüfung noch alter Titel, alte Kurz-/Langbeschreibung und zwei Bilder; **nicht als live melden**. Nächster Schritt: nach Google-Freigabe öffentliche deutsche Texte sowie alle fünf Bilder einzeln und in Reihenfolge prüfen. Keine neue Zustimmung erforderlich. Kein Monitor/keine Automation gestartet. Private Belege: `~/Library/Application Support/OpenNoiseNet/ASO-20261107/play-submission-3-status.jpg` und `play-public-before-approval.jpg`. [Maßgeblicher Stand](docs/current-status.md).
 
 ## Vorherige Übergabe – fünf Storebilder und Entwurf

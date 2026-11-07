@@ -37,13 +37,13 @@ Ein kleiner Vergleich liefert zwei unterschiedliche Positionierungen. NoiseCaptu
 > Baustelle im Hinterhof, Verkehr vor dem Fenster oder wiederkehrender Lärm im Haus? OpenNoiseNet hilft dir, Zeiträume zu verstehen und deine eigenen Beobachtungen festzuhalten.
 >
 > **Wann war es laut und wie lange?**
-> Starte eine Messung und schalte die lokale Geräuschhistorie ein. Sie zeigt Pegelverläufe, zusammenhängende Geräuschphasen und mögliche Quellen. Kurze Pausen können zu einer gemeinsamen Phase gehören. Die Hinweise der Geräuscherkennung ergänzt du mit dem, was du selbst wahrgenommen hast.
+> Starte eine Messung und schalte die lokale Geräuschhistorie ein. Sie zeigt zusammenhängende Geräuschphasen, mögliche Quellen und Pegelabschnitte. Kurze Pausen können zu einer gemeinsamen Phase gehören. Die Hinweise der Geräuscherkennung ergänzt du mit dem, was du selbst wahrgenommen hast.
 >
 > **Dein persönliches Lärmtagebuch**
 > Halte Beginn, Dauer und Auswirkungen auf deinen Alltag fest. Ergänze eine eigene Beschreibung und exportiere deine Einträge, wenn du sie weitergeben möchtest. Das Tagebuch kannst du auch ohne laufende Messung nutzen.
 >
 > **Lokal starten**
-> Die lokale Nutzung funktioniert ohne Konto. Der Standort ist freiwillig. Tagebuch und Geräuschhistorie werden lokal verschlüsselt gespeichert. Die Geräuschanalyse läuft auf deinem Gerät. In dieser Version werden keine neuen Audioaufnahmen gespeichert. Ein von dir erzeugter Export ist unverschlüsselt.
+> Die lokale Nutzung funktioniert ohne Konto. Der Standort ist freiwillig. Tagebucheinträge und gespeicherte Quellenhinweise werden lokal verschlüsselt gespeichert. Minutenpegel werden separat auf dem Gerät gespeichert. Die Geräuschanalyse läuft auf deinem Gerät. In dieser Version werden keine neuen Audioaufnahmen gespeichert. Ein von dir erzeugter Export ist unverschlüsselt.
 >
 > **Für einen eigenen Server**
 > Wenn du einen eigenen HTTPS-Server einrichtest, kannst du dafür die vorgesehenen Übertragungen freigeben. Dort gelten die Datenschutzinformationen des jeweiligen Betreibers. Ein angelegtes Serverkonto kannst du in der App löschen.

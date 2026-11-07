@@ -1,0 +1,47 @@
+[
+  {
+    "file": "01-phases.jpg",
+    "raw": "../../raw/android/01-phases.png",
+    "raw_sha256": "49a4b35b5aafef5ff3bd836cedef3f4927314b800d5a8276f63f8f32c0eabc70",
+    "headline": "Wann war es laut?",
+    "subline": "Geräuschphasen im Überblick.",
+    "width": 1080,
+    "height": 1920
+  },
+  {
+    "file": "02-duration.jpg",
+    "raw": "../../raw/android/02-duration.png",
+    "raw_sha256": "91ca606ddca1d79921737d163bcf374334a67918186505d20722327e8a79be99",
+    "headline": "Wie lange dauerte es?",
+    "subline": "Zusammenhänge sehen. Pausen erkennen.",
+    "width": 1080,
+    "height": 1920
+  },
+  {
+    "file": "03-sources.jpg",
+    "raw": "../../raw/android/03-sources.png",
+    "raw_sha256": "ef1cf433acf199b2061aa80a4e837a7a6245937da2e15cbf11ad0d68b5480dbc",
+    "headline": "Was könnte die Quelle sein?",
+    "subline": "Mögliche Quellen mit Zeit und Dauer.",
+    "width": 1080,
+    "height": 1920
+  },
+  {
+    "file": "04-diary.jpg",
+    "raw": "../../raw/android/04-diary.png",
+    "raw_sha256": "60887361a4523a9ffa923438d8fd9600ac976692119f00a00d049d1f751d25da",
+    "headline": "Halte fest, was dich stört.",
+    "subline": "Deine Beobachtung. Dein Lärmtagebuch.",
+    "width": 1080,
+    "height": 1920
+  },
+  {
+    "file": "05-export.jpg",
+    "raw": "../../raw/android/05-export.png",
+    "raw_sha256": "1ed037b9e4543ffbc8a82860383ad5a5b9bdfaccd652afe4e796ac5bd474c505",
+    "headline": "Dein Tagebuch. Zum Weitergeben.",
+    "subline": "Als CSV exportieren. Speicherort selbst wählen.",
+    "width": 1080,
+    "height": 1920
+  }
+]

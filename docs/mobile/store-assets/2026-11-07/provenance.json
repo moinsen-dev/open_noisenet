@@ -1,0 +1,26 @@
+{
+  "original_sha256": "16f93d45355ffbf323e60c83ee927d2dd6a369f5e7a45bbe9cf070468bffa1d4",
+  "qa_apk_sha256": "b3926598e73d002e84ffe2717b80e277776205d008ce008deba2eb271b43e803",
+  "identical_non_signature_entries": 414,
+  "app_version": "0.1.0+6",
+  "note": "Only local signing changed; original release code/assets. Dedicated emulator, synthetic data, not a Play install.",
+  "screenshots": {
+    "raw/android/01-phases.png": "49a4b35b5aafef5ff3bd836cedef3f4927314b800d5a8276f63f8f32c0eabc70",
+    "raw/android/02-duration.png": "91ca606ddca1d79921737d163bcf374334a67918186505d20722327e8a79be99",
+    "raw/android/03-sources.png": "ef1cf433acf199b2061aa80a4e837a7a6245937da2e15cbf11ad0d68b5480dbc",
+    "raw/android/04-diary.png": "60887361a4523a9ffa923438d8fd9600ac976692119f00a00d049d1f751d25da",
+    "raw/android/05-export.png": "1ed037b9e4543ffbc8a82860383ad5a5b9bdfaccd652afe4e796ac5bd474c505"
+  },
+  "capture_device": "Dedicated Android 15 / API 35 emulator, 16 KB pages, 1080x1920, density 420",
+  "fixture": "mobile/tool/store_seed_main.dart; emulator only; code replaced before capture",
+  "verified_export": "CSV saved through native Android file picker; both synthetic entries and separate hint columns present",
+  "real_device_used": false,
+  "rendered_jpeg_sha256": {
+    "01-phases.jpg": "4b4dacd1b8cfb3cb9bcea96cfbc92adfad3adaae1dac2e64dc338a72c26e0017",
+    "02-duration.jpg": "a789ee7b3384cdf5e7928b7b8d66d06999325b7f64323fc19bc5eede6e64c1da",
+    "03-sources.jpg": "2ee5be78d79c529302ddf7a71ba1ede58d50afeb19b66020f8b04f62ef6c611b",
+    "04-diary.jpg": "25005949e5eb7d206a4a0d8432cdb94f81f8c37623d44d94145a60f853109f19",
+    "05-export.jpg": "3c30b135fe5dd2e3bcb75cff6226f8bd9b4c31057b5aaeb4eb5b5b18185e4071"
+  },
+  "play_draft_verified": "2026-11-07: de-DE text and ordered five images persisted after reload; Draft changes visible; not submitted or published"
+}

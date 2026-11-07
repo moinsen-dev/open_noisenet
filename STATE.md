@@ -2,6 +2,10 @@
 
 ## Übergabe
 
+**07.11.2026 · Fünf deutsche Storebilder umgesetzt, Play-Entwurf gespeichert.** Udi hat den Einstieg über Geräuschphasen ausgewählt. Originalansichten aus Android-Release 0.1.0 (6) auf eigenem 16-KB-Emulator mit ausschließlich synthetischen Daten. Quellenphasen, Pausen, Tagebuch und echter CSV-Speicherablauf geprüft. Debug-Datenlader vor Aufnahmen durch Release ersetzt; 414 nicht zur Signatur gehörende APK-Einträge bytegleich. [Bilder, Vorschau und Herkunft](docs/mobile/store-assets/2026-11-07/README.md). Fünf JPEGs in 1080 × 1920, einzeln visuell geprüft. Deutsche Texte und Bilder aufsteigend in Google Play als Entwurf gespeichert, nicht eingereicht/veröffentlicht. Physischer Pixel und iOS unverändert. Weitere Veröffentlichung und ASO-Experiment sind getrennte Schritte. [Maßgeblicher Stand](docs/current-status.md).
+
+## Vorherige Übergabe – ASO-Vorschlag
+
 **07.11.2026 · Storefront und erster ASO-Lernplan vorbereitet.** Öffentliche deutsche und englische Play-Fassung geprüft: zwei Tagebuchscreens, bisher keine sichtbare Geräuschhistorie oder abgeschlossene Quellenphase. [Konkreter Vorschlag](docs/mobile/aso-first-pass-2026-11-07.md) enthält Titel, Kurz-/Langbeschreibung, fünf Bildmotive und ein späteres lokalisiertes Experiment mit einer Gegenvariante. Zwei illustrative Gestaltungsskizzen liegen außerhalb des Repositorys im Codex-Visualisierungsordner dieses Chats. Sie sind keine fertigen Store-Assets; die lokale Browser-Vorschau wurde durch die URL-Sicherheitsrichtlinie blockiert. Kein Storetext geändert, kein Experiment gestartet, keine privaten Messdaten verwendet. Nächster vorgeschlagener Umsetzungsschritt: echte Release-Screens mit synthetischen Inhalten und Akquisitions-Ausgangswerte aus Play. Apple-Status heute nicht neu abgefragt. [Maßgeblicher Stand](docs/current-status.md).
 
 ## Vorherige Übergabe – öffentlicher Android-Start

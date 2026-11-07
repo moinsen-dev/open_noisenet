@@ -71,6 +71,7 @@ class Settings(BaseSettings):
 
     # Experimental pilot remains closed unless explicitly enabled in an isolated environment.
     ENABLE_MAP_PILOT_INTAKE: bool = False
+    ENABLE_MAP_PILOT_RETENTION: bool = False
     MAP_PILOT_ALLOWED_CELLS: list[str] = []
     ENABLE_LEGACY_PUBLIC_MAP: bool = False
 

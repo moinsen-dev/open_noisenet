@@ -133,3 +133,33 @@ async def test_retention_purges_only_expired_contributions_and_requires_commit(d
     assert await erase_contributions_before_retention_cutoff(db_session, today=today) == 1
     await db_session.commit()
     assert sorted((today-d).days for d in (await db_session.scalars(select(MapPilotContribution.day))).all()) == [1, 30]
+
+
+@pytest.mark.asyncio
+async def test_retention_health_is_private_and_reports_missing_stale_ok(auth_client, client, db_session, monkeypatch):
+    from app.db.models.map_pilot import MapPilotRetentionRun
+    from app.db.models.user import User
+    monkeypatch.setattr(settings, 'ENABLE_MAP_PILOT_INTAKE', True)
+    monkeypatch.setattr(settings, 'ENABLE_MAP_PILOT_RETENTION', True)
+    monkeypatch.setattr(settings, 'ENABLE_BACKGROUND_TASKS', True)
+    path = '/api/v1/map-pilot/admin/retention-health'
+    auth = client.headers.pop('Authorization')
+    assert (await client.get(path)).status_code == 401
+    client.headers['Authorization'] = auth
+    assert (await auth_client.get(path)).status_code == 403
+    user = await db_session.scalar(select(User).where(User.email == 'authed@test.noisenet.org'))
+    user.is_superuser = True
+    await db_session.commit()
+    assert (await auth_client.get(path)).json() == {'status': 'missing'}
+    db_session.add(MapPilotRetentionRun(completed_at=datetime.now(UTC)-timedelta(hours=3)))
+    await db_session.commit()
+    assert (await auth_client.get(path)).json()['status'] == 'stale'
+    db_session.add(MapPilotRetentionRun(completed_at=datetime.now(UTC)))
+    await db_session.commit()
+    r = await auth_client.get(path)
+    assert r.json()['status'] == 'ok' and r.headers['cache-control'] == 'no-store'
+    db_session.add(MapPilotRetentionRun(completed_at=datetime.now(UTC)+timedelta(hours=1)))
+    await db_session.commit()
+    assert (await auth_client.get(path)).json()['status'] == 'clock_error'
+    monkeypatch.setattr(settings, 'ENABLE_MAP_PILOT_RETENTION', False)
+    assert (await auth_client.get(path)).json() == {'status': 'disabled'}

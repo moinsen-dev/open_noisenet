@@ -22,3 +22,9 @@ class MapPilotContribution(Base):
     day: Mapped[date] = mapped_column(Date, nullable=False)
     cell_id: Mapped[str] = mapped_column(String(32), nullable=False)
     level_band: Mapped[str] = mapped_column(String(16), nullable=False)
+
+
+class MapPilotRetentionRun(Base):
+    """Health heartbeat with no participant identifiers or measurement data."""
+    __tablename__ = "map_pilot_retention_runs"
+    completed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)

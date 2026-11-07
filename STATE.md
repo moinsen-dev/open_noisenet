@@ -2,6 +2,10 @@
 
 ## Übergabe
 
+**07.11.2026 · Aufbewahrungsworker und Apple-Reviewzugang.** Isolierter Pilot-Löschworker mit optionalem stündlichem Beat und nur für Superuser sichtbarem Gesundheitsstatus implementiert; echte PostgreSQL-16-Löschung mit atomarem Erfolgsmarker und Migration `4eb3f01961c1` synthetisch geprüft. Standardmäßig deaktiviert; weder deployt noch extern überwacht, Backup-Löschjournal und sichere öffentliche Projektion offen. Apple 0.1.1 (7) bleibt Entwurf; synthetischer Reviewlogin über app-typischen HTTPS-Client erfolgreich, aktuelles Apple-Formular mit funktionierendem Zugang per Änderungserkennung abgeglichen. Standard-Python-Client wurde von Cloudflare 1010 blockiert. Keine Apple-Einreichung. [Maßgeblicher Stand](docs/current-status.md).
+
+## Vorherige Übergabe – iPhone und Pilotabsicherung
+
 **07.11.2026 · iPhone-Build 7 bestätigt, Pilot weiter abgesichert.** Auf iPhone 16 Pro Max Version 0.1.1 (7) installiert und laufender Prozess nachgewiesen. Udi meldet die erbetene App-Prüfung als unauffällig; keine eigene Fernansicht, weil Device Hub bei aktivem Mikrofon/Kamera Screen Sharing sperrt. Pilot: nur serverseitig freigegebene Gebietskennungen, leere Standardliste, authentifizierter Zustimmungsstatus, transaktionaler 30-Tage-Löschbaustein ohne automatischen Plan. 201 Backendtests bestanden, 2 übersprungen; PostgreSQL-Sperrtest und Migration mit Schutz vorhandener Daten gesondert bestanden. Öffentliche Projektion bleibt leer; App-Anbindung, Gebietswahl, Betriebs-/Backup-Löschung und Angriffsprüfungen offen. Nichts deployt. [Maßgeblicher Stand](docs/current-status.md).
 
 ## Vorherige Übergabe – Upload und Pilotgrundlage

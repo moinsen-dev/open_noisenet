@@ -56,3 +56,40 @@ async def test_withdraw_serializes_with_queued_upload_on_postgres(monkeypatch):
             await cleanup.execute(delete(User).where(User.id == uid))
             await cleanup.commit()
         await engine.dispose()
+
+
+@pytest.mark.asyncio
+async def test_scheduled_retention_commits_in_postgres(monkeypatch):
+    """Real worker task and DB, isolated synthetic database only."""
+    from datetime import date
+    from app.workers.celery_app import celery_app
+    from app.db.models.map_pilot import MapPilotRetentionRun
+    url = os.environ.get('MAP_PILOT_DISPOSABLE_POSTGRES_URL')
+    if not url:
+        pytest.skip('Requires an explicitly provided isolated disposable PostgreSQL database')
+    assert url == str(settings.DATABASE_URL)
+    engine = create_async_engine(url)
+    factory = async_sessionmaker(engine, expire_on_commit=False)
+    uid = uuid.uuid4()
+    for key, value in [('ENABLE_MAP_PILOT_RETENTION', True), ('ENABLE_MAP_PILOT_INTAKE', True), ('ENABLE_BACKGROUND_TASKS', True), ('ENABLE_LEGACY_PUBLIC_MAP', False)]:
+        monkeypatch.setattr(settings, key, value)
+    try:
+        async with factory() as setup:
+            setup.add(User(id=uid, email=f'{uid}@example.org', hashed_password='synthetic', full_name='Synthetic', is_active=True, is_superuser=False, is_verified=False))
+            await setup.flush()
+            for age in (31, 30):
+                setup.add(MapPilotContribution(user_id=uid, day=datetime.now(UTC).date()-timedelta(days=age), cell_id='test-area', level_band='low'))
+            await setup.commit()
+        task = celery_app.tasks['app.workers.maintenance_tasks.map_pilot_retention']
+        outcome = await asyncio.to_thread(lambda: task.apply(throw=True).get())
+        assert outcome == {'status': 'committed', 'deleted': 1}
+        async with factory() as check:
+            remaining = (await check.scalars(select(MapPilotContribution).where(MapPilotContribution.user_id == uid))).all()
+            assert len(remaining) == 1 and remaining[0].day == datetime.now(UTC).date()-timedelta(days=30)
+            assert len((await check.scalars(select(MapPilotRetentionRun))).all()) == 1
+    finally:
+        async with factory() as cleanup:
+            await cleanup.execute(delete(MapPilotContribution).where(MapPilotContribution.user_id == uid))
+            await cleanup.execute(delete(User).where(User.id == uid))
+            await cleanup.commit()
+        await engine.dispose()

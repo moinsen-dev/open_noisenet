@@ -9,11 +9,11 @@ from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Response
 from pydantic import BaseModel, ConfigDict, Field
-from sqlalchemy import delete, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.core.deps import require_user
+from app.core.deps import require_user, require_superuser
 from app.core.config import settings
-from app.db.models.map_pilot import MapPilotConsent, MapPilotContribution
+from app.db.models.map_pilot import MapPilotConsent, MapPilotContribution, MapPilotRetentionRun
 from app.db.models.user import User
 from app.db.session import get_session
 
@@ -109,3 +109,19 @@ async def public_projection(response: Response):
     # Fail closed even at k>=5; accounts and devices do not prove independent people.
     response.headers["Cache-Control"] = "no-store"
     return {"areas": [], "status": "not_available"}
+
+
+@router.get("/admin/retention-health")
+async def retention_health(db: DB, response: Response, user: Annotated[User, Depends(require_superuser)]):
+    response.headers["Cache-Control"] = "no-store"
+    if not settings.ENABLE_MAP_PILOT_RETENTION or not settings.ENABLE_BACKGROUND_TASKS:
+        return {"status": "disabled"}
+    last = await db.scalar(select(func.max(MapPilotRetentionRun.completed_at)))
+    if last is None:
+        return {"status": "missing"}
+    if last.tzinfo is None:  # SQLite in synthetic tests does not preserve timezone.
+        last = last.replace(tzinfo=UTC)
+    now = datetime.now(UTC)
+    if last > now + timedelta(minutes=5):
+        return {"status": "clock_error", "last_success": last.isoformat()}
+    return {"status": "stale" if now - last > timedelta(hours=2) else "ok", "last_success": last.isoformat()}

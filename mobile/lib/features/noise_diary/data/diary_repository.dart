@@ -204,17 +204,26 @@ class LocalDiaryRepository implements DiaryRepository {
     )
   ''');
 
+  static Future<void> _createPilotOutboxTable(DatabaseExecutor db) =>
+      db.execute('''
+    CREATE TABLE pilot_outbox (
+      id TEXT PRIMARY KEY, nonce BLOB NOT NULL,
+      payload BLOB NOT NULL, tag BLOB NOT NULL
+    )
+  ''');
+
   static Future<bool> _hasEncryptedEntries(DatabaseExecutor db) async =>
       (Sqflite.firstIntValue(await db.rawQuery('''
         SELECT (SELECT COUNT(*) FROM diary_secure_entries) +
                (SELECT COUNT(*) FROM source_history) +
-               (SELECT COUNT(*) FROM phase_uploads)
+               (SELECT COUNT(*) FROM phase_uploads) +
+               (SELECT COUNT(*) FROM pilot_outbox)
       ''')) ?? 0) > 0;
 
   Future<Database> _open() async {
     final directory = await getDatabasesPath();
     return openDatabase(path.join(directory, 'personal_noise_diary.db'),
-        version: 4, onConfigure: (db) async {
+        version: 5, onConfigure: (db) async {
       // This pragma returns a row. Darwin's SQLite rejects execute() for
       // row-producing statements even though Android accepts it.
       final result = await db.rawQuery('PRAGMA secure_delete = ON');
@@ -225,6 +234,7 @@ class LocalDiaryRepository implements DiaryRepository {
       await _createTable(db);
       await _createHistoryTable(db);
       await _createPhaseTable(db);
+      await _createPilotOutboxTable(db);
     }, onUpgrade: (db, oldVersion, newVersion) async {
       if (oldVersion < 2) {
         await _createTable(db);
@@ -242,6 +252,7 @@ class LocalDiaryRepository implements DiaryRepository {
       }
       if (oldVersion < 3) await _createHistoryTable(db);
       if (oldVersion < 4) await _createPhaseTable(db);
+      if (oldVersion < 5) await _createPilotOutboxTable(db);
     });
   }
 
@@ -296,7 +307,8 @@ class LocalDiaryRepository implements DiaryRepository {
   Future<void> savePhaseUpload(String id, Map<String, Object?> payload) async {
     final db = await _db;
     final key = await _getKey(create: !await _hasEncryptedEntries(db));
-    await db.insert('phase_uploads', await _cipher.encryptPayload(id, payload, key),
+    await db.insert(
+        'phase_uploads', await _cipher.encryptPayload(id, payload, key),
         conflictAlgorithm: ConflictAlgorithm.replace);
   }
 
@@ -309,6 +321,34 @@ class LocalDiaryRepository implements DiaryRepository {
 
   Future<void> removePhaseUpload(String id) async =>
       (await _db).delete('phase_uploads', where: 'id = ?', whereArgs: [id]);
+
+  /// Separate encrypted outbox; no diary entries or phase records are touched.
+  Future<void> savePilotContribution(
+      String id, Map<String, Object?> payload) async {
+    if (!RegExp(
+            r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$')
+        .hasMatch(id)) {
+      throw ArgumentError('Pilot outbox id must be opaque');
+    }
+    final db = await _db;
+    final key = await _getKey(create: !await _hasEncryptedEntries(db));
+    await db.insert(
+        'pilot_outbox', await _cipher.encryptPayload('pilot:$id', payload, key),
+        conflictAlgorithm: ConflictAlgorithm.abort);
+  }
+
+  Future<List<Map<String, dynamic>>> listPilotContributions() async {
+    final rows = await (await _db).query('pilot_outbox');
+    if (rows.isEmpty) return [];
+    final key = await _getKey(create: false);
+    return Future.wait(rows.map((row) => _cipher.decryptPayload(row, key)));
+  }
+
+  Future<void> removePilotContribution(String id) async => (await _db)
+      .delete('pilot_outbox', where: 'id = ?', whereArgs: ['pilot:$id']);
+
+  Future<void> clearPilotContributions() async =>
+      (await _db).delete('pilot_outbox');
 }
 
 String newDiaryEntryId() => const Uuid().v4();

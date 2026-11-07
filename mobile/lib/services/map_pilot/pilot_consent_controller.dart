@@ -9,10 +9,11 @@ import '../api_client_service.dart';
 /// Persist a pending withdrawal before making any request, including opt-in, so
 /// a crash cannot leave a locally usable consent whose server state is unknown.
 class PilotConsentController {
-  PilotConsentController(this._prefs, this._api);
+  PilotConsentController(this._prefs, this._api, {required this.clearOutbox});
   static const _key = 'map_pilot_consent_v1';
   final SharedPreferences _prefs;
   final ApiClientService _api;
+  final Future<void> Function() clearOutbox;
   Future<void> _operations = Future.value();
   bool _blocked = false;
   // A fresh process must not send until a future server reconciliation flow
@@ -184,7 +185,10 @@ class PilotConsentController {
     _withdrawalEpoch++;
     return _serial(() async {
       final current = _read();
-      if (current.isEmpty) return true;
+      if (current.isEmpty) {
+        await clearOutbox();
+        return true;
+      }
       final destination = current['destination'];
       final accountId = current['account_id'];
       final generation = current['generation'];
@@ -203,6 +207,13 @@ class PilotConsentController {
         if (generation is String) 'generation': generation,
       };
       await _save(pending);
+      var localCleared = false;
+      try {
+        await clearOutbox();
+        localCleared = true;
+      } catch (_) {
+        // Still attempt server deletion; retain pending until both are done.
+      }
       if (automatic && !canRetryAutomatically) return false;
       try {
         final accountEpoch = _api.credentialEpoch;
@@ -214,6 +225,7 @@ class PilotConsentController {
       } catch (_) {
         return false;
       }
+      if (!localCleared) return false;
       await _save({});
       return true;
     });

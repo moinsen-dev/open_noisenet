@@ -51,7 +51,8 @@ void main() {
     SharedPreferences.setMockInitialValues({});
     final prefs = await SharedPreferences.getInstance();
     final api = FakeApi();
-    var controller = PilotConsentController(prefs, api);
+    var controller =
+        PilotConsentController(prefs, api, clearOutbox: () async {});
     expect(controller.enabled, isFalse);
     await controller.enable('https://pilot.example/api/v1');
     expect(
@@ -74,7 +75,7 @@ void main() {
         controller.permits('https://pilot.example/api/v1',
             '00000000-0000-0000-0000-000000000001'),
         isFalse);
-    controller = PilotConsentController(prefs, api);
+    controller = PilotConsentController(prefs, api, clearOutbox: () async {});
     expect(controller.pendingWithdrawal, isTrue);
     await expectLater(
         controller.enable('https://pilot.example/api/v1'), throwsStateError);
@@ -97,7 +98,7 @@ void main() {
     SharedPreferences.setMockInitialValues({});
     final prefs = await SharedPreferences.getInstance();
     final api = FakeApi();
-    final first = PilotConsentController(prefs, api);
+    final first = PilotConsentController(prefs, api, clearOutbox: () async {});
     await first.enable('https://pilot.example/api/v1');
     expect(first.enabled, isTrue);
     api.credentialEpoch++;
@@ -106,7 +107,8 @@ void main() {
         first.permits('https://pilot.example/api/v1',
             '00000000-0000-0000-0000-000000000001'),
         isFalse);
-    final restarted = PilotConsentController(prefs, api);
+    final restarted =
+        PilotConsentController(prefs, api, clearOutbox: () async {});
     expect(restarted.enabled, isFalse);
     expect(
         restarted.permits('https://pilot.example/api/v1',
@@ -117,10 +119,11 @@ void main() {
     SharedPreferences.setMockInitialValues({});
     final prefs = await SharedPreferences.getInstance();
     final api = FakeApi()..failEnable = true;
-    var controller = PilotConsentController(prefs, api);
+    var controller =
+        PilotConsentController(prefs, api, clearOutbox: () async {});
     await expectLater(
         controller.enable('https://pilot.example/api/v1'), throwsStateError);
-    controller = PilotConsentController(prefs, api);
+    controller = PilotConsentController(prefs, api, clearOutbox: () async {});
     expect(controller.enabled, isFalse);
     expect(controller.pendingWithdrawal, isTrue);
     final retry = PilotWithdrawalRetry(controller, () async => true);
@@ -134,7 +137,8 @@ void main() {
     SharedPreferences.setMockInitialValues({});
     final prefs = await SharedPreferences.getInstance();
     final api = FakeApi();
-    final controller = PilotConsentController(prefs, api);
+    final controller =
+        PilotConsentController(prefs, api, clearOutbox: () async {});
     await controller.enable('https://pilot.example/api/v1');
     api.offline = true;
     expect(await controller.withdraw(), isFalse);
@@ -149,11 +153,30 @@ void main() {
     expect(controller.pendingWithdrawal, isFalse);
     expect(api.lastExpectedGeneration, '00000000-0000-0000-0000-000000000001');
   });
+  test('server deletion is attempted even when local outbox cleanup fails',
+      () async {
+    SharedPreferences.setMockInitialValues({});
+    final prefs = await SharedPreferences.getInstance();
+    final api = FakeApi();
+    var failCleanup = true;
+    final controller =
+        PilotConsentController(prefs, api, clearOutbox: () async {
+      if (failCleanup) throw StateError('synthetic storage failure');
+    });
+    await controller.enable('https://pilot.example/api/v1');
+    expect(await controller.withdraw(), isFalse);
+    expect(api.withdrawals, 1);
+    expect(controller.pendingWithdrawal, isTrue);
+    failCleanup = false;
+    expect(await controller.withdraw(automatic: true), isTrue);
+    expect(controller.pendingWithdrawal, isFalse);
+  });
   test('withdrawal during opt-in does not enable uploads', () async {
     SharedPreferences.setMockInitialValues({});
     final prefs = await SharedPreferences.getInstance();
     final api = FakeApi()..enableGate = Completer<void>();
-    final controller = PilotConsentController(prefs, api);
+    final controller =
+        PilotConsentController(prefs, api, clearOutbox: () async {});
     final enabling = controller.enable('https://pilot.example/api/v1');
     await Future<void>.delayed(Duration.zero);
     final withdrawing = controller.withdraw();
@@ -167,7 +190,8 @@ void main() {
   test('corrupt state fails closed and cannot silently be replaced', () async {
     SharedPreferences.setMockInitialValues({'map_pilot_consent_v1': '{bad'});
     final controller = PilotConsentController(
-        await SharedPreferences.getInstance(), FakeApi());
+        await SharedPreferences.getInstance(), FakeApi(),
+        clearOutbox: () async {});
     expect(controller.enabled, isFalse);
     expect(controller.pendingWithdrawal, isTrue);
     await expectLater(
@@ -179,7 +203,8 @@ void main() {
     SharedPreferences.setMockInitialValues(
         {'map_pilot_consent_v1': '{"enabled":"true"}'});
     final controller = PilotConsentController(
-        await SharedPreferences.getInstance(), FakeApi());
+        await SharedPreferences.getInstance(), FakeApi(),
+        clearOutbox: () async {});
     expect(controller.enabled, isFalse);
     expect(controller.pendingWithdrawal, isTrue);
     await expectLater(

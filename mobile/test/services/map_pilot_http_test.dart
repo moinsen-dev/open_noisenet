@@ -85,8 +85,9 @@ void main() {
     await api.withdrawMapPilot(destination,
         expectedGeneration: '00000000-0000-0000-0000-000000000001');
     expect(calls, 4);
-    final controller =
-        PilotConsentController(await SharedPreferences.getInstance(), api);
+    final controller = PilotConsentController(
+        await SharedPreferences.getInstance(), api,
+        clearOutbox: () async {});
     await controller.enable(destination);
     deletionStatus = 503;
     expect(await controller.withdraw(), isFalse);

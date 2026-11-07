@@ -42,8 +42,9 @@ void main() {
       (tester) async {
     SharedPreferences.setMockInitialValues({});
     final api = FakeApi();
-    final controller =
-        PilotConsentController(await SharedPreferences.getInstance(), api);
+    final controller = PilotConsentController(
+        await SharedPreferences.getInstance(), api,
+        clearOutbox: () async {});
     await tester.pumpWidget(MaterialApp(
         home: Scaffold(
             body: MapPilotPreview(
@@ -56,8 +57,9 @@ void main() {
       (tester) async {
     SharedPreferences.setMockInitialValues({});
     final api = FakeApi();
-    final controller =
-        PilotConsentController(await SharedPreferences.getInstance(), api);
+    final controller = PilotConsentController(
+        await SharedPreferences.getInstance(), api,
+        clearOutbox: () async {});
     await tester.pumpWidget(MaterialApp(
         home: Scaffold(
             body: MapPilotPreview(

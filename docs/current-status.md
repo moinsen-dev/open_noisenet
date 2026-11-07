@@ -432,3 +432,5 @@ Expected local ports:
 **Kartenpilot 07.11.2026:** Udi stellt Referenzmessung zurück; reale Kartenwerte bleiben gesperrt. Geschlossene Teilnahmevorschau auf iOS- und isolierter Android-Testinstallation geprüft; Tagesbeiträge und Warteschlange fehlen. Flutter 103 bestanden, einer übersprungen; [Checkliste](kartenpilot-checkliste.md).
 
 **Kartenpilot, Löschworker 07.11.2026:** Fehler beim zweiten Celery-Lauf mit PostgreSQL reproduziert und durch separaten ungepoolten Engine pro Lauf behoben. Zwei reale synthetische Staging-Läufe und unabhängige OK-/CRITICAL-Statusprobe bestanden; dauerhafte Alarmweiterleitung und Produktion bleiben offen. [Checkliste](kartenpilot-checkliste.md).
+
+**Kartenpilot 07.11.2026:** Verschlüsselter lokaler Pilot-Ausgang, Migration von Tagebuchdatenbank v4 und Löschung bei Widerruf synthetisch geprüft; keine tatsächliche Beitragsproduktion oder Plattform-Gesamtprobe. Flutter 109 bestanden/1 übersprungen. [Checkliste](kartenpilot-checkliste.md).

@@ -50,7 +50,7 @@ class _MapPilotPreviewState extends State<MapPilotPreview> {
       final done = await widget.controller.withdraw();
       message = done
           ? 'Widerruf vom Server bestätigt.'
-          : 'Widerruf vorgemerkt; die Serverbestätigung steht noch aus.';
+          : 'Widerruf noch nicht vollständig abgeschlossen; bitte erneut versuchen.';
     } catch (_) {
       message =
           'Widerruf nicht bestätigt. Bitte den ursprünglichen Server und das ursprüngliche Konto prüfen.';

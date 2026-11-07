@@ -316,6 +316,7 @@ void main() {
         'old-hint', {'category': 'legacy-private-hint', 'start': 1000});
     await LocalDiaryRepository.resetForTesting();
     final legacy = await openDatabase('${dir.path}/personal_noise_diary.db');
+    await legacy.execute('DROP TABLE pilot_outbox');
     await legacy.execute('DROP TABLE phase_uploads');
     await legacy.execute('PRAGMA user_version = 3');
     await legacy.close();

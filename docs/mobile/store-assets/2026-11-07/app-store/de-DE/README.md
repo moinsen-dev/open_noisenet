@@ -1,0 +1,7 @@
+# iOS-Storemotive – 7. November 2026
+
+[Fünf Bilder und Vorschau](preview.html). JPEG, 1320 × 2868 Pixel; echte Ansichten aus dem Flutter-Debug-Build auf einem neu angelegten iPhone-17-Pro-Max-Simulator mit iOS 26.5. Keine App-Store-Installation und kein geprüfter Release-Build. Vor Upload muss der Stand der nächsten iOS-Version mit den Ansichten abgeglichen werden.
+
+Die Daten wurden ausschließlich für diesen Simulator konstruiert: 19 Minuten Straßenverkehr mit Pausen, 18 Minuten Werkzeuggeräusche, acht Minuten Sprachaktivität, 70 Minutenwerte und zwei Tagebucheinträge. Modellhinweise sind synthetische Eingaben, keine Inferenz realer Geräusche. Die regulären App-Datenzugriffe erstellen und gruppieren die Einträge. Der Exportdialog zeigt zwei CSV-Einträge und den Hinweis zur unverschlüsselten Weitergabe; eine Speicherung wurde in dieser Sitzung nicht geprüft. Keine privaten Messdaten verwendet.
+
+Der Datenlader `mobile/tool/store_seed_ios_main.dart` verlangt Debugmodus, iOS, explizites Dart-Define und prüft die Hardwarekennung des Simulators; er verweigert bestehende Einträge und physische Geräte. `scripts/build-ios-store-canvases.py` baut aus unveränderten Originalscreenshots die HTML-Layouts; die JPEGs wurden im Browser gerendert. Rohdateien: `../../raw/ios/`. Die Screenshotfolge zeigt Phasen, Dauer/Pausen, Quellenhinweise, Tagebuch und Export. Die iOS-Oberfläche ist textreich; in zwei Screens ist durch den Scrollzustand am oberen Rand vorhandener Inhalt angeschnitten. Bilder und Beschreibung sind nicht bei Apple eingereicht.

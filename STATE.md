@@ -2,6 +2,10 @@
 
 ## Übergabe
 
+**07.11.2026 · Fünf iOS-Storebilder vorbereitet; App-Store-Auslieferung öffentlich noch nicht bestätigt.** Apples E-Mail meldet „ready for distribution“; öffentlicher deutscher Link zeigte um 11:48 Uhr MEZ weiterhin „Seite nicht gefunden“. Fünf echte iOS-Debug-Simulatoransichten mit ausschließlich synthetischen Daten wurden als JPEG 1320 × 2868 gestaltet: Phasen, Dauer/Pausen, Quellen, Tagebuch, Exportdialog. Simulator gestoppt; weder Store-App noch private Gerätedaten berührt. Der Exportdialog wurde angezeigt, Dateispeicherung nicht erneut geprüft. Vor Apple-Einreichung mit dem dann vorgesehenen iOS-Release abgleichen; laufende Version sperrt Screenshotänderungen. Nächster Schritt nach Auslieferung: öffentliche DACH-Seiten und Apple-Link zur Website prüfen. [Vorschau](docs/mobile/store-assets/2026-11-07/app-store/de-DE/preview.html) · [Maßgeblicher Stand](docs/current-status.md).
+
+## Vorherige Übergabe – iOS-Freigabe
+
 **07.11.2026 · iOS genehmigt und DACH-Veröffentlichung ausgelöst.** Apple zeigt iOS 0.1.0 (5) „Bereit für Vertrieb“; öffentliche deutsche App-Seite unmittelbar danach noch nicht gefunden. Apple nennt bis zu 24 Stunden Auslieferungszeit. TestFlight: Build 3 in interner Gruppe, eine Einladung und Installation; Build 5 nicht dieser Gruppe zugeordnet. Deutscher Werbetext auf Geräuschphasen aktualisiert. Die zwei bisherigen iPhone-Bilder und Beschreibung sind in dieser Version gesperrt; umfassendere Storefront benötigt spätere Version mit echten iOS-Screenshots. Nach öffentlicher Sichtbarkeit Länder, Storeseite und Apple-Link auf Website prüfen. HTC-10-Kalibrierung bleibt im Backlog. [Maßgeblicher Stand](docs/current-status.md).
 
 ## Vorherige Übergabe – Android und Kalibrierung

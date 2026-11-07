@@ -2,6 +2,10 @@
 
 ## Übergabe
 
+**07.11.2026 · Storefront und erster ASO-Lernplan vorbereitet.** Öffentliche deutsche und englische Play-Fassung geprüft: zwei Tagebuchscreens, bisher keine sichtbare Geräuschhistorie oder abgeschlossene Quellenphase. [Konkreter Vorschlag](docs/mobile/aso-first-pass-2026-11-07.md) enthält Titel, Kurz-/Langbeschreibung, fünf Bildmotive und ein späteres lokalisiertes Experiment mit einer Gegenvariante. Zwei illustrative Gestaltungsskizzen liegen außerhalb des Repositorys im Codex-Visualisierungsordner dieses Chats. Sie sind keine fertigen Store-Assets; die lokale Browser-Vorschau wurde durch die URL-Sicherheitsrichtlinie blockiert. Kein Storetext geändert, kein Experiment gestartet, keine privaten Messdaten verwendet. Nächster vorgeschlagener Umsetzungsschritt: echte Release-Screens mit synthetischen Inhalten und Akquisitions-Ausgangswerte aus Play. Apple-Status heute nicht neu abgefragt. [Maßgeblicher Stand](docs/current-status.md).
+
+## Vorherige Übergabe – öffentlicher Android-Start
+
 **06.11.2026 · OpenNoiseNet ist auf Google Play in Deutschland, Österreich und der Schweiz öffentlich.** Build 0.1.0 (6) ist im Produktionskanal aktiv. Alle drei öffentlichen Store-Seiten bieten die Installation an. Google hat die verifizierte Geschäftsnummer und die Händlererklärung für das Moinsen-Konto bestätigt. Die einzelne App-Erklärung für OpenNoiseNet ist zur Prüfung eingereicht. Der AX41-Prüfdienst bleibt aktiv. **Nächster Schritt** ist die Entscheidung von Apple zu Build 0.1.0 (5), aktuell „Waiting for Review“. Nach Genehmigung manuell veröffentlichen und die drei iOS-Store-Seiten prüfen. [Maßgeblicher Stand](docs/current-status.md).
 
 ## Vorherige Übergabe – Physische Beta und Diktierprobe

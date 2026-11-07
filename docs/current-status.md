@@ -1,5 +1,12 @@
 # OpenNoiseNet – aktueller Wiederaufnahmestand
 
+## iOS 0.1.1 und Datenschutzkonzept Kartenpilot · 07.11.2026
+
+1. **Erledigt – iOS-Bildfolge.** Deutscher App-Store-Connect-Entwurf 0.1.1 nach Neuladen kontrolliert: fünf Motive Phasen, Dauer, Quellen, Tagebuch und Export zuerst, danach zwei alte Bilder. Große Dynamic-Island-Größe führt sieben Bilder; die mittlere übernimmt dieselbe Folge. Nicht eingereicht oder öffentlich.
+2. **Erledigt mit Grenze – lokaler iOS-Build.** Regulärer Einstieg, `flutter build ipa --release --build-name=0.1.1 --build-number=7 --export-method=app-store`; Identifier `dev.moinsen.noisenetMobile`, Version 0.1.1 (7), iOS-Ziel 15.0, App-Signatur verifiziert, `get-task-allow=false`, YAMNet-Modell im Paket. IPA SHA-256 `91bef688bef49180d520d3adc6510d0b1c95c9ff8bdb44faf71c79e992b3c3d2` privat unter `~/Library/Application Support/OpenNoiseNet/Store-0.1.1-20261107/OpenNoiseNet-0.1.1-7.ipa`. Flutter-Analyse fehlerfrei; 95 Tests bestanden, 1 übersprungen. Kein Upload, kein Apple-Verarbeitungsnachweis und kein Test der finalen IPA auf iPhone; Übereinstimmung der Screenshots mit dieser installierten Version offen. Version nur per Build-Argumente gesetzt, `pubspec.yaml` bleibt 0.1.0+6; bei Reproduktion Argumente verwenden und Store-Buildnummer vor Upload abgleichen. Flutter warnt, dass vier iOS-Plugins zukünftig Swift Package Manager unterstützen müssen.
+3. **→ Konzept erstellt, Pilot noch offen.** [Datenschutzkonzept](privacy-map-pilot-2026-11-07.md) beschreibt freiwillige Freigabe, lokale Voraggregation, getrennte öffentliche Projektion, Widerruf, Differenzangriffe, Aufbewahrung und Prüfkriterien. 1 km, Tagesfenster und fünf unabhängige Teilnehmende sind ausschließlich zu prüfende Vorschläge, keine Anonymitätsgarantie. Alte Kartenendpunkte liefern Einzelkoordinaten bzw. Kennungen und dürfen für den Pilot nicht öffentlich aktiviert werden. Vor echten Daten sind Datenschutzprüfung, Implementierung, Tests und Betriebsfreigabe offen.
+
+
 ## Kartenvision und Apple-Bildentwurf · 07.11.2026
 
 1. **Erledigt und öffentlich geprüft – Website.** „In Entwicklung“ im Einstieg durch Verfügbarkeit für iPhone und Android ersetzt. Die weltweite gemeinschaftliche Lärmkarte wird als Vision und aktuell nicht verfügbar beschrieben. Typecheck, Lint, Build und drei Tests bestanden; aktualisierte öffentliche Seite und Storelinks kontrolliert.

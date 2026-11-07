@@ -2,6 +2,10 @@
 
 ## Übergabe
 
+**07.11.2026 · iOS 0.1.1 vorbereitet und Kartenpilot konzipiert.** Deutsche Storebilder im Entwurf nach Neuladen in korrekter Folge (fünf neue zuerst); Apple übernimmt sie für mittlere iPhones. Lokaler App-Store-IPA 0.1.1 (7) signiert und paketgeprüft; Analyse sauber, 95 Tests bestanden, einer übersprungen. Kein Apple-Upload, keine Geräteprüfung der finalen IPA. Privat: `~/Library/Application Support/OpenNoiseNet/Store-0.1.1-20261107/OpenNoiseNet-0.1.1-7.ipa`. [Datenschutzkonzept für Kartenpilot](docs/privacy-map-pilot-2026-11-07.md) erstellt; vor echtem Pilot Schutz gegen Standort- und Differenzangriffe implementieren und prüfen. [Maßgeblicher Stand](docs/current-status.md).
+
+## Vorherige Übergabe – Kartenvision
+
 **07.11.2026 · Kartenvision und Storebilder.** Website live: beide Apps verfügbar, globale Karte ausdrücklich Vision und noch nicht öffentlich verfügbar. Landing-Typecheck, Lint, Build und drei Tests bestanden; öffentliche Seite kontrolliert. Apple-Entwurf 0.1.1 angelegt; Fünf synthetische Simulatorbilder in der deutschen Medienverwaltung hochgeladen und verarbeitet; sie stehen im Entwurf hinter zwei bisherigen Bildern (7 insgesamt). Kein Build zugeordnet, keine Einreichung. Nächster Schritt: Bildfolge und Geräteklassen für den Entwurf abschließend prüfen; Build validieren und Apple-Prüfung. Die existierende Karten-API gibt für öffentliche Geräte exakte Koordinaten und Gerätekennungen aus: vor öffentlicher Karte datenschutzgerechte Freigabe und Aggregation klären. [Maßgeblicher Stand](docs/current-status.md).
 
 ## Vorherige Übergabe – öffentliche Stores

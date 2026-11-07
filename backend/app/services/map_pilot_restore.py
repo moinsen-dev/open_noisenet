@@ -19,6 +19,18 @@ async def sanitize_restored_pilot(db: AsyncSession) -> None:
     No acknowledgment until the caller commits, and no release from quarantine
     until the new state and operational safeguards are independently checked.
     """
+    url = db.get_bind().url
+    is_memory_test = url.get_backend_name() == 'sqlite' and url.database in (None, '', ':memory:')
+    is_named_local_quarantine = (
+        url.get_backend_name() == 'postgresql'
+        and url.host in ('127.0.0.1', 'localhost', '::1')
+        and bool(url.database)
+        and (url.database.startswith('restore_drill_') or url.database.endswith('_pilot_quarantine'))
+    )
+    if not (is_memory_test or is_named_local_quarantine):
+        raise RuntimeError('Pilot sanitation requires a named local quarantine database')
+    # This check is necessary, not sufficient: the operator must separately
+    # isolate network traffic and confirm the target before invoking sanitation.
     await suppress_pilot_publication(db)
     await db.execute(delete(MapPilotPublishedWeek))
     await db.execute(delete(MapPilotVerifiedParticipant))

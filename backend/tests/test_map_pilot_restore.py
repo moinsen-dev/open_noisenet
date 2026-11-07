@@ -29,3 +29,16 @@ async def test_restored_pilot_is_erased_transactionally_without_deleting_account
     await sanitize_restored_pilot(db_session)
     await db_session.commit()
     assert (await db_session.scalars(select(MapPilotContribution))).all() == []
+
+
+@pytest.mark.asyncio
+async def test_sanitation_refuses_a_live_named_database_before_executing_any_sql():
+    from types import SimpleNamespace
+    from unittest.mock import MagicMock, AsyncMock
+    from sqlalchemy.engine import make_url
+    db = MagicMock()
+    db.get_bind.return_value = SimpleNamespace(url=make_url('postgresql+asyncpg://test:test@127.0.0.1/live_database'))
+    db.execute = AsyncMock()
+    with pytest.raises(RuntimeError, match='quarantine'):
+        await sanitize_restored_pilot(db)
+    db.execute.assert_not_awaited()

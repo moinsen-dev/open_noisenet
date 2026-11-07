@@ -1,5 +1,10 @@
 # OpenNoiseNet – aktueller Wiederaufnahmestand
 
+## Verbindliche Checkliste für den begrenzten Kartenpilot · 07.11.2026
+
+**→ Aktuell: Punkt 1 von 10 – Pilotgebiet, Datenfelder und Abnahmekriterien festlegen.** Die [Kartenpilot-Checkliste](kartenpilot-checkliste.md) ist der maßgebliche Tracker: zehn Schritte bis zu einem begrenzten öffentlichen Hamburger Pilot oder einem dokumentierten „nicht startbereit“. Vorhandene Testbausteine sind als teilweise gekennzeichnet; echte Teilnehmerdaten und öffentliche Freigabe bleiben bis zu den Kriterien gesperrt. Der Nutzer hat in diesem Schritt eine konkrete, endliche Checkliste verlangt; keine neuen Implementierungen oder Veröffentlichungen daraus stillschweigend begonnen.
+
+
 ## iOS-Einreichung und Restore-Schutz · 07.11.2026
 
 1. **Erledigt – Apple-Einreichung.** Udi hat die Einreichung beauftragt. App Store Connect bestätigt für iOS **0.1.1 (7)** „Warten auf Prüfung“, ein übermitteltes Element, 7. November 2026 um 13:50 Uhr Europe/Berlin. [Prüfstatus](https://appstoreconnect.apple.com/apps/6831511809/distribution/reviewsubmissions/details/17979222-02a4-425e-8476-5be8baca10a9). Release nach Freigabe bleibt manuell; noch keine Freigabe oder öffentliche neue Storebilder behaupten.

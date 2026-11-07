@@ -2,6 +2,10 @@
 
 ## Übergabe
 
+**07.11.2026 · Endliche Kartenpilot-Checkliste erstellt.** Udi möchte eine konkrete Liste mit klaren Abnahmekriterien statt wiederholter allgemeiner Datenschutzaufträge. [Maßgebliche Checkliste](docs/kartenpilot-checkliste.md): zehn geordnete Schritte vom begrenzten Hamburger Pilotumfang bis zur Gesamtprobe und Betriebsentscheidung; → Punkt 1 als nächster ausführbarer Schritt. Bestehende Prototypen ausdrücklich nicht als fertiger Pilot gewertet. Keine Implementierung oder Veröffentlichung in diesem Planungsauftrag. [Projektstand](docs/current-status.md).
+
+## Vorherige Übergabe – iOS-Einreichung und Datenschutz
+
 **07.11.2026 · iOS 0.1.1 (7) eingereicht; Pilot-Restore und Payload-Verschlüsselung getestet.** Apple bestätigt „Warten auf Prüfung“, eingereicht 13:50 Uhr Europe/Berlin; automatische Veröffentlichung ist nicht eingestellt. Ein Sanitationsbaustein entfernt bei isolierter Restore-Probe Pilotbeiträge, Zustimmungen und Löschlaufmarker; echter synthetischer PostgreSQL-Dump/Restore und Ablehnung alter Uploads geprüft. Gebietskennung und Pegelklasse werden mit AES-256-GCM und externem Schlüssel verschlüsselt, Nutzer/Tag bleiben sichtbar; Migration `08c37d61faaa` und Datenerhalt bei verweigerter Migration geprüft. 209 Backendtests bestanden, 4 übersprungen; 2 PostgreSQL-Tests gesondert bestanden. Keine Bereitstellung; Schlüsselbetrieb/-rotation, sichere Wiederherstellung, App-Anbindung und öffentliche Projektion offen. [Maßgeblicher Stand](docs/current-status.md).
 
 ## Vorherige Übergabe – Aufbewahrung und Reviewzugang

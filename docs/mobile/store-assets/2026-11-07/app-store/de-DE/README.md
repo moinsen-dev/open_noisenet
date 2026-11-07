@@ -1,6 +1,6 @@
 # iOS-Storemotive – 7. November 2026
 
-[Fünf Bilder und Vorschau](preview.html). JPEG, 1320 × 2868 Pixel; echte Ansichten aus dem Flutter-Debug-Build auf einem neu angelegten iPhone-17-Pro-Max-Simulator mit iOS 26.5. Keine App-Store-Installation und kein geprüfter Release-Build. Vor Upload muss der Stand der nächsten iOS-Version mit den Ansichten abgeglichen werden.
+[Fünf Bilder und Vorschau](preview.html). JPEG, 1320 × 2868 Pixel; echte Ansichten aus dem Flutter-Debug-Build auf einem neu angelegten iPhone-17-Pro-Max-Simulator mit iOS 26.5. Keine App-Store-Installation und kein geprüfter Release-Build. Vor Einreichung muss der Stand der nächsten iOS-Version mit den Ansichten abgeglichen werden.
 
 Die Daten wurden ausschließlich für diesen Simulator konstruiert: 19 Minuten Straßenverkehr mit Pausen, 18 Minuten Werkzeuggeräusche, acht Minuten Sprachaktivität, 70 Minutenwerte und zwei Tagebucheinträge. Modellhinweise sind synthetische Eingaben, keine Inferenz realer Geräusche. Die regulären App-Datenzugriffe erstellen und gruppieren die Einträge. Der Exportdialog zeigt zwei CSV-Einträge und den Hinweis zur unverschlüsselten Weitergabe; eine Speicherung wurde in dieser Sitzung nicht geprüft. Keine privaten Messdaten verwendet.
 
@@ -8,4 +8,7 @@ Der Datenlader `mobile/tool/store_seed_ios_main.dart` verlangt Debugmodus, iOS, 
 
 ## Abgleich mit veröffentlichtem iOS-Stand · 7. November 2026
 
-Apple-Produktseiten sind in DE/AT/CH öffentlich erreichbar. Der archivierte, zur Prüfung hochgeladene Kandidat `OpenNoiseNet-0.1.0-5-review.ipa` meldet 0.1.0 (5), Bundle `dev.moinsen.noisenetMobile`, SHA-256 `3f6a602635a8dfc535d69375c63148c0329b3ac7be6c0f2f2fa3d292349f1661`. Seine App-Binärdatei enthält die relevanten UI-Bezeichnungen: Geräuschphasen, Geräuschverlauf, Pegelabschnitte, Geräuscharten, Lärmtagebuch und Exportprüfung mit Speicherortwahl. Zwischen dokumentiertem Produktionsstand `62f8c4a` und Screenshot-Commit `0fb005a` sind `mobile/lib`, App-Assets, Flutter-Abhängigkeiten und `mobile/ios/Runner` unverändert. Das ist ein technischer Abgleich und keine pixelgenaue Verifikation einer installierten Store-App. Die fünf Bilder sind weiterhin nicht zu Apple hochgeladen und zeigen synthetische Daten.
+Apple-Produktseiten sind in DE/AT/CH öffentlich erreichbar. Der archivierte, zur Prüfung hochgeladene Kandidat `OpenNoiseNet-0.1.0-5-review.ipa` meldet 0.1.0 (5), Bundle `dev.moinsen.noisenetMobile`, SHA-256 `3f6a602635a8dfc535d69375c63148c0329b3ac7be6c0f2f2fa3d292349f1661`. Seine App-Binärdatei enthält die relevanten UI-Bezeichnungen: Geräuschphasen, Geräuschverlauf, Pegelabschnitte, Geräuscharten, Lärmtagebuch und Exportprüfung mit Speicherortwahl. Zwischen dokumentiertem Produktionsstand `62f8c4a` und Screenshot-Commit `0fb005a` sind `mobile/lib`, App-Assets, Flutter-Abhängigkeiten und `mobile/ios/Runner` unverändert. Das ist ein technischer Abgleich und keine pixelgenaue Verifikation einer installierten Store-App. Die fünf Bilder zeigen synthetische Daten.
+
+
+**07.11.2026:** Die fünf Dateien wurden in der deutschen Apple-Medienverwaltung für den Entwurf 0.1.1 verarbeitet und folgen dort auf zwei vorhandene Screenshots. Die Reihenfolge und Geräteklassen müssen vor Einreichung geprüft werden. Die Version hat noch keinen Build und ist nicht eingereicht oder veröffentlicht.

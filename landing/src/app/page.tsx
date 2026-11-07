@@ -26,7 +26,7 @@ export default function Home() {
               <a className="onn-button" href="#mitmachen">Das Projekt unterstützen <ArrowRight size={18} /></a>
               <Link className="onn-text-link" href="/story">Warum ich das baue <ArrowRight size={16} /></Link>
             </div>
-            <p className="onn-small">Open Source · Aus Hamburg · In Entwicklung</p>
+            <p className="onn-small">Open Source · Aus Hamburg · Für iPhone und Android</p>
           </div>
           <figure className="onn-timeline">
             <div className="onn-timeline-top"><span className="onn-label">Ein Morgen wird verständlich</span><AudioLines size={26} aria-hidden="true" /></div>
@@ -74,8 +74,9 @@ export default function Home() {
         <section id="idee" className="onn-band">
           <div className="onn-shell onn-section">
             <p className="onn-eyebrow">Die Idee</p><h2>Aus Geräuschen wird<br />eine lesbare Geschichte.</h2>
+            <p className="onn-section-intro">Unsere Vision ist eine weltweite Karte, auf der Menschen gemeinsam wiederkehrenden Lärm sichtbar machen können. Wer mitmacht, soll selbst entscheiden, ob und welche Daten geteilt werden. Die öffentliche Karte ist noch nicht verfügbar.</p>
             <div className="onn-three onn-principles">
-              <article><AudioLines aria-hidden="true" /><h3>Zusammenhänge sehen</h3><p>Ein Smartphone soll Geräuschphasen mit Dauer, geschätztem Pegel und möglichen Ursachen erfassen. Ruhige Phasen und fehlende Daten müssen unterscheidbar bleiben.</p></article>
+              <article><AudioLines aria-hidden="true" /><h3>Zusammenhänge sehen</h3><p>Die App zeigt Geräuschphasen mit Dauer, geschätzten Pegeln und möglichen Ursachen. Ruhige Phasen und fehlende Daten müssen unterscheidbar bleiben.</p></article>
               <article><ShieldCheck aria-hidden="true" /><h3>Die Privatsphäre achten</h3><p>Unser Ansatz: Geräusche auf dem Gerät auswerten und abgeleitete Werte nutzen. Private Tagebucheinträge gehören nicht automatisch auf eine öffentliche Karte.</p></article>
               <article><Github aria-hidden="true" /><h3>Gemeinsam verbessern</h3><p>Der Quellcode ist offen. Menschen sollen die Methoden prüfen, Fehler finden und das Werkzeug für ihre eigenen Fragen weiterentwickeln können.</p></article>
             </div>

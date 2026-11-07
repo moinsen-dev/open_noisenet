@@ -1,5 +1,12 @@
 # OpenNoiseNet – aktueller Wiederaufnahmestand
 
+## Kartenvision und Apple-Bildentwurf · 07.11.2026
+
+1. **Erledigt und öffentlich geprüft – Website.** „In Entwicklung“ im Einstieg durch Verfügbarkeit für iPhone und Android ersetzt. Die weltweite gemeinschaftliche Lärmkarte wird als Vision und aktuell nicht verfügbar beschrieben. Typecheck, Lint, Build und drei Tests bestanden; aktualisierte öffentliche Seite und Storelinks kontrolliert.
+2. **→ Offen – iOS-Bilder.** Die veröffentlichte 0.1.0 lässt Screenshots nicht ändern. Entwurf 0.1.1 für Deutsch angelegt. Fünf vorbereitete 1320 × 2868-Simulatorbilder mit synthetischen Daten sind in der deutschen Medienverwaltung verarbeitet; sie folgen dort auf die zwei bisherigen Bilder (sieben insgesamt). Noch nicht veröffentlicht. Kein Build zugeordnet, keine Einreichung. Bildfolge, Geräteklassen und Release-Abgleich vor Einreichung prüfen.
+3. **Offen – öffentliche Karte.** Kartenfrontend und Backend-Endpunkte existieren, die reguläre öffentliche Karte ist nicht als betrieben nachgewiesen. `backend/app/api/v1/endpoints/map.py` gibt bei öffentlichen Geräten exakte Koordinaten und Gerätekennungen aus; private Geräuschphasen sind derzeit nicht öffentlich projiziert. Vor einem Pilot: freiwillige, widerrufbare Freigabe, hinreichend grobe/aggregierte Darstellung und Schutz vor Rückschluss auf Wohnungen konkretisieren und testen. Kalibrierung und Datenqualität beachten; Quellenhinweise sind keine Beweise.
+
+
 Stand: 2026-11-07. Auftrag: Das offene, gemeinschaftlich betriebene und datensparsame Lärmmesssystem selbstständig bis zu einem belastbaren Stand weiterentwickeln; die Wiederaufnahmephasen werden in Reihenfolge bearbeitet. Udi möchte außerdem das kommerzielle Potenzial der beobachteten Geräuscherkennung erkunden; eine Geschäftsmodell- oder Lizenzentscheidung ist damit nicht getroffen. Lokale Builds oder synthetische Tests ersetzen keine Geräte-, Datenschutz- oder Betriebsvalidierung.
 
 ## Öffentliche Stores, iOS-Bildabgleich und Website · 07.11.2026

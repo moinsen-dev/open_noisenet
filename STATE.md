@@ -2,6 +2,10 @@
 
 ## Übergabe
 
+**07.11.2026 · Kartenvision und Storebilder.** Website live: beide Apps verfügbar, globale Karte ausdrücklich Vision und noch nicht öffentlich verfügbar. Landing-Typecheck, Lint, Build und drei Tests bestanden; öffentliche Seite kontrolliert. Apple-Entwurf 0.1.1 angelegt; Fünf synthetische Simulatorbilder in der deutschen Medienverwaltung hochgeladen und verarbeitet; sie stehen im Entwurf hinter zwei bisherigen Bildern (7 insgesamt). Kein Build zugeordnet, keine Einreichung. Nächster Schritt: Bildfolge und Geräteklassen für den Entwurf abschließend prüfen; Build validieren und Apple-Prüfung. Die existierende Karten-API gibt für öffentliche Geräte exakte Koordinaten und Gerätekennungen aus: vor öffentlicher Karte datenschutzgerechte Freigabe und Aggregation klären. [Maßgeblicher Stand](docs/current-status.md).
+
+## Vorherige Übergabe – öffentliche Stores
+
 **07.11.2026 · iOS und Android öffentlich; Website mit beiden Storelinks live.** Apple-Produktseiten in DE/AT/CH erreichbar, Google-Produktionskanal 0.1.0 (6) in DACH aktiv. Fünf vorbereitete iOS-Motive gegen Release-Dokumentation, unveränderten App-Code und Binärzeichenketten des eingereichten IPA 0.1.0 (5) abgeglichen; keine Abweichung in belegten Funktionen, aber Debug-Simulatorbilder und kein Vergleich mit einer installierten Store-App. Kein Upload zu Apple. Website live aktualisiert, Desktop und mobil gesichtet; Build, Lint, Typecheck und 3 Tests bestanden. HTC-Kalibrierung im Backlog. [Maßgeblicher Stand](docs/current-status.md).
 
 ## Vorherige Übergabe – iOS-Storebilder

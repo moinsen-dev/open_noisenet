@@ -37,9 +37,8 @@ class Contribution(BaseModel):
     model_config = ConfigDict(extra="forbid")
     generation: uuid.UUID
     day: date
-    # Fixed integer cell indices, not lat/lon. The grid definition is not approved.
-    cell_x: int = Field(strict=True, ge=-20000, le=20000)
-    cell_y: int = Field(strict=True, ge=-10000, le=10000)
+    # Only server-allowlisted identifiers; no arbitrary coordinate channel.
+    cell_id: str = Field(strict=True, min_length=1, max_length=32, pattern=r"^[a-z0-9_-]+$")
     level_band: Literal["low", "medium", "high"]
 
 
@@ -47,6 +46,15 @@ async def locked_consent(db, user_id):
     # Lock the parent even on the first opt-in, serializing opt-in/revoke/upload.
     await db.execute(select(User.id).where(User.id == user_id).with_for_update())
     return await db.scalar(select(MapPilotConsent).where(MapPilotConsent.user_id == user_id).with_for_update())
+
+
+@router.get("/consent")
+async def consent_status(db: DB, user: Annotated[User, Depends(require_user)], response: Response):
+    response.headers["Cache-Control"] = "no-store"
+    row = await db.scalar(select(MapPilotConsent).where(MapPilotConsent.user_id == user.id))
+    if not row or not row.enabled:
+        return {"enabled": False}
+    return {"enabled": True, "generation": str(row.generation), "notice_version": row.notice_version}
 
 
 @router.post("/consent")
@@ -81,15 +89,17 @@ async def contribute(body: Contribution, db: DB, user: Annotated[User, Depends(r
     row = await locked_consent(db, user.id)
     if not row or not row.enabled or row.generation != body.generation:
         raise HTTPException(403, "Pilot consent is absent or outdated")
+    if body.cell_id not in settings.MAP_PILOT_ALLOWED_CELLS:
+        raise HTTPException(422, "Unknown pilot area")
     today = datetime.now(UTC).date()
     if body.day >= today or body.day < today - timedelta(days=30) or body.day <= row.consented_at.date():
         raise HTTPException(422, "Only completed days after consent and within 30 days are accepted")
     prior = await db.scalar(select(MapPilotContribution).where(MapPilotContribution.user_id == user.id, MapPilotContribution.day == body.day))
     if prior:
-        if (prior.cell_x, prior.cell_y, prior.level_band) != (body.cell_x, body.cell_y, body.level_band):
+        if (prior.cell_id, prior.level_band) != (body.cell_id, body.level_band):
             raise HTTPException(409, "Contribution already recorded for this day")
     else:
-        db.add(MapPilotContribution(user_id=user.id, day=body.day, cell_x=body.cell_x, cell_y=body.cell_y, level_band=body.level_band))
+        db.add(MapPilotContribution(user_id=user.id, day=body.day, cell_id=body.cell_id, level_band=body.level_band))
     await db.commit()
     return Response(status_code=204, headers={"Cache-Control": "no-store"})
 

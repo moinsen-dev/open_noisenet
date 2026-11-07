@@ -1,5 +1,12 @@
 # OpenNoiseNet – aktueller Wiederaufnahmestand
 
+## iPhone-Prüfung und Datenschutzmaßnahmen · 07.11.2026
+
+1. **Erledigt – iPhone-Rückmeldung.** Das verbundene iPhone 16 Pro Max meldet installierte Version 0.1.1 (7); der zum installierten Bundle gehörende Prozess lief. Udi hat die erbetene Prüfung von Verlauf, Tagebuch, Testeintrag und Exportdialog zusammenfassend als unauffällig gemeldet. Keine direkte Fernansicht oder eigener UI-Nachweis: Device Hub nennt aktives Mikrofon oder Kamera als Grund für die gesperrte Bildschirmfreigabe. Keine vorhandenen Daten zurückgesetzt.
+2. **Erledigt – weitere isolierte Backend-Schutzmaßnahmen.** Frei wählbare Zahlenpaare durch serverseitig erlaubte Gebietsschlüssel ersetzt; Standardliste leer. Eigener Zustimmungsstatus nur authentifiziert und ohne Cache. Ein ausdrücklich aufzurufender Datenbankbaustein für 30-Tage-Aufbewahrung ist transaktional getestet; kein automatischer Zeitplan. 201 Backendtests bestanden, zwei übersprungen vor Hinzufügen des separat ausgeführten PostgreSQL-Tests. Neuer Parallelitätstest auf isoliertem PostgreSQL 16 bestanden: Upload wartet auf Sperre und wird nach Widerruf abgewiesen. Migration `7fd2a18b4d03` auf leerer Testdatenbank und Verweigerung bei vorhandenen Beiträgen samt Datenerhalt geprüft.
+3. **→ Offen – sicherer Kartenpilot.** Kein Betrieb und kein Deployment. Es fehlen geprüfte Gebietsdefinitionen, die App-Anbindung und lokale Voraggregation, ein automatisierter und überwachter Löschplan, Backup-Löschjournal, Nachweise gegen weitere Rückschlüsse und eine sichere öffentliche Projektion. Der öffentliche Testendpunkt gibt weiterhin absichtlich keine Daten aus. [Datenschutzkonzept und Grenzen](privacy-map-pilot-2026-11-07.md). iOS-Entwurf bleibt nicht eingereicht; synthetischen Apple-Reviewzugang vor Einreichung erneut prüfen.
+
+
 ## iOS 0.1.1 und Kartenpilot-Implementierung · 07.11.2026
 
 1. **Erledigt – Apple-Upload und Entwurf.** Xcode meldet Upload von 0.1.1 (7), Apple hat verarbeitet; Standardverschlüsselung außerhalb der Apple-OS-Funktionen und keine Frankreich-Verteilung für DACH angegeben. Build 7 dem 0.1.1-Entwurf und der bestehenden internen TestFlight-Gruppe zugeordnet; deutsche und englische Versionshinweise gespeichert. Nicht zur Prüfung eingereicht. Der isolierte Reviewdienst beantwortet `/health` mit HTTP 200; die synthetische Apple-Anmeldung und Kontolöschung sind für diese Einreichung noch nicht erneut geprüft.

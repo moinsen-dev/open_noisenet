@@ -2,6 +2,10 @@
 
 ## Übergabe
 
+**07.11.2026 · iPhone-Build 7 bestätigt, Pilot weiter abgesichert.** Auf iPhone 16 Pro Max Version 0.1.1 (7) installiert und laufender Prozess nachgewiesen. Udi meldet die erbetene App-Prüfung als unauffällig; keine eigene Fernansicht, weil Device Hub bei aktivem Mikrofon/Kamera Screen Sharing sperrt. Pilot: nur serverseitig freigegebene Gebietskennungen, leere Standardliste, authentifizierter Zustimmungsstatus, transaktionaler 30-Tage-Löschbaustein ohne automatischen Plan. 201 Backendtests bestanden, 2 übersprungen; PostgreSQL-Sperrtest und Migration mit Schutz vorhandener Daten gesondert bestanden. Öffentliche Projektion bleibt leer; App-Anbindung, Gebietswahl, Betriebs-/Backup-Löschung und Angriffsprüfungen offen. Nichts deployt. [Maßgeblicher Stand](docs/current-status.md).
+
+## Vorherige Übergabe – Upload und Pilotgrundlage
+
 **07.11.2026 · Apple-Build hochgeladen, Kartenpilot teilweise umgesetzt.** iOS 0.1.1 (7) bei Apple verarbeitet, mit DACH-Verschlüsselungsangaben dem Entwurf und der internen Testgruppe zugeordnet; Versionshinweise gespeichert, nicht eingereicht. iPhone 16 Pro Max verbunden, derzeit Build 3; Udi um TestFlight-Update gebeten. Im Backend: alte öffentliche Einzelpunktpfade standardmäßig geschlossen, isolierter Pilot-Testpfad mit Zustimmung, Widerruf und Generationsschutz standardmäßig aus; öffentliche Projektion bleibt leer. 200 Backendtests bestanden, 2 übersprungen. Migration in isoliertem PostgreSQL 16 erfolgreich. Keine Produktion, keine echten Pilotdaten; wesentliche Schutzmaßnahmen und App-Anbindung bleiben offen. [Maßgeblicher Stand](docs/current-status.md).
 
 ## Vorherige Übergabe – iOS-Build und Konzept

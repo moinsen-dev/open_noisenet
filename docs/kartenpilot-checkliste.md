@@ -170,3 +170,7 @@ Udi stellt das Problem der Referenzmessung und Vergleichbarkeit zunächst zurüc
 ## Punkt 8: zusätzlicher synthetischer Negativfall · 7. November 2026
 
 - Die feste Wochenprojektion unterdrückt vier synthetische Identitäten auch dann, wenn jede an sieben Tagen beiträgt, die Datensätze zehnfach wiederholt werden und zwanzig weitere Identitäten nur in der Folgewoche beitragen. 14 Projektionstests bestanden. Dies ist kein Nachweis, dass fünf Konten fünf verschiedene Menschen sind; Mehrfachkonten und sonstige Rückschlussrisiken bleiben offen.
+
+## Punkt 3: synthetischer HTTP-Wiederholungsablauf · 7. November 2026
+
+- Der tatsächliche Dart-HTTP-Client und der Versandbaustein wurden zusammen gegen eine lokale synthetische HTTP-Gegenstelle getestet: Zustimmung, abgelehnter Upload mit Erhalt in der Testwarteschlange, erfolgreiche Wiederholung mit Bestätigung und anschließender Widerruf mit Leerung. Übermittelt werden dabei nur die vier erlaubten Beitragsfelder. Die Warteschlange dieses HTTP-Tests ist ein In-Memory-Testdouble; die verschlüsselte SQLite-Warteschlange wurde gesondert getestet. Kein Test gegen FastAPI oder auf Geräten. Flutter gesamt 111 bestanden, einer übersprungen; Analyse sauber.

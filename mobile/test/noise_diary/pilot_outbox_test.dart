@@ -7,6 +7,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:noisenet_mobile/features/noise_diary/data/diary_repository.dart';
 import 'package:noisenet_mobile/services/api_client_service.dart';
 import 'package:noisenet_mobile/services/map_pilot/pilot_consent_controller.dart';
+import 'package:noisenet_mobile/services/map_pilot/pilot_contribution_outbox.dart';
 import 'package:path/path.dart' as path;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
@@ -29,6 +30,12 @@ class SyntheticPilotApi implements ApiClientService {
   Future<void> withdrawMapPilot(String destination,
       {String? expectedGeneration}) async {
     if (offline) throw StateError('synthetic network failure');
+  }
+
+  @override
+  Future<void> uploadMapPilotContribution(String destination,
+      Map<String, dynamic> contribution, bool Function() permitted) async {
+    if (offline || !permitted()) throw StateError('synthetic network failure');
   }
 
   @override
@@ -148,16 +155,34 @@ void main() {
     });
     final repo = LocalDiaryRepository();
     final api = SyntheticPilotApi();
+    final store = EncryptedPilotOutboxStore();
     final controller = PilotConsentController(
         await SharedPreferences.getInstance(), api,
-        clearOutbox: repo.clearPilotContributions);
+        clearOutbox: store.clear, now: () => DateTime.utc(2026, 11, 1));
     await controller.enable(api.baseUrl);
     await repo.save(DiaryEntry(
         id: 'diary', startedAt: DateTime.utc(2026), description: 'keep diary'));
-    await repo.savePilotContribution(
-        '00000000-0000-0000-0000-000000000001', {'band': 'synthetic'});
-    expect(await controller.withdraw(), isFalse);
+    final outbox = PilotContributionOutbox(
+        store: store,
+        api: api,
+        consent: controller,
+        qualityReady: () => true,
+        now: () => DateTime.utc(2026, 11, 3));
+    await outbox.enqueue(
+        destination: api.baseUrl,
+        generation: '00000000-0000-0000-0000-000000000001',
+        day: '2026-11-02',
+        band: 'medium');
+    final staleRecord = (await store.list()).single;
+    expect(await outbox.sync(), 0);
+    final concurrentSave = store
+        .save('00000000-0000-0000-0000-000000000003', {'band': 'synthetic'});
+    final withdrawal = controller.withdraw();
+    await concurrentSave;
+    expect(await withdrawal, isFalse);
     expect(controller.pendingWithdrawal, isTrue);
+    expect(await repo.listPilotContributions(), isEmpty);
+    await store.acknowledge(staleRecord['id'] as String, staleRecord);
     expect(await repo.listPilotContributions(), isEmpty);
     expect((await repo.list()).single.description, 'keep diary');
     api.offline = false;

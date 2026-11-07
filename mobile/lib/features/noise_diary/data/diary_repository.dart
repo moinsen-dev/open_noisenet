@@ -330,10 +330,13 @@ class LocalDiaryRepository implements DiaryRepository {
         .hasMatch(id)) {
       throw ArgumentError('Pilot outbox id must be opaque');
     }
+    if (payload.containsKey('id') && payload['id'] != id) {
+      throw ArgumentError('Pilot outbox identity mismatch');
+    }
     final db = await _db;
     final key = await _getKey(create: !await _hasEncryptedEntries(db));
-    await db.insert(
-        'pilot_outbox', await _cipher.encryptPayload('pilot:$id', payload, key),
+    await db.insert('pilot_outbox',
+        await _cipher.encryptPayload('pilot:$id', {...payload, 'id': id}, key),
         conflictAlgorithm: ConflictAlgorithm.abort);
   }
 
@@ -341,11 +344,34 @@ class LocalDiaryRepository implements DiaryRepository {
     final rows = await (await _db).query('pilot_outbox');
     if (rows.isEmpty) return [];
     final key = await _getKey(create: false);
-    return Future.wait(rows.map((row) => _cipher.decryptPayload(row, key)));
+    return Future.wait(rows.map((row) async {
+      final storedId = row['id'];
+      if (storedId is! String || !storedId.startsWith('pilot:')) {
+        throw StateError('Invalid pilot outbox identity');
+      }
+      final payload = await _cipher.decryptPayload(row, key);
+      if (payload['id'] != storedId.substring('pilot:'.length)) {
+        throw StateError('Pilot outbox identity mismatch');
+      }
+      return payload;
+    }));
   }
 
   Future<void> removePilotContribution(String id) async => (await _db)
       .delete('pilot_outbox', where: 'id = ?', whereArgs: ['pilot:$id']);
+
+  /// Update only: a concurrent withdrawal must never recreate a cleared row.
+  Future<void> acknowledgePilotContribution(
+      String id, Map<String, Object?> payload) async {
+    if (payload['id'] != id)
+      throw ArgumentError('Pilot outbox identity mismatch');
+    final db = await _db;
+    final key = await _getKey(create: false);
+    final encrypted = await _cipher.encryptPayload(
+        'pilot:$id', {...payload, 'acked': true}, key);
+    await db.update('pilot_outbox', encrypted,
+        where: 'id = ?', whereArgs: ['pilot:$id']);
+  }
 
   Future<void> clearPilotContributions() async =>
       (await _db).delete('pilot_outbox');

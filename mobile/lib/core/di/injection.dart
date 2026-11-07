@@ -12,7 +12,7 @@ import '../../services/preferences_migration_service.dart';
 import '../../services/audio_capture_service.dart';
 import '../../services/api_client_service.dart';
 import '../../services/map_pilot/pilot_consent_controller.dart';
-import '../../features/noise_diary/data/diary_repository.dart';
+import '../../services/map_pilot/pilot_contribution_outbox.dart';
 import '../../services/map_pilot/pilot_withdrawal_retry.dart';
 import '../../services/backend_sync_service.dart';
 import '../../services/noise_pattern_analyzer.dart';
@@ -97,9 +97,11 @@ Future<void> configureDependencies() async {
     logger: logger,
   );
   getIt.registerSingleton<ApiClientService>(apiClientService);
+  final pilotOutbox = EncryptedPilotOutboxStore();
+  getIt.registerSingleton<EncryptedPilotOutboxStore>(pilotOutbox);
   final pilotConsent = PilotConsentController(
       sharedPreferences, apiClientService,
-      clearOutbox: LocalDiaryRepository().clearPilotContributions);
+      clearOutbox: pilotOutbox.clear);
   getIt.registerSingleton<PilotConsentController>(pilotConsent);
   final pilotRetry = PilotWithdrawalRetry(pilotConsent,
       () async => !await sqlitePreferencesService.getForceOfflineMode());

@@ -9,17 +9,21 @@ import '../api_client_service.dart';
 /// Persist a pending withdrawal before making any request, including opt-in, so
 /// a crash cannot leave a locally usable consent whose server state is unknown.
 class PilotConsentController {
-  PilotConsentController(this._prefs, this._api, {required this.clearOutbox});
+  PilotConsentController(this._prefs, this._api,
+      {required this.clearOutbox, DateTime Function()? now})
+      : _now = now ?? DateTime.now;
   static const _key = 'map_pilot_consent_v1';
   final SharedPreferences _prefs;
   final ApiClientService _api;
   final Future<void> Function() clearOutbox;
+  final DateTime Function() _now;
   Future<void> _operations = Future.value();
   bool _blocked = false;
   // A fresh process must not send until a future server reconciliation flow
   // is implemented. This also fails closed if a crash races a local write.
   bool _sessionValidated = false;
   int? _consentEpoch;
+  DateTime? _sessionStartedAtUtc;
   int _withdrawalEpoch = 0;
 
   Map<String, dynamic> _read() {
@@ -93,6 +97,7 @@ class PilotConsentController {
   }
 
   bool get pendingWithdrawal => _read()['pending'] == true;
+  DateTime? get sessionStartedAtUtc => enabled ? _sessionStartedAtUtc : null;
   bool get canRetryAutomatically {
     final state = _read();
     final generation = state['generation'];
@@ -174,6 +179,7 @@ class PilotConsentController {
         _blocked = false;
         _sessionValidated = true;
         _consentEpoch = accountEpoch;
+        _sessionStartedAtUtc = _now().toUtc();
       }
     });
   }
@@ -182,6 +188,7 @@ class PilotConsentController {
     // Stop new transfers synchronously, before persistence or network awaits.
     _blocked = true;
     _sessionValidated = false;
+    _sessionStartedAtUtc = null;
     _withdrawalEpoch++;
     return _serial(() async {
       final current = _read();

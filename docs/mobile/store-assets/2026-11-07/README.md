@@ -19,6 +19,9 @@ Alle fünf Dateien sind JPEG mit 1080 × 1920 Pixeln, ohne Transparenz, je wenig
 als 200 KB. Der Schriftbereich außerhalb der App liegt unter einem Fünftel der
 Bildhöhe. Die Rohansichten sind unter `raw/android/` unverändert erhalten.
 HTML-Dateien neben den JPEGs sind die reproduzierbaren Layoutquellen.
+Die fünf gestalteten Storegrafiken wurden bei der Einreichung als mit KI erstellt
+oder bearbeitet gekennzeichnet; diese Angabe betrifft die fertige Komposition.
+Die eingebettete App-Oberfläche stammt aus den unten dokumentierten echten Screenshots.
 
 ## Herkunft und Grenzen
 

@@ -2,6 +2,10 @@
 
 ## Übergabe
 
+**07.11.2026 · Deutsche Store-Seite zur Veröffentlichung eingereicht; Google prüft noch.** Udi hat den vorbereiteten Stand freigegeben. Einreichung **3**, 10:48 Uhr Europe/Berlin: vier Änderungen für de-DE (Titel, Kurztext, Langtext, fünf Phone-Screenshots). Quick Checks abgeschlossen, Status „In review“. Fünf mit KI gestaltete Grafiken in Googles Asset-Abfrage gekennzeichnet; originale App-Ansichten bleiben dokumentiert. Automatische Veröffentlichung nach Genehmigung ist aktiv („Managed publishing off“). Öffentlich nach der Vorprüfung noch alte Texte und zwei Bilder; **nicht als live melden**. Nächster Schritt: nach Google-Freigabe öffentliche deutsche Texte sowie alle fünf Bilder einzeln und in Reihenfolge prüfen. Keine neue Zustimmung erforderlich. Kein Monitor/keine Automation gestartet. Private Belege: `~/Library/Application Support/OpenNoiseNet/ASO-20261107/play-submission-3-status.jpg` und `play-public-before-approval.jpg`. [Maßgeblicher Stand](docs/current-status.md).
+
+## Vorherige Übergabe – fünf Storebilder und Entwurf
+
 **07.11.2026 · Fünf deutsche Storebilder umgesetzt, Play-Entwurf gespeichert.** Udi hat den Einstieg über Geräuschphasen ausgewählt. Originalansichten aus Android-Release 0.1.0 (6) auf eigenem 16-KB-Emulator mit ausschließlich synthetischen Daten. Quellenphasen, Pausen, Tagebuch und echter CSV-Speicherablauf geprüft. Debug-Datenlader vor Aufnahmen durch Release ersetzt; 414 nicht zur Signatur gehörende APK-Einträge bytegleich. [Bilder, Vorschau und Herkunft](docs/mobile/store-assets/2026-11-07/README.md). Fünf JPEGs in 1080 × 1920, einzeln visuell geprüft. Deutsche Texte und Bilder aufsteigend in Google Play als Entwurf gespeichert, nicht eingereicht/veröffentlicht. Physischer Pixel und iOS unverändert. Weitere Veröffentlichung und ASO-Experiment sind getrennte Schritte. [Maßgeblicher Stand](docs/current-status.md).
 
 ## Vorherige Übergabe – ASO-Vorschlag

@@ -426,3 +426,5 @@ Expected local ports:
 **Kartenpilot, 07.11.2026:** Synthetische Kandidat-/Siegelungstransaktion und Pilot-Schlüsselkontinuität samt Rotation vorbereitet und isoliert getestet. Kein produktiver Siegelungsweg; reale Messqualität und Punkte 2–10 bleiben offen. [Checkliste](kartenpilot-checkliste.md).
 
 **Kartenpilot, ergänzende Erprobung 07.11.2026:** Externer Löschlauf-Probeprozess, verschlüsselter synthetischer PostgreSQL-Backup-/Restore-Drill und erste Rückschluss-Negativfälle getestet. Kein tatsächliches Monitoring, keine erzwungene Betriebsquarantäne; Checkliste bleibt offen. [Checkliste](kartenpilot-checkliste.md).
+
+**Kartenpilot, App-Zustand 07.11.2026:** Offline-Widerruf im isolierten Flutter-Baustein getestet; keine UI-/Worker-Anbindung, nach Neustart vorsichtshalber kein Versand. Flutter 101 bestanden/einer übersprungen. [Checkliste](kartenpilot-checkliste.md).

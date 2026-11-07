@@ -343,6 +343,9 @@ class ApiClientService implements PhaseUploadTransport {
   }
 
   bool get isAuthenticated => _accessToken != null;
+
+  /// Changes on logout or backend replacement; never contains credentials.
+  int get credentialEpoch => _credentialEpoch;
   String? get assignedSiteId => _lastDevicePayload?['site_id']?.toString();
   String? get assignedZoneId => _lastDevicePayload?['zone_id']?.toString();
   String? get assignedCalibrationProfileId =>
